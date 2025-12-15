@@ -1,8 +1,5 @@
 import * as React from "react";
 import { X } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Button } from "./button";
-
 interface DialogProps {
   isOpen: boolean;
   onClose: () => void;
@@ -10,7 +7,12 @@ interface DialogProps {
   children: React.ReactNode;
 }
 
-export function Dialog({ isOpen, onClose, title, children }: DialogProps) {
+export function Dialog({
+  isOpen,
+  onClose,
+  title,
+  children,
+}: Readonly<DialogProps>) {
   if (!isOpen) return null;
 
   return (

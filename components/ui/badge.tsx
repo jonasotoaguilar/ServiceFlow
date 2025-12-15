@@ -11,7 +11,11 @@ export interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
     | "warning";
 }
 
-function Badge({ className, variant = "default", ...props }: BadgeProps) {
+function Badge({
+  className,
+  variant = "default",
+  ...props
+}: Readonly<BadgeProps>) {
   const variants = {
     default:
       "border-transparent bg-zinc-900 text-zinc-50 hover:bg-zinc-900/80 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-50/80",

@@ -16,11 +16,23 @@ export function WarrantyDetailsModal({
   isOpen,
   onClose,
   warranty,
-}: WarrantyDetailsModalProps) {
+}: Readonly<WarrantyDetailsModalProps>) {
   if (!warranty) return null;
 
   const formatDate = (date: string) =>
     format(parseISO(date), "dd MMM yyyy HH:mm", { locale: es });
+
+  const getBadgeVariant = (status: Warranty["status"]) => {
+    if (status === "ready") return "success";
+    if (status === "completed") return "default";
+    return "secondary";
+  };
+
+  const getBadgeLabel = (status: Warranty["status"]) => {
+    if (status === "pending") return "Pendiente";
+    if (status === "ready") return "Lista";
+    return "Completada";
+  };
 
   return (
     <Dialog
@@ -37,20 +49,8 @@ export function WarrantyDetailsModal({
           </div>
           <div className="text-right">
             <p className="text-zinc-500 dark:text-zinc-400 text-xs">Estado</p>
-            <Badge
-              variant={
-                warranty.status === "ready"
-                  ? "success"
-                  : warranty.status === "completed"
-                  ? "default"
-                  : "secondary"
-              }
-            >
-              {warranty.status === "pending"
-                ? "Pendiente"
-                : warranty.status === "ready"
-                ? "Lista"
-                : "Completada"}
+            <Badge variant={getBadgeVariant(warranty.status)}>
+              {getBadgeLabel(warranty.status)}
             </Badge>
           </div>
         </div>
