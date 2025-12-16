@@ -39,11 +39,11 @@ export function WarrantyModal({
       ? availableLocations
       : ["Recepcion", "Taller", "Bodega", "Proveedor", "Cliente"];
 
-  const isCompleted = warrantyToEdit?.status === "completed";
-  // Bloqueo estricto para campos inmutables: Boleta, Cliente, Producto
-  const isImmutable = !!warrantyToEdit;
-  // Bloqueo general de otros datos si está completada
-  const isLocked = isCompleted;
+  // Bloqueo solo si la garantía YA estaba completada y sigue estando completada durante la edición.
+  const isLocked =
+    !!warrantyToEdit &&
+    warrantyToEdit.status === "completed" &&
+    (formData.status ?? warrantyToEdit.status) === "completed";
 
   useEffect(() => {
     if (warrantyToEdit) {
@@ -125,6 +125,16 @@ export function WarrantyModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+
+    // Validación de Teléfono
+    // Formato esperado: +56 9 1234 5678 (15 caracteres)
+    const phoneRegex = /^\+56 9 \d{4} \d{4}$/;
+    if (!formData.contact || !phoneRegex.test(formData.contact)) {
+      alert("El teléfono debe estar completo: +56 9 1234 5678");
+      setLoading(false);
+      return;
+    }
+
     try {
       const isEdit = !!warrantyToEdit;
       const url = "/api/warranties";
@@ -194,17 +204,13 @@ export function WarrantyModal({
             <Input
               required
               autoFocus
-              disabled={isImmutable}
-              type="number"
+              disabled={isLocked}
               placeholder="123456"
               value={formData.invoiceNumber || ""}
-              onKeyDown={handleNumberInput}
               onChange={(e) =>
                 setFormData({
                   ...formData,
-                  invoiceNumber: e.target.value
-                    ? Number(e.target.value)
-                    : undefined,
+                  invoiceNumber: e.target.value || undefined,
                 })
               }
             />
@@ -227,7 +233,7 @@ export function WarrantyModal({
           <label className="sm:col-span-2 grid gap-2">
             <span className="text-sm font-medium">Cliente *</span>
             <Input
-              disabled={isImmutable}
+              disabled={isLocked}
               required
               placeholder="Nombre completo"
               value={formData.clientName || ""}
@@ -270,7 +276,7 @@ export function WarrantyModal({
               placeholder="+56 9..."
               value={formData.contact || ""}
               onChange={handlePhoneChange}
-              maxLength={16}
+              maxLength={15}
             />
           </label>
         </div>
@@ -280,7 +286,7 @@ export function WarrantyModal({
           <label className="grid gap-2">
             <span className="text-sm font-medium">Producto *</span>
             <Input
-              disabled={isImmutable}
+              disabled={isLocked}
               required
               placeholder="Nombre del producto"
               value={formData.product || ""}

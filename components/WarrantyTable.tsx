@@ -1,6 +1,6 @@
 "use client";
 
-import { differenceInBusinessDays, parseISO } from "date-fns";
+import { differenceInBusinessDays, parseISO, format } from "date-fns";
 import { Warranty } from "@/lib/types";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
@@ -66,13 +66,6 @@ export function WarrantyTable({
     return "bg-green-500 text-white hover:bg-green-600 dark:bg-green-700 dark:text-green-100";
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("es-CL", {
-      style: "currency",
-      currency: "CLP",
-    }).format(amount);
-  };
-
   if (warranties.length === 0) {
     return (
       <div className="text-center py-10 text-zinc-500">
@@ -91,8 +84,8 @@ export function WarrantyTable({
               <th className="px-4 py-3">Producto</th>
               <th className="px-4 py-3">Cliente</th>
               <th className="px-4 py-3">Ubicación</th>
+              <th className="px-4 py-3 text-center">Fecha Ingreso</th>
               <th className="px-4 py-3 text-center">Días Transc.</th>
-              <th className="px-4 py-3 text-right">Costo</th>
               <th className="px-4 py-3 text-center">Estado</th>
               <th className="px-4 py-3 text-right">Acciones</th>
             </tr>
@@ -121,15 +114,13 @@ export function WarrantyTable({
                       {warranty.location}
                     </span>
                   </td>
+                  <td className="px-4 py-3 text-center text-zinc-600 dark:text-zinc-400">
+                    {format(parseISO(warranty.entryDate), "dd/MM/yyyy")}
+                  </td>
                   <td className="px-4 py-3 text-center">
                     <Badge className={getDaysBadgeColor(days)}>
                       {days} días
                     </Badge>
-                  </td>
-                  <td className="px-4 py-3 text-right font-medium text-zinc-600 dark:text-zinc-300">
-                    {warranty.repairCost && warranty.repairCost > 0
-                      ? formatCurrency(warranty.repairCost)
-                      : "Sin costo"}
                   </td>
                   <td className="px-4 py-3 text-center">
                     {getStatusBadge(warranty.status)}

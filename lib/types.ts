@@ -3,7 +3,7 @@ export type WarrantyStatus = "pending" | "ready" | "completed";
 export interface Warranty {
   id: string;
   clientName: string;
-  invoiceNumber?: number; // Obligatorio en UI
+  invoiceNumber?: string; // Obligatorio en UI
   product: string;
   failureDescription?: string; // Nuevo campo Falla
   sku?: string;
@@ -18,6 +18,15 @@ export interface Warranty {
   repairCost?: number;
   notes?: string;
   userId?: string;
+  locationLogs?: LocationLog[];
+}
+
+export interface LocationLog {
+  id: string;
+  warrantyId: string;
+  fromLocation: string;
+  toLocation: string;
+  changedAt: string; // ISO Date
 }
 
 export type NewWarrantyPayload = Omit<Warranty, "id" | "status"> & {

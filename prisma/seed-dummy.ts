@@ -77,7 +77,6 @@ async function main() {
   // Or just list users by email
   const {
     data: { users },
-    error: listError,
   } = await supabaseAdmin.auth.admin.listUsers();
 
   const existingUser = users.find((u) => u.email === email);
@@ -130,7 +129,7 @@ async function main() {
     }
 
     warranties.push({
-      invoiceNumber: randomInt(1000, 9999),
+      invoiceNumber: randomInt(1000, 9999).toString(),
       clientName: randomItem(CLIENT_NAMES),
       rut: `${randomInt(10, 20)}.${randomInt(100, 999)}.${randomInt(
         100,
@@ -161,12 +160,11 @@ async function main() {
   console.log("Done! 40 warranties verified and assigned to test@example.com");
 }
 
-main()
-  .then(async () => {
-    await prisma.$disconnect();
-  })
-  .catch(async (e) => {
-    console.error(e);
-    await prisma.$disconnect();
-    process.exit(1);
-  });
+try {
+  await main();
+  await prisma.$disconnect();
+} catch (e) {
+  console.error(e);
+  await prisma.$disconnect();
+  process.exit(1);
+}

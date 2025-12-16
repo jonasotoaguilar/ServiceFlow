@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+// Force recompile
 import { Warranty, WarrantyStatus } from "./types";
 
 // Helper to convert Prisma result to Warranty type (Dates to strings)
@@ -11,6 +12,10 @@ function mapToWarranty(item: any): Warranty {
       : undefined,
     readyDate: item.readyDate ? item.readyDate.toISOString() : undefined,
     status: item.status as WarrantyStatus,
+    locationLogs: item.locationLogs?.map((log: any) => ({
+      ...log,
+      changedAt: log.changedAt.toISOString(),
+    })),
   };
 }
 
@@ -44,14 +49,8 @@ export async function getWarranties(params?: {
     where.OR = [
       { clientName: { contains: search } },
       { product: { contains: search } },
-      // invoiceNumber es Int, no podemos hacer contains directo con string a menos que sea exacto o convirtamos.
-      // Para simplificar, buscamos si es un número válido
+      { invoiceNumber: { contains: search } },
     ];
-
-    const searchNum = Number(search);
-    if (!Number.isNaN(searchNum)) {
-      where.OR.push({ invoiceNumber: { equals: searchNum } });
-    }
   }
 
   const [items, total] = await Promise.all([
@@ -60,7 +59,12 @@ export async function getWarranties(params?: {
       skip,
       take: limit,
       orderBy: { entryDate: "desc" },
-    }),
+      include: {
+        locationLogs: {
+          orderBy: { changedAt: "desc" },
+        },
+      },
+    } as any),
     prisma.warranty.count({ where }),
   ]);
 
@@ -73,28 +77,46 @@ export async function getWarranties(params?: {
 }
 
 export async function saveWarranty(warranty: Warranty): Promise<void> {
-  await prisma.warranty.create({
-    data: {
-      id: warranty.id,
-      userId: warranty.userId,
-      invoiceNumber: warranty.invoiceNumber,
-      clientName: warranty.clientName,
-      rut: warranty.rut,
-      contact: warranty.contact,
-      email: warranty.email,
-      product: warranty.product,
-      failureDescription: warranty.failureDescription,
-      sku: warranty.sku,
-      location: warranty.location,
-      entryDate: new Date(warranty.entryDate),
-      deliveryDate: warranty.deliveryDate
-        ? new Date(warranty.deliveryDate)
-        : null,
-      readyDate: warranty.readyDate ? new Date(warranty.readyDate) : null,
-      status: warranty.status,
-      repairCost: warranty.repairCost,
-      notes: warranty.notes,
-    },
+  // Usar transacción para crear garantía y log inicial
+  await prisma.$transaction(async (tx) => {
+    // 1. Crear Garantía
+    const created = await tx.warranty.create({
+      data: {
+        id: warranty.id,
+        userId: warranty.userId,
+        invoiceNumber: warranty.invoiceNumber as any,
+        clientName: warranty.clientName,
+        rut: warranty.rut,
+        contact: warranty.contact,
+        email: warranty.email,
+        product: warranty.product,
+        failureDescription: warranty.failureDescription,
+        sku: warranty.sku,
+        location: warranty.location,
+        entryDate: new Date(warranty.entryDate),
+        deliveryDate: warranty.deliveryDate
+          ? new Date(warranty.deliveryDate)
+          : null,
+        readyDate: warranty.readyDate ? new Date(warranty.readyDate) : null,
+        status: warranty.status,
+        repairCost: warranty.repairCost,
+        notes: warranty.notes,
+      },
+    });
+
+    // 2. Crear Log Inicial (Recepcion -> Ubicación Inicial)
+    // Asumimos "Recepcion" como el punto de origen del sistema antes de asignarse a una ubicación física.
+    // Si la ubicación inicial es "Recepcion", el log será "Ingreso -> Recepcion" para más claridad.
+    const initialOrigin = "Ingreso";
+
+    await (tx as any).locationLog.create({
+      data: {
+        warrantyId: created.id,
+        fromLocation: initialOrigin,
+        toLocation: created.location,
+        changedAt: created.entryDate, // Usar la misma fecha de ingreso
+      },
+    });
   });
 }
 
@@ -107,12 +129,23 @@ export async function updateWarranty(
     where.userId = userId;
   }
 
-  // Usamos updateMany para permitir filtrar por userId (seguridad)
-  // Aunque updateMany devuelve batchPayload, cumple el propósito de seguridad.
-  const result = await prisma.warranty.updateMany({
+  // 1. Obtener la garantía actual para verificar propiedad y comparar ubicación
+  const currentWarranty = await prisma.warranty.findFirst({
     where,
+  });
+
+  if (!currentWarranty) {
+    throw new Error("No warranty found or access denied");
+  }
+
+  // 2. Preparar operaciones en transacción
+  const operations: any[] = [];
+
+  // Actualización de la garantía
+  const updateOp = prisma.warranty.update({
+    where: { id: updatedWarranty.id },
     data: {
-      invoiceNumber: updatedWarranty.invoiceNumber,
+      invoiceNumber: updatedWarranty.invoiceNumber as any,
       clientName: updatedWarranty.clientName,
       rut: updatedWarranty.rut,
       contact: updatedWarranty.contact,
@@ -133,10 +166,41 @@ export async function updateWarranty(
       notes: updatedWarranty.notes,
     },
   });
+  operations.push(updateOp);
 
-  if (result.count === 0) {
-    throw new Error("No warranty found or access denied");
+  // 3. Verificar cambio de ubicación y crear log
+  if (currentWarranty.location !== updatedWarranty.location) {
+    const logOp = (prisma as any).locationLog.create({
+      data: {
+        warrantyId: updatedWarranty.id,
+        fromLocation: currentWarranty.location,
+        toLocation: updatedWarranty.location,
+      },
+    });
+    operations.push(logOp);
   }
+
+  // 4. Verificar cambio a estado "completed" (Entregada)
+  // Si pasa a completed y NO se registró ya un cambio de ubicación a algo como "Entregado/Cliente"
+  // forzamos un log que indique la entrega.
+  if (
+    updatedWarranty.status === "completed" &&
+    currentWarranty.status !== "completed"
+  ) {
+    // Solo si no acabamos de registrar un movimiento hacia "Cliente" o "Entregada" explícito
+    // (Aunque en este sistema la ubicación y el estado son ortogonales, asumimos que "completed" implica entrega al cliente)
+    const logOp = (prisma as any).locationLog.create({
+      data: {
+        warrantyId: updatedWarranty.id,
+        fromLocation: updatedWarranty.location, // Sale de la ubicación donde estaba
+        toLocation: "Entregada",
+      },
+    });
+    operations.push(logOp);
+  }
+
+  // Ejecutar transacción
+  await prisma.$transaction(operations);
 }
 
 export async function deleteWarranty(

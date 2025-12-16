@@ -12,7 +12,7 @@ datasource db {
 
 model Warranty {
   id                 String   @id @default(uuid())
-  invoiceNumber      Int?
+  invoiceNumber      String?
   clientName         String
   rut                String?
   contact            String?
@@ -30,4 +30,14 @@ model Warranty {
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
   userId             String?  @default(uuid())
+  locationLogs       LocationLog[]
+}
+
+model LocationLog {
+  id           String   @id @default(uuid())
+  warrantyId   String
+  warranty     Warranty @relation(fields: [warrantyId], references: [id], onDelete: Cascade)
+  fromLocation String
+  toLocation   String
+  changedAt    DateTime @default(now())
 }
