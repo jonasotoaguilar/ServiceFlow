@@ -1,6 +1,6 @@
 -- CreateTable
 CREATE TABLE "Warranty" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "invoiceNumber" INTEGER,
     "clientName" TEXT NOT NULL,
     "rut" TEXT,
@@ -10,12 +10,14 @@ CREATE TABLE "Warranty" (
     "failureDescription" TEXT,
     "sku" TEXT,
     "location" TEXT NOT NULL DEFAULT 'Ingreso',
-    "entryDate" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "deliveryDate" DATETIME,
-    "readyDate" DATETIME,
+    "entryDate" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "deliveryDate" TIMESTAMP(3),
+    "readyDate" TIMESTAMP(3),
     "status" TEXT NOT NULL DEFAULT 'pending',
     "repairCost" INTEGER DEFAULT 0,
     "notes" TEXT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Warranty_pkey" PRIMARY KEY ("id")
 );
