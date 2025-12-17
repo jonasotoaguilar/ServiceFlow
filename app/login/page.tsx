@@ -3,11 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 
-export default function LoginPage({
-  searchParams,
-}: {
-  searchParams: { error?: string };
+export default async function LoginPage(props: {
+  searchParams: Promise<{ error?: string }>;
 }) {
+  const searchParams = await props.searchParams;
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
       <div className="w-full max-w-md space-y-8">

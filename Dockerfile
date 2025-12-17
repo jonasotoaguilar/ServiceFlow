@@ -1,5 +1,5 @@
 # Base image
-FROM node:25-alpine AS base
+FROM node:22-alpine AS base
 
 # Install system dependencies required for all stages (Prisma, Next.js optimization)
 # libc6-compat for compatibility
