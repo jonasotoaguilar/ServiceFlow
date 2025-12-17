@@ -1,0 +1,306 @@
+"use client";
+
+import { signout } from "@/app/auth/actions";
+
+import { useEffect, useState, useCallback } from "react";
+import { Warranty, WarrantyStatus } from "@/lib/types";
+import { WarrantyTable } from "./WarrantyTable";
+import { WarrantyModal } from "./WarrantyModal";
+import { WarrantyDetailsModal } from "./WarrantyDetailsModal";
+import { Button } from "./ui/button";
+import {
+  Plus,
+  LayoutDashboard,
+  Search,
+  Filter,
+  ChevronLeft,
+  ChevronRight,
+  LogOut,
+} from "lucide-react";
+import { Input } from "./ui/input";
+
+export function WarrantyDashboard() {
+  const [warranties, setWarranties] = useState<Warranty[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // Paginación
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Filtro de estados
+  const [statusFilter, setStatusFilter] = useState<WarrantyStatus[]>([
+    "pending",
+    "ready",
+  ]);
+
+  const [editingWarranty, setEditingWarranty] = useState<Warranty | null>(null);
+  const [viewingWarranty, setViewingWarranty] = useState<Warranty | null>(null);
+  const [locations, setLocations] = useState<string[]>([
+    "Recepcion",
+    "Taller",
+    "Bodega",
+    "Proveedor",
+    "Cliente",
+  ]);
+
+  const fetchWarranties = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const params = new URLSearchParams();
+      params.set("page", currentPage.toString());
+      params.set("limit", "20");
+      if (searchTerm) params.set("search", searchTerm);
+      if (statusFilter.length > 0) params.set("status", statusFilter.join(","));
+
+      const res = await fetch(`/api/warranties?${params.toString()}`);
+      if (res.ok) {
+        const responseData = await res.json();
+        // Backend devuelve { data, total, page, limit }
+        const data: Warranty[] = responseData.data || [];
+        const total = responseData.total || 0;
+
+        setWarranties(data);
+        setTotalPages(Math.max(1, Math.ceil(total / 20)));
+
+        // Sincronizar ubicaciones dinámicas "aprendidas"
+        const dataLocs = data.map((w) => w.location);
+        setLocations((prev) => {
+          const combined = new Set([...prev, ...dataLocs]);
+          return Array.from(combined).filter(Boolean);
+        });
+      }
+    } catch (e) {
+      console.error("Error fetching warranties", e);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentPage, searchTerm, statusFilter]);
+
+  // Debounce para fetch cuando cambien filtros
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchWarranties();
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [fetchWarranties]);
+
+  // Reset página al cambiar filtros (si cambia search o status)
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter]);
+
+  const handleEdit = (warranty: Warranty) => {
+    setEditingWarranty(warranty);
+    setIsModalOpen(true);
+  };
+
+  const handleView = (warranty: Warranty) => {
+    setViewingWarranty(warranty);
+    setIsDetailsOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setTimeout(() => setEditingWarranty(null), 300);
+  };
+
+  const handleAddLocation = (newLoc: string) => {
+    if (!locations.includes(newLoc)) {
+      setLocations([...locations, newLoc]);
+    }
+  };
+
+  const handleDeleteLocation = (locToDelete: string) => {
+    const isInUse = warranties.some((w) => w.location === locToDelete);
+    if (isInUse) {
+      alert(
+        `No se puede eliminar la ubicación "${locToDelete}" porque hay garantías asignadas a ella.`
+      );
+      return;
+    }
+    setLocations(locations.filter((l) => l !== locToDelete));
+  };
+
+  const toggleStatusFilter = (status: WarrantyStatus) => {
+    setStatusFilter((prev) => {
+      if (prev.includes(status)) {
+        return prev.filter((s) => s !== status);
+      } else {
+        return [...prev, status];
+      }
+    });
+  };
+
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 flex items-center gap-2">
+            <LayoutDashboard className="h-6 w-6" />
+            Control de Garantías
+          </h1>
+          <p className="text-zinc-500 dark:text-zinc-400">
+            Gestiona servicios, estados y ubicaciones.
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => signout()}>
+            <LogOut className="mr-2 h-4 w-4" /> Salir
+          </Button>
+          <Button
+            onClick={() => {
+              setEditingWarranty(null);
+              setIsModalOpen(true);
+            }}
+          >
+            <Plus className="mr-2 h-4 w-4" /> Nueva Garantía
+          </Button>
+        </div>
+      </div>
+
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+        <div className="relative w-full max-w-sm">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-zinc-500 dark:text-zinc-400" />
+          <Input
+            placeholder="Buscar por cliente o N° boleta..."
+            className="pl-9"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0">
+          <span className="text-sm text-zinc-500 dark:text-zinc-400 flex items-center gap-1">
+            <Filter className="h-4 w-4" /> Estados:
+          </span>
+          {(["pending", "ready", "completed"] as WarrantyStatus[]).map(
+            (status) => {
+              const isActive = statusFilter.includes(status);
+              const labels = {
+                pending: "Pendientes",
+                ready: "Listas",
+                completed: "Completadas",
+              };
+              return (
+                <button
+                  key={status}
+                  onClick={() => toggleStatusFilter(status)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors border ${
+                    isActive
+                      ? "bg-zinc-900 text-zinc-50 border-zinc-900 dark:bg-zinc-100 dark:text-zinc-900 dark:border-zinc-100"
+                      : "bg-transparent text-zinc-600 border-zinc-200 hover:bg-zinc-100 dark:text-zinc-400 dark:border-zinc-800 dark:hover:bg-zinc-800"
+                  }`}
+                >
+                  {labels[status]}
+                </button>
+              );
+            }
+          )}
+        </div>
+      </div>
+
+      <div className="relative min-h-[300px]">
+        {isLoading && (
+          <div className="absolute inset-0 bg-white/50 dark:bg-zinc-950/50 z-10 flex items-center justify-center backdrop-blur-sm">
+            <div className="text-zinc-500 text-sm">Cargando...</div>
+          </div>
+        )}
+        <WarrantyTable
+          warranties={warranties}
+          onEdit={handleEdit}
+          onView={handleView}
+          onDelete={async (warranty) => {
+            if (
+              confirm(
+                `¿Estás seguro de eliminar la garantía #${
+                  warranty.invoiceNumber || "S/N"
+                } de ${warranty.clientName}?`
+              )
+            ) {
+              try {
+                const res = await fetch(`/api/warranties?id=${warranty.id}`, {
+                  method: "DELETE",
+                });
+                if (res.ok) {
+                  fetchWarranties();
+                } else {
+                  alert("Error al eliminar");
+                }
+              } catch (e) {
+                console.error(e);
+                alert("Error de conexión");
+              }
+            }
+          }}
+        />
+      </div>
+
+      {/* Controles de Paginación */}
+      <div className="flex items-center justify-center gap-2 mt-6">
+        <Button
+          variant="outline"
+          size="icon"
+          className="h-8 w-8"
+          onClick={() => handlePageChange(currentPage - 1)}
+          disabled={currentPage === 1 || isLoading}
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+
+        <div className="flex items-center gap-1">
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+            <Button
+              key={p}
+              variant={p === currentPage ? "default" : "ghost"}
+              size="sm"
+              className={`w-8 h-8 p-0 text-xs ${
+                p === currentPage ? "" : "text-zinc-500"
+              }`}
+              onClick={() => handlePageChange(p)}
+              disabled={isLoading}
+            >
+              {p}
+            </Button>
+          ))}
+        </div>
+
+        <Button
+          variant="outline"
+          size="icon"
+          className="h-8 w-8"
+          onClick={() => handlePageChange(currentPage + 1)}
+          disabled={currentPage === totalPages || totalPages === 0 || isLoading}
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
+
+      <WarrantyModal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        warrantyToEdit={editingWarranty}
+        availableLocations={locations}
+        onAddLocation={handleAddLocation}
+        onDeleteLocation={handleDeleteLocation}
+        onSuccess={() => {
+          fetchWarranties();
+        }}
+      />
+
+      <WarrantyDetailsModal
+        isOpen={isDetailsOpen}
+        onClose={() => setIsDetailsOpen(false)}
+        warranty={viewingWarranty}
+      />
+    </div>
+  );
+}

@@ -1,0 +1,44 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Warranty {
+  id                 String   @id @default(uuid())
+  invoiceNumber      String?
+  clientName         String
+  rut                String?
+  contact            String?
+  email              String?
+  product            String
+  failureDescription String?
+  sku                String?
+  location           String   @default("Ingreso")
+  entryDate          DateTime @default(now())
+  deliveryDate       DateTime?
+  readyDate          DateTime?
+  status             String   @default("pending") // pending, ready, completed
+  repairCost         Int?     @default(0)
+  notes              String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  userId             String?  @default(uuid())
+  locationLogs       LocationLog[]
+}
+
+model LocationLog {
+  id           String   @id @default(uuid())
+  warrantyId   String
+  warranty     Warranty @relation(fields: [warrantyId], references: [id], onDelete: Cascade)
+  fromLocation String
+  toLocation   String
+  changedAt    DateTime @default(now())
+}

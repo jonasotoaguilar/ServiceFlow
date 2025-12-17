@@ -1,0 +1,22 @@
+# Workspace
+warranty-system.code-workspace
+
+# Prisma
+/lib/generated/prisma
+
+# Next.js
+.next/
+out/
+
+# Dependencias
+node_modules/
+
+# Entorno
+.env
+.env.local
+.env.*.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
