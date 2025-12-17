@@ -4,13 +4,14 @@ Este proyecto es una aplicación web moderna diseñada para administrar el ciclo
 
 ## 🚀 Tecnologías
 
-El proyecto está construido con un stack tecnológico moderno y robusto:
+El proyecto está construido con la última tecnología disponible (a fecha 2024/2025):
 
-- **Framework Principal**: [Next.js 14](https://nextjs.org/) (App Router)
+- **Framework Principal**: [Next.js 16](https://nextjs.org/) (Turbopack + App Router)
 - **Lenguaje**: [TypeScript](https://www.typescriptlang.org/)
-- **Estilos**: [Tailwind CSS](https://tailwindcss.com/)
+- **Interfaz (UI)**: [React 19](https://react.dev/)
+- **Estilos**: [Tailwind CSS v4](https://tailwindcss.com/) (Oxide Engine)
 - **Base de Datos**: [PostgreSQL](https://www.postgresql.org/) (vía [Supabase](https://supabase.com/))
-- **ORM**: [Prisma](https://www.prisma.io/)
+- **ORM**: [Prisma 7](https://www.prisma.io/) (con **Driver Adapters** para Serverless/Edge)
 - **Containerización**: [Docker](https://www.docker.com/) & Docker Compose
 - **Iconos**: [Lucide React](https://lucide.dev/)
 - **Manejo de Fechas**: [date-fns](https://date-fns.org/)
@@ -24,15 +25,15 @@ El proyecto está construido con un stack tecnológico moderno y robusto:
   - `Completada`: Producto entregado al cliente (proceso cerrado).
 - **Cálculo de Tiempos**: Visualización automática de días transcurridos desde el ingreso (Business Days).
 - **Indicadores Visuales**: Badges de colores según la antigüedad del ticket (Verde, Naranja, Rojo).
-- **Validaciones Locales**: Formateo y validación de RUT chileno y teléfonos.
-- **Ubicaciones**: Gestión dinámica de la ubicación física del producto (Recepción, Taller, Bodega, etc.).
+- **Validaciones Locales**: Validaciones estrictas para RUT chileno y teléfonos (+56 9).
+- **Ubicaciones**: Gestión dinámica de la ubicación física del producto (Recepción, Taller, Bodega, etc.) con historial de movimientos.
 - **Búsqueda y Paginación**: Filtrado rápido por cliente, producto o número de boleta, con navegación paginada.
 
 ## 🛠️ Requisitos Previos
 
-- [Node.js](https://nodejs.org/) (v18 o superior)
+- [Node.js](https://nodejs.org/) (v20 o superior recomendado)
 - [Docker](https://www.docker.com/) (Opcional, para despliegue containerizado)
-- Cuenta en [Supabase](https://supabase.com/) (o instancia local de Supabase)
+- Cuenta en [Supabase](https://supabase.com/)
 
 ## ⚙️ Configuración del Entorno
 
@@ -45,18 +46,20 @@ El proyecto está construido con un stack tecnológico moderno y robusto:
 
 2.  **Configurar Variables de Entorno**
 
-    Crea un archivo `.env` en la raíz del proyecto. Puedes usar el siguiente template:
+    Crea un archivo `.env` en la raíz del proyecto. **Importante**: Con Prisma 7 y Driver Adapters, la configuración de conexión ha cambiado ligeramente para optimizar el uso de Supabase Pooling.
 
     ```env
-    # Conexión a Base de Datos (Supabase Transaction Pooler recomendado para Serverless/Docker)
-    DATABASE_URL="postgresql://postgres:[PASSWORD]@[HOST]:[PORT]/[DB_NAME]?pgbouncer=true"
+    # Conexión principal (Transaction Pooler - Puerto 6543)
+    # Se usa para la aplicación en ejecución
+    DATABASE_URL="postgresql://postgres:[PASSWORD]@[HOST]:6543/postgres?pgbouncer=true"
 
-    # URL Directa (Para migraciones)
-    DIRECT_URL="postgresql://postgres:[PASSWORD]@[HOST]:[PORT]/[DB_NAME]"
+    # Conexión Directa (Session Pooler - Puerto 5432)
+    # Se usa SOLO para migraciones y CLI de Prisma (prisma.config.ts)
+    DIRECT_URL="postgresql://postgres:[PASSWORD]@[HOST]:5432/postgres"
 
     # Supabase Auth & Public
     NEXT_PUBLIC_SUPABASE_URL="https://[PROJECT-ID].supabase.co"
-    NEXT_PUBLIC_SUPABASE_ANON_KEY="[YOUR-ANON-KEY]"
+    NEXT_PUBLIC_SUPABASE_ANON_KEY="[YOUR-ANON-KEY-STARTING-WITH-EY...]"
     ```
 
 3.  **Instalar dependencias**
@@ -67,7 +70,7 @@ El proyecto está construido con un stack tecnológico moderno y robusto:
 
 4.  **Inicializar la Base de Datos**
 
-    Sincroniza el esquema de Prisma con tu base de datos en Supabase:
+    Gracias a `prisma.config.ts` (nuevo en Prisma 7), la CLI utilizará automáticamente la `DIRECT_URL` para realizar cambios en el esquema sin romper el pool de conexiones de la aplicación.
 
     ```bash
     npx prisma migrate dev --name init
@@ -81,7 +84,7 @@ El proyecto está construido con un stack tecnológico moderno y robusto:
 
 ## ▶️ Ejecución en Desarrollo
 
-Para iniciar el servidor de desarrollo localmente:
+Para iniciar el servidor de desarrollo localmente (ahora usa Turbopack por defecto en Next 16):
 
 ```bash
 npm run dev
@@ -112,8 +115,11 @@ El proyecto incluye configuración lista para producción usando Docker.
 
 - `/app`: Rutas y páginas de Next.js (App Router).
 - `/components`: Componentes de React reutilizables (Modales, Tablas, UI Kit).
-- `/lib`: Utilidades, clientes de Supabase/Prisma y helpers.
-- `/prisma`: Esquema de base de datos (`schema.prisma`) y scripts de seed.
+- `/lib`: Utilidades, clientes de Supabase/Prisma y lógica de negocio.
+  - `prisma.ts`: Configuración del cliente Prisma con Driver Adapters (`pg`).
+- `/prisma`:
+  - `schema.prisma`: Definición del modelo de datos.
+  - `prisma.config.ts`: Configuración de la CLI de Prisma 7.
 - `/public`: Archivos estáticos.
 
 ## 🤝 Contribución
