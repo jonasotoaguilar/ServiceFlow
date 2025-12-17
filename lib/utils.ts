@@ -34,14 +34,24 @@ export function formatChileanPhone(value: string) {
   // Si empieza con 56, lo quitamos para normalizar, o manejamos el input
   if (raw.startsWith("56")) raw = raw.slice(2);
 
-  // Limitar a 9 dígitos (9 + 8 dígitos)
+  // Construir formato +56 9 XXXX XXXX
+  // Si no empieza con 9, lo agregamos forzosamente (para cumplir "no borrar el 9")
+  if (!raw.startsWith("9")) {
+    raw = "9" + raw;
+  }
+
+  // Limitar a 9 dígitos (9 + 8 dígitos del número)
   raw = raw.slice(0, 9);
 
-  // Construir formato +56 9 XXXX XXXX
-  let formatted = "+56";
-  if (raw.length > 0) formatted += " " + raw.substring(0, 1); // 9
-  if (raw.length > 1) formatted += " " + raw.substring(1, 5); // XXXX
-  if (raw.length > 5) formatted += " " + raw.substring(5, 9); // XXXX
+  let formatted = "+56 9";
+  const rest = raw.slice(1);
+
+  if (rest.length > 0) {
+    formatted += " " + rest.substring(0, 4);
+  }
+  if (rest.length > 4) {
+    formatted += " " + rest.substring(4, 8);
+  }
 
   return formatted;
 }

@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
 export async function login(formData: FormData) {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
@@ -24,7 +24,7 @@ export async function login(formData: FormData) {
 }
 
 export async function signup(formData: FormData) {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
@@ -41,7 +41,8 @@ export async function signup(formData: FormData) {
   });
 
   if (error) {
-    return redirect("/register?error=Could not create user");
+    console.error("Signup error:", error);
+    return redirect(`/register?error=${error.message}`);
   }
 
   revalidatePath("/", "layout");
@@ -49,7 +50,7 @@ export async function signup(formData: FormData) {
 }
 
 export async function signout() {
-  const supabase = createClient();
+  const supabase = await createClient();
   await supabase.auth.signOut();
   revalidatePath("/", "layout");
   redirect("/login");
