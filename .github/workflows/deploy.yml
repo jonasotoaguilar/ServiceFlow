@@ -26,5 +26,5 @@ jobs:
           push: true
           # Reemplaza 'namespace/example' con tu propio namespace y nombre de repositorio
           tags: | 
-            namespace/example:latest 
+            jonathansotoa/warranty-system:latest 
           platforms: linux/amd64
