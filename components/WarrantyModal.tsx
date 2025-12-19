@@ -165,7 +165,7 @@ export function WarrantyModal({
                 disabled={isLocked || isEditing}
                 placeholder="123456"
                 value={formData.invoiceNumber || ""}
-                maxLength={50}
+                maxLength={20}
                 onChange={(e) =>
                   setFormData({
                     ...formData,
@@ -182,7 +182,7 @@ export function WarrantyModal({
                 disabled={isLocked}
                 placeholder="Código producto"
                 value={formData.sku || ""}
-                maxLength={50}
+                maxLength={20}
                 onChange={(e) =>
                   setFormData({ ...formData, sku: e.target.value })
                 }
@@ -202,7 +202,7 @@ export function WarrantyModal({
                 required
                 placeholder="Nombre completo"
                 value={formData.clientName || ""}
-                maxLength={100}
+                maxLength={25}
                 onChange={(e) =>
                   setFormData({ ...formData, clientName: e.target.value })
                 }
@@ -267,7 +267,7 @@ export function WarrantyModal({
                 required
                 placeholder="Nombre del producto"
                 value={formData.product || ""}
-                maxLength={200}
+                maxLength={40}
                 onChange={(e) =>
                   setFormData({ ...formData, product: e.target.value })
                 }
@@ -282,7 +282,7 @@ export function WarrantyModal({
                 required
                 placeholder="Descripción de la falla"
                 value={formData.failureDescription || ""}
-                maxLength={500}
+                maxLength={100}
                 onChange={(e) =>
                   setFormData({
                     ...formData,
@@ -378,7 +378,7 @@ export function WarrantyModal({
             <Input
               placeholder="Detalles adicionales..."
               value={formData.notes || ""}
-              maxLength={1000}
+              maxLength={250}
               onChange={(e) =>
                 setFormData({ ...formData, notes: e.target.value })
               }

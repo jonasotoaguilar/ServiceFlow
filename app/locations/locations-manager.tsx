@@ -134,7 +134,7 @@ export default function LocationsManager({
                 onChange={(e) => setNewLocationName(e.target.value)}
                 placeholder="Ej: Taller, Bodega, Recepción"
                 disabled={isPending}
-                maxLength={50}
+                maxLength={25}
                 className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800"
               />
               {error && <p className="text-sm text-red-500">{error}</p>}
