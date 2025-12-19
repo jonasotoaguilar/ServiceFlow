@@ -1,6 +1,6 @@
 import { getLocationLogs } from "@/app/actions/logs";
 import { getLocations } from "@/app/actions/locations";
-import LogsManager from "./logs-manager";
+import LogsManager from "./logsManager";
 
 export default async function LogsPage() {
   const [logsResult, locationsResult] = await Promise.all([

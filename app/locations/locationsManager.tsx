@@ -12,7 +12,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Trash2, Plus, ArrowLeft, Ban, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
+import { ConfirmationDialog } from "@/components/ui/confirmationDialog";
 
 type LocationType = {
   id: string;

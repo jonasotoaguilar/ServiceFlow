@@ -1,5 +1,5 @@
 import { getLocations } from "@/app/actions/locations";
-import LocationsManager from "./locations-manager";
+import LocationsManager from "./locationsManager";
 
 export default async function LocationsPage() {
   const { data: locations, error } = await getLocations();
