@@ -114,8 +114,8 @@ export default function LocationsManager({
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+    <main className="space-y-6">
+      <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <Link href="/">
             <Button
@@ -187,17 +187,30 @@ export default function LocationsManager({
             </div>
           </form>
         </Dialog>
-      </div>
+      </header>
 
-      <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-sm overflow-hidden transition-all">
+      <section
+        className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-sm overflow-hidden transition-all"
+        aria-label="Lista de ubicaciones"
+      >
         <table className="w-full text-left text-sm">
           <thead className="bg-zinc-50 dark:bg-zinc-900/50 border-b border-zinc-100 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 font-medium uppercase text-[11px] tracking-wider">
             <tr>
-              <th className="px-6 py-4">Nombre</th>
-              <th className="px-6 py-4 text-center">Garantías Activas</th>
-              <th className="px-6 py-4 text-center">Garantías Completadas</th>
-              <th className="px-6 py-4 text-center">Estado</th>
-              <th className="px-6 py-4 text-center">Acciones</th>
+              <th scope="col" className="px-6 py-4">
+                Nombre
+              </th>
+              <th scope="col" className="px-6 py-4 text-center">
+                Garantías Activas
+              </th>
+              <th scope="col" className="px-6 py-4 text-center">
+                Garantías Completadas
+              </th>
+              <th scope="col" className="px-4 py-4 text-center">
+                Estado
+              </th>
+              <th scope="col" className="px-6 py-4 text-center">
+                Acciones
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
@@ -248,9 +261,10 @@ export default function LocationsManager({
                               handleToggleActive(loc.id, loc.isActive)
                             }
                             disabled={isPending}
+                            aria-label={`Desactivar ubicación ${loc.name}`}
                             title="Desactivar ubicación"
                           >
-                            <Ban className="h-4 w-4" />
+                            <Ban className="h-4 w-4" aria-hidden="true" />
                           </Button>
                         ) : (
                           <Button
@@ -259,9 +273,10 @@ export default function LocationsManager({
                             className="text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:hover:bg-red-900/20"
                             onClick={() => handleDelete(loc.id, loc.name)}
                             disabled={isPending}
+                            aria-label={`Eliminar ubicación ${loc.name}`}
                             title="Eliminar ubicación"
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="h-4 w-4" aria-hidden="true" />
                           </Button>
                         )}
                       </>
@@ -272,9 +287,10 @@ export default function LocationsManager({
                         className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
                         onClick={() => handleToggleActive(loc.id, loc.isActive)}
                         disabled={isPending}
+                        aria-label={`Habilitar ubicación ${loc.name}`}
                         title="Habilitar ubicación"
                       >
-                        <CheckCircle2 className="h-4 w-4" />
+                        <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
                       </Button>
                     )}
                   </div>
@@ -325,7 +341,8 @@ export default function LocationsManager({
             </div>
           </div>
         )}
-      </div>
+      </section>
+
       <ConfirmationDialog
         isOpen={confirmState.isOpen}
         onClose={() => setConfirmState((prev) => ({ ...prev, isOpen: false }))}
@@ -335,6 +352,6 @@ export default function LocationsManager({
         variant={confirmState.variant}
         isLoading={isPending}
       />
-    </div>
+    </main>
   );
 }

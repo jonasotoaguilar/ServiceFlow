@@ -85,9 +85,8 @@ export default function LogsManager({
   const totalPages = Math.max(1, Math.ceil(total / limit));
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+    <main className="space-y-6">
+      <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <Link href="/">
             <Button
@@ -119,10 +118,12 @@ export default function LogsManager({
           />
           Actualizar
         </Button>
-      </div>
+      </header>
 
-      {/* Filtros */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-white dark:bg-zinc-900/50 p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
+      <section
+        className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-white dark:bg-zinc-900/50 p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm"
+        aria-label="Filtros de historial"
+      >
         <div className="space-y-2">
           <label
             htmlFor="startDate"
@@ -188,27 +189,44 @@ export default function LogsManager({
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Tabla */}
-      <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-sm overflow-hidden transition-all">
+      <section
+        className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-sm overflow-hidden transition-all"
+        aria-label="Lista de movimientos"
+      >
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm whitespace-nowrap">
             <thead>
               <tr className="bg-zinc-50 dark:bg-zinc-900/50 border-b border-zinc-200 dark:border-zinc-800">
-                <th className="px-6 py-4 font-semibold text-zinc-900 dark:text-zinc-100 text-center">
+                <th
+                  scope="col"
+                  className="px-6 py-4 font-semibold text-zinc-900 dark:text-zinc-100 text-center"
+                >
                   N° Boleta
                 </th>
-                <th className="px-6 py-4 font-semibold text-zinc-900 dark:text-zinc-100">
+                <th
+                  scope="col"
+                  className="px-6 py-4 font-semibold text-zinc-900 dark:text-zinc-100"
+                >
                   Producto / Cliente
                 </th>
-                <th className="px-6 py-4 font-semibold text-zinc-900 dark:text-zinc-100 text-center">
+                <th
+                  scope="col"
+                  className="px-6 py-4 font-semibold text-zinc-900 dark:text-zinc-100 text-center"
+                >
                   Origen
                 </th>
-                <th className="px-6 py-4 font-semibold text-zinc-900 dark:text-zinc-100 text-center">
+                <th
+                  scope="col"
+                  className="px-6 py-4 font-semibold text-zinc-900 dark:text-zinc-100 text-center"
+                >
                   Destino
                 </th>
-                <th className="px-6 py-4 font-semibold text-zinc-900 dark:text-zinc-100 text-right">
+                <th
+                  scope="col"
+                  className="px-6 py-4 font-semibold text-zinc-900 dark:text-zinc-100 text-right"
+                >
                   Fecha / Hora
                 </th>
               </tr>
@@ -283,36 +301,38 @@ export default function LogsManager({
             </tbody>
           </table>
         </div>
-      </div>
 
-      {/* Paginación */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between pt-4">
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            Mostrando página {currentPage} de {totalPages} ({total} movimientos)
-          </p>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              disabled={currentPage === 1 || isLoading}
-              className="h-8 bg-white dark:bg-zinc-900"
-            >
-              Anterior
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages || isLoading}
-              className="h-8 bg-white dark:bg-zinc-900"
-            >
-              Siguiente
-            </Button>
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between p-4 border-t border-zinc-100 dark:border-zinc-800">
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              Mostrando página {currentPage} de {totalPages} ({total}{" "}
+              movimientos)
+            </p>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1 || isLoading}
+                className="h-8 bg-white dark:bg-zinc-900"
+              >
+                Anterior
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  setCurrentPage((p) => Math.min(totalPages, p + 1))
+                }
+                disabled={currentPage === totalPages || isLoading}
+                className="h-8 bg-white dark:bg-zinc-900"
+              >
+                Siguiente
+              </Button>
+            </div>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </section>
+    </main>
   );
 }
