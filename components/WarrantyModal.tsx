@@ -108,13 +108,6 @@ export function WarrantyModal({
     e.preventDefault();
     setLoading(true);
 
-    const phoneRegex = /^\+56 9 \d{4} \d{4}$/;
-    if (!formData.contact || !phoneRegex.test(formData.contact)) {
-      alert("El teléfono debe estar completo: +56 9 1234 5678");
-      setLoading(false);
-      return;
-    }
-
     try {
       const isEdit = !!warrantyToEdit;
       const url = "/api/warranties";
@@ -238,6 +231,8 @@ export function WarrantyModal({
                 value={formData.contact || ""}
                 onChange={handlePhoneChange}
                 maxLength={15}
+                pattern="\+56 9 \d{4} \d{4}"
+                title="El teléfono debe tener el formato: +56 9 1234 5678"
               />
             </label>
             <label className="grid gap-2 text-zinc-900 dark:text-zinc-100">
