@@ -19,6 +19,7 @@ type LocationType = {
   isActive: boolean;
   activeCount: number;
   completedCount: number;
+  hasHistory: boolean;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -210,7 +211,7 @@ export default function LocationsManager({
                   <div className="flex justify-center gap-1">
                     {loc.isActive ? (
                       <>
-                        {loc.activeCount === 0 && loc.completedCount > 0 && (
+                        {loc.activeCount > 0 || loc.hasHistory ? (
                           <Button
                             variant="ghost"
                             size="icon"
@@ -223,8 +224,7 @@ export default function LocationsManager({
                           >
                             <Ban className="h-4 w-4" />
                           </Button>
-                        )}
-                        {loc.activeCount === 0 && loc.completedCount === 0 && (
+                        ) : (
                           <Button
                             variant="ghost"
                             size="icon"

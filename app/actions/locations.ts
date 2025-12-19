@@ -29,7 +29,7 @@ export async function getLocations(onlyActive = false) {
     // Enriquecer con conteos
     const enrichedLocations = await Promise.all(
       locations.map(async (loc) => {
-        const [activeCount, completedCount] = await Promise.all([
+        const [activeCount, completedCount, hasLogs] = await Promise.all([
           prisma.warranty.count({
             where: {
               userId: user.id,
@@ -44,12 +44,20 @@ export async function getLocations(onlyActive = false) {
               status: "completed",
             },
           }),
+          prisma.locationLog.count({
+            where: {
+              OR: [{ fromLocationId: loc.id }, { toLocationId: loc.id }],
+            },
+          }),
         ]);
+
+        const hasHistory = activeCount > 0 || completedCount > 0 || hasLogs > 0;
 
         return {
           ...loc,
           activeCount,
           completedCount,
+          hasHistory,
         };
       })
     );
@@ -167,9 +175,16 @@ export async function deleteLocation(id: string, name: string) {
       },
     });
 
-    if (activeCount > 0 || completedCount > 0) {
+    const hasLogs = await prisma.locationLog.count({
+      where: {
+        OR: [{ fromLocationId: id }, { toLocationId: id }],
+      },
+    });
+
+    if (activeCount > 0 || completedCount > 0 || hasLogs > 0) {
       return {
-        error: "No se puede eliminar una ubicación con historial de garantías.",
+        error:
+          "No se puede eliminar una ubicación con historial de garantías o movimientos.",
       };
     }
 
