@@ -18,6 +18,7 @@ import {
   ChevronRight,
   LogOut,
   MapPin,
+  History,
 } from "lucide-react";
 import Link from "next/link";
 import { Input } from "./ui/input";
@@ -147,10 +148,18 @@ export function WarrantyDashboard() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2 w-full sm:w-auto justify-end">
+          <Link href="/logs">
+            <Button
+              variant="outline"
+              className="bg-white text-zinc-950 hover:bg-zinc-100 border-zinc-200 dark:bg-zinc-900 dark:text-zinc-50 dark:hover:bg-zinc-800 dark:border-zinc-800"
+            >
+              <History className="mr-2 h-4 w-4" /> Movimientos
+            </Button>
+          </Link>
           <Link href="/locations">
             <Button
               variant="outline"
-              className="bg-white text-zinc-950 hover:bg-zinc-100 border-zinc-200 dark:bg-zinc-50 dark:text-zinc-950 dark:hover:bg-zinc-200"
+              className="bg-white text-zinc-950 hover:bg-zinc-100 border-zinc-200 dark:bg-zinc-900 dark:text-zinc-50 dark:hover:bg-zinc-800 dark:border-zinc-800"
             >
               <MapPin className="mr-2 h-4 w-4" /> Ubicaciones
             </Button>
