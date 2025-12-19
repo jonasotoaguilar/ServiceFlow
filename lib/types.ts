@@ -17,7 +17,7 @@ export interface Warranty {
   status: WarrantyStatus;
   repairCost?: number;
   notes?: string;
-  userId?: string;
+  userId: string;
   locationLogs?: LocationLog[];
 }
 

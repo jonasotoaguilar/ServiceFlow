@@ -9,7 +9,7 @@ CREATE TABLE "Warranty" (
     "product" TEXT NOT NULL,
     "failureDescription" TEXT,
     "sku" TEXT,
-    "location" TEXT NOT NULL DEFAULT 'Ingreso',
+    "location" TEXT NOT NULL DEFAULT 'Ingresada',
     "entryDate" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "deliveryDate" TIMESTAMP(3),
     "readyDate" TIMESTAMP(3),

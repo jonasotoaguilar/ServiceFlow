@@ -22,16 +22,25 @@ export function WarrantyDetailsModal({
   const formatDate = (date: string) =>
     format(parseISO(date), "dd MMM yyyy HH:mm", { locale: es });
 
-  const getBadgeVariant = (status: Warranty["status"]) => {
-    if (status === "ready") return "success";
-    if (status === "completed") return "default";
-    return "secondary";
-  };
-
-  const getBadgeLabel = (status: Warranty["status"]) => {
-    if (status === "pending") return "Pendiente";
-    if (status === "ready") return "Lista";
-    return "Completada";
+  const getStatusBadge = (status: Warranty["status"]) => {
+    switch (status) {
+      case "ready":
+        return (
+          <Badge className="bg-green-500 hover:bg-green-600 dark:bg-green-600 dark:text-white">
+            Lista
+          </Badge>
+        );
+      case "pending":
+        return <Badge variant="warning">Pendiente</Badge>;
+      case "completed":
+        return (
+          <Badge className="bg-emerald-700 hover:bg-emerald-800 dark:bg-emerald-800 dark:text-emerald-100">
+            Completada
+          </Badge>
+        );
+      default:
+        return <Badge variant="secondary">{status}</Badge>;
+    }
   };
 
   const formatCurrency = (amount: number) => {
@@ -56,9 +65,7 @@ export function WarrantyDetailsModal({
           </div>
           <div className="text-right">
             <p className="text-zinc-500 dark:text-zinc-400 text-xs">Estado</p>
-            <Badge variant={getBadgeVariant(warranty.status)}>
-              {getBadgeLabel(warranty.status)}
-            </Badge>
+            {getStatusBadge(warranty.status)}
           </div>
         </div>
 

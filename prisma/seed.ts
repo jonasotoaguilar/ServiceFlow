@@ -20,6 +20,7 @@ async function main() {
       await prisma.warranty.create({
         data: {
           id: w.id,
+          userId: w.userId || "00000000-0000-0000-0000-000000000000",
           invoiceNumber: w.invoiceNumber,
           clientName: w.clientName,
           rut: w.rut,

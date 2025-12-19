@@ -9,7 +9,6 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
-  DEPLOYMENT_WEBHOOK: ${{ secrets.DEPLOYMENT_WEBHOOK }}
 
 jobs:
   build-and-push-dockerfile-image:
@@ -37,6 +36,9 @@ jobs:
         uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=tag,strip=true
+            type=raw,value=latest
 
       - name: Build and push Docker image
         id: push
@@ -53,8 +55,3 @@ jobs:
           subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}
           subject-digest: ${{ steps.push.outputs.digest }}
           push-to-registry: true
-
-      - name: Trigger Deployment
-        if: env.DEPLOYMENT_WEBHOOK != ''
-        run: |
-          curl -X POST "${{ env.DEPLOYMENT_WEBHOOK }}"

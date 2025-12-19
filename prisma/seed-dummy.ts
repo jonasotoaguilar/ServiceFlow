@@ -1,7 +1,14 @@
 import { PrismaClient } from "@prisma/client";
 import "dotenv/config";
 
-const prisma = new PrismaClient();
+import { Pool } from "pg";
+import { PrismaPg } from "@prisma/adapter-pg";
+
+const connectionString = process.env.DATABASE_URL;
+const pool = new Pool({ connectionString });
+const adapter = new PrismaPg(pool);
+
+const prisma = new PrismaClient({ adapter });
 
 const CLIENT_NAMES = [
   "Juan Pérez",
@@ -39,7 +46,7 @@ const PRODUCTS = [
   "Horno Thomas",
 ];
 
-const LOCATIONS = ["Recepcion", "Taller", "Bodega", "Proveedor", "Cliente"];
+const LOCATIONS = ["Ingresada", "Taller", "Bodega", "Proveedor", "Cliente"];
 const STATUSES = ["pending", "ready", "completed"];
 
 function randomInt(min: number, max: number) {
@@ -50,58 +57,23 @@ function randomItem<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-import { createClient } from "@supabase/supabase-js";
-
-// Initialize Supabase Admin Client
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  }
-);
-
 async function main() {
-  console.log("Setting up test user...");
+  const DUMMY_USER_ID = "00000000-0000-0000-0000-000000000000";
 
-  const email = "test@example.com";
-  const password = "password123";
-
-  // Check if user exists or create new one
-  let userId;
-
-  // Try to sign in first to see if user exists (admin way)
-  // Or just list users by email
-  const {
-    data: { users },
-  } = await supabaseAdmin.auth.admin.listUsers();
-
-  const existingUser = users.find((u) => u.email === email);
-
-  if (existingUser) {
-    console.log(
-      `User ${email} already exists. Using existing ID: ${existingUser.id}`
-    );
-    userId = existingUser.id;
-  } else {
-    console.log(`Creating new user: ${email}`);
-    const { data: newUser, error: createError } =
-      await supabaseAdmin.auth.admin.createUser({
-        email,
-        password,
-        email_confirm: true,
-        user_metadata: { full_name: "Test User" },
-      });
-
-    if (createError) {
-      console.error("Error creating user:", createError);
-      throw createError;
-    }
-    userId = newUser.user.id;
-    console.log(`Created user with ID: ${userId}`);
+  for (const name of LOCATIONS) {
+    await prisma.location.upsert({
+      where: {
+        name_userId: {
+          name,
+          userId: DUMMY_USER_ID,
+        },
+      },
+      update: {},
+      create: {
+        name,
+        userId: DUMMY_USER_ID,
+      },
+    });
   }
 
   console.log("Generating 40 dummy warranties...");
@@ -111,7 +83,7 @@ async function main() {
   for (let i = 0; i < 40; i++) {
     const status = randomItem(STATUSES);
     const entryDate = new Date();
-    entryDate.setDate(entryDate.getDate() - randomInt(1, 60)); // Ingresó hace 1-60 días
+    entryDate.setDate(entryDate.getDate() - randomInt(1, 60));
 
     let readyDate = null;
     let deliveryDate = null;
@@ -119,16 +91,17 @@ async function main() {
 
     if (status === "ready" || status === "completed") {
       readyDate = new Date(entryDate);
-      readyDate.setDate(readyDate.getDate() + randomInt(1, 10)); // Estuvo lista 1-10 días después
+      readyDate.setDate(readyDate.getDate() + randomInt(1, 10));
       repairCost = randomInt(5000, 50000);
     }
 
     if (status === "completed" && readyDate) {
       deliveryDate = new Date(readyDate);
-      deliveryDate.setDate(deliveryDate.getDate() + randomInt(1, 5)); // Se entregó 1-5 días después
+      deliveryDate.setDate(deliveryDate.getDate() + randomInt(1, 5));
     }
 
     warranties.push({
+      userId: DUMMY_USER_ID,
       invoiceNumber: randomInt(1000, 9999).toString(),
       clientName: randomItem(CLIENT_NAMES),
       rut: `${randomInt(10, 20)}.${randomInt(100, 999)}.${randomInt(
@@ -147,7 +120,6 @@ async function main() {
       status: status,
       repairCost: repairCost,
       notes: "Registro generado automáticamente",
-      userId: userId, // Assign to test user
     });
   }
 
@@ -160,11 +132,12 @@ async function main() {
   console.log("Done! 40 warranties verified and assigned to test@example.com");
 }
 
-try {
-  await main();
-  await prisma.$disconnect();
-} catch (e) {
-  console.error(e);
-  await prisma.$disconnect();
-  process.exit(1);
-}
+main()
+  .then(async () => {
+    await prisma.$disconnect();
+  })
+  .catch(async (e) => {
+    console.error(e);
+    await prisma.$disconnect();
+    process.exit(1);
+  });
