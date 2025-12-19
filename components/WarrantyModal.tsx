@@ -26,9 +26,7 @@ export function WarrantyModal({
   const [formData, setFormData] = useState<Partial<Warranty>>({});
 
   const LOCATIONS = useMemo(() => {
-    return availableLocations.length > 0
-      ? availableLocations
-      : ["Ingresada", "Taller", "Bodega", "Proveedor", "Cliente"];
+    return availableLocations;
   }, [availableLocations]);
 
   const isLocked =
@@ -46,7 +44,7 @@ export function WarrantyModal({
         clientName: "",
         product: "",
         failureDescription: "",
-        location: LOCATIONS[0],
+        location: LOCATIONS.length > 0 ? LOCATIONS[0] : "",
         repairCost: 0,
         invoiceNumber: undefined,
         status: "pending",
@@ -310,7 +308,9 @@ export function WarrantyModal({
               }
             >
               <option value="" disabled>
-                Seleccionar ubicación
+                {LOCATIONS.length > 0
+                  ? "Seleccionar ubicación"
+                  : "Sin ubicaciones creadas"}
               </option>
               {LOCATIONS.map((loc) => (
                 <option key={loc} value={loc}>
