@@ -63,3 +63,17 @@ export function normalizeString(str: string) {
     .replaceAll(/[\u0300-\u036f]/g, "")
     .trim();
 }
+
+export function formatCurrency(value: string | number) {
+  const amount =
+    typeof value === "string" ? value.replaceAll(/\D/g, "") : value.toString();
+  if (!amount || amount === "0") return "";
+
+  const formatted = new Intl.NumberFormat("es-CL").format(Number(amount));
+  return `$${formatted}`;
+}
+
+export function parseCurrency(value: string) {
+  const raw = value.replaceAll(/\D/g, "");
+  return raw ? Number(raw) : 0;
+}
