@@ -10,10 +10,10 @@ import {
   LayoutDashboard,
   Mail,
   Lock,
-  ShieldAlert,
   CheckCircle2,
   Loader2,
   AlertCircle,
+  ShieldCheck,
 } from "lucide-react";
 
 export default function LoginPage() {
@@ -174,11 +174,19 @@ export default function LoginPage() {
                   <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
                   <p className="font-medium leading-relaxed">
                     {(() => {
-                      if (errorParam === "Invalid login credentials")
+                      if (
+                        errorParam === "Invalid login credentials" ||
+                        errorParam === "Could not authenticate user"
+                      ) {
                         return "Credenciales inválidas. Verifica tu correo y contraseña.";
-                      if (errorParam === "Email not confirmed")
+                      }
+                      if (errorParam === "Email not confirmed") {
                         return "Debes confirmar tu correo antes de ingresar.";
-                      return errorParam;
+                      }
+                      if (errorParam === "Invalid refresh token") {
+                        return "La sesión ha expirado. Por favor, ingresa de nuevo.";
+                      }
+                      return "Ocurrió un error al intentar ingresar. Por favor, intenta más tarde.";
                     })()}
                   </p>
                 </div>
@@ -204,23 +212,21 @@ export default function LoginPage() {
               </Button>
             </form>
 
-            <div className="mt-8 text-center">
-              <p className="text-zinc-500 dark:text-zinc-400 text-sm">
-                ¿Aún no tienes cuenta?{" "}
-                <Link
-                  href="/register"
-                  className="font-extrabold text-zinc-950 dark:text-zinc-50 hover:underline decoration-zinc-400 underline-offset-4 ring-offset-zinc-950"
-                >
-                  Regístrate aquí
-                </Link>
-              </p>
+            <div className="mt-8 text-center text-zinc-500 dark:text-zinc-400 text-sm">
+              ¿Aún no tienes cuenta?{" "}
+              <Link
+                href="/register"
+                className="font-extrabold text-zinc-950 dark:text-zinc-50 hover:underline decoration-zinc-400 underline-offset-4"
+              >
+                Regístrate aquí
+              </Link>
             </div>
           </div>
         </div>
 
         <div className="text-center pt-4">
-          <p className="text-[10px] text-zinc-400 uppercase tracking-[0.2em] font-bold">
-            Antigravity Systems • v1.2.0
+          <p className="text-[10px] text-zinc-400 uppercase tracking-widest font-semibold flex items-center justify-center gap-2">
+            <ShieldCheck className="h-3 w-3" /> Sistema de Garantías Seguro
           </p>
         </div>
       </div>
