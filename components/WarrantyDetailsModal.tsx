@@ -50,7 +50,7 @@ export function WarrantyDetailsModal({
       onClose={onClose}
       title={`Detalles Garantía #${warranty.invoiceNumber || "S/N"}`}
     >
-      <div className="space-y-4 text-sm mt-4">
+      <div className="space-y-4 text-sm">
         <div className="grid grid-cols-2 gap-4 border-b border-zinc-100 dark:border-zinc-800 pb-4">
           <div className="min-w-0">
             <p className="text-zinc-500 dark:text-zinc-400 text-xs">Cliente</p>

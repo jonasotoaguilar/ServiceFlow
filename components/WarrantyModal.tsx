@@ -158,7 +158,7 @@ export function WarrantyModal({
       onClose={onClose}
       title={warrantyToEdit ? "Editar Garantía" : "Nueva Garantía"}
     >
-      <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+      <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-4 p-3 border border-zinc-200 dark:border-zinc-800 rounded-lg bg-zinc-50/50 dark:bg-zinc-900/30">
           <div className="grid grid-cols-2 gap-4">
             <label className="grid gap-2 text-zinc-900 dark:text-zinc-100">
