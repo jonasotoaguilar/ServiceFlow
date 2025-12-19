@@ -148,15 +148,17 @@ export function WarrantyTable({
                         <Pencil className="h-4 w-4" />
                       </Button>
                     )}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => onDelete(warranty)}
-                      title="Eliminar"
-                      className="hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    {warranty.status !== "completed" && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => onDelete(warranty)}
+                        title="Eliminar"
+                        className="hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
                   </td>
                 </tr>
               );
