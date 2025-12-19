@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 // Force recompile
 import { Warranty, WarrantyStatus } from "./types";
-import { formatRut } from "./utils";
+// Removed formatRut from utils as it's no longer needed for search logic here
 
 // Helper to convert Prisma result to Warranty type (Dates to strings)
 function mapToWarranty(item: any): Warranty {
@@ -55,33 +55,12 @@ export async function getWarranties(params?: {
   // Para search real, normalmente se usa un índice FullText o similar.
   if (params?.search) {
     const search = params.search;
-    const cleanSearch = search.replaceAll(/[^0-9kK]/g, "").toUpperCase();
-
-    // Generar un conjunto de términos posibles para buscar en el campo RUT
-    const rutSearchTerms = new Set<string>();
-    rutSearchTerms.add(search); // Original
-
-    if (cleanSearch.length >= 2) {
-      rutSearchTerms.add(cleanSearch); // Solo números: 123456789
-      const formatted = formatRut(cleanSearch);
-      if (formatted) {
-        rutSearchTerms.add(formatted); // Con puntos y guion: 12.345.678-9
-        // Opcional: Variante solo con guion (común en algunos sistemas)
-        const withDash = formatted.replaceAll(".", "");
-        if (withDash) rutSearchTerms.add(withDash); // Sin puntos: 12345678-9
-      }
-    }
 
     const conditions: any[] = [
-      { clientName: { contains: search, mode: "insensitive" } },
-      { product: { contains: search, mode: "insensitive" } },
-      { invoiceNumber: { contains: search, mode: "insensitive" } },
+      { clientName: { startsWith: search, mode: "insensitive" } },
+      { invoiceNumber: { startsWith: search, mode: "insensitive" } },
+      { rut: { startsWith: search, mode: "insensitive" } },
     ];
-
-    // Agregar todas las variantes de RUT al OR
-    rutSearchTerms.forEach((term) => {
-      conditions.push({ rut: { contains: term, mode: "insensitive" } });
-    });
 
     where.OR = conditions;
   }
