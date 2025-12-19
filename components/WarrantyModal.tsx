@@ -5,7 +5,13 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Dialog } from "./ui/dialog";
 import { Warranty } from "@/lib/types";
-import { formatRut, formatChileanPhone } from "@/lib/utils";
+import {
+  formatRut,
+  formatChileanPhone,
+  formatCurrency,
+  parseCurrency,
+} from "@/lib/utils";
+import { Textarea } from "./ui/textarea";
 
 interface WarrantyModalProps {
   isOpen: boolean;
@@ -276,20 +282,20 @@ export function WarrantyModal({
             </label>
             <label className="grid gap-2 text-zinc-900 dark:text-zinc-100">
               <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                Falla / Motivo *
+                Costo reparación
               </span>
               <Input
                 disabled={isLocked}
-                required
-                placeholder="Descripción de la falla"
-                value={formData.failureDescription || ""}
-                maxLength={100}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    failureDescription: e.target.value,
-                  })
-                }
+                type="text"
+                placeholder="$0"
+                value={formatCurrency(formData.repairCost || 0)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  const num = parseCurrency(val);
+                  if (num <= 999999999) {
+                    setFormData({ ...formData, repairCost: num });
+                  }
+                }}
               />
             </label>
           </div>
@@ -319,7 +325,6 @@ export function WarrantyModal({
                   {loc.name}
                 </option>
               ))}
-              {/* Manejo de ubicación histórica si ya no está en availableLocations */}
               {formData.locationId &&
                 !LOCATIONS.some((l) => l.id === formData.locationId) && (
                   <option value={formData.locationId}>
@@ -329,36 +334,6 @@ export function WarrantyModal({
             </select>
           </label>
 
-          <label className="grid gap-2 text-zinc-900 dark:text-zinc-100">
-            <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-              Costo ($)
-            </span>
-            <Input
-              disabled={isLocked}
-              type="number"
-              min="0"
-              max="999999999"
-              placeholder="0"
-              onKeyDown={handleNumberInput}
-              value={
-                formData.repairCost === 0 || formData.repairCost === undefined
-                  ? ""
-                  : formData.repairCost
-              }
-              onChange={(e) => {
-                const val = e.target.value;
-                if (val === "") {
-                  setFormData({ ...formData, repairCost: undefined });
-                } else {
-                  const num = Number(val);
-                  if (num >= 0) setFormData({ ...formData, repairCost: num });
-                }
-              }}
-            />
-          </label>
-        </div>
-
-        <div className="grid grid-cols-1 gap-4">
           <label className="grid gap-2 text-zinc-900 dark:text-zinc-100">
             <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
               Estado
@@ -375,15 +350,38 @@ export function WarrantyModal({
               <option value="completed">Completada (Entregada/Cerrada)</option>
             </select>
           </label>
+        </div>
+
+        <div className="space-y-4">
+          <label className="grid gap-2 text-zinc-900 dark:text-zinc-100">
+            <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              Falla / Motivo *
+            </span>
+            <Textarea
+              disabled={isLocked}
+              required
+              placeholder="Describa la falla detalladamente..."
+              value={formData.failureDescription || ""}
+              maxLength={500}
+              className="min-h-[100px] resize-y"
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  failureDescription: e.target.value,
+                })
+              }
+            />
+          </label>
 
           <label className="grid gap-2 text-zinc-900 dark:text-zinc-100">
             <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
               Notas internas
             </span>
-            <Input
-              placeholder="Detalles adicionales..."
+            <Textarea
+              placeholder="Detalles adicionales, observaciones del técnico, etc..."
               value={formData.notes || ""}
-              maxLength={250}
+              maxLength={1000}
+              className="min-h-[80px] resize-y"
               onChange={(e) =>
                 setFormData({ ...formData, notes: e.target.value })
               }

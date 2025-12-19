@@ -5,6 +5,7 @@ import { Warranty } from "@/lib/types";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { Badge } from "./ui/badge";
+import { formatCurrency } from "@/lib/utils";
 
 interface WarrantyDetailsModalProps {
   isOpen: boolean;
@@ -43,13 +44,6 @@ export function WarrantyDetailsModal({
     }
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("es-CL", {
-      style: "currency",
-      currency: "CLP",
-    }).format(amount);
-  };
-
   return (
     <Dialog
       isOpen={isOpen}
@@ -82,16 +76,6 @@ export function WarrantyDetailsModal({
                 SKU: {warranty.sku}
               </p>
             )}
-            {warranty.failureDescription && (
-              <div className="mt-2 text-xs">
-                <span className="font-semibold text-zinc-500 dark:text-zinc-400">
-                  Falla reportada:
-                </span>
-                <p className="text-zinc-700 dark:text-zinc-300 bg-zinc-50 dark:bg-zinc-800/50 p-1.5 rounded mt-0.5 wrap-break-word">
-                  {warranty.failureDescription}
-                </p>
-              </div>
-            )}
           </div>
           <div className="min-w-0">
             <p className="text-zinc-500 dark:text-zinc-400 text-xs">Contacto</p>
@@ -110,6 +94,17 @@ export function WarrantyDetailsModal({
             </div>
           </div>
         </div>
+
+        {warranty.failureDescription && (
+          <div className="text-xs">
+            <p className="text-zinc-500 dark:text-zinc-400 text-xs mb-1">
+              Falla reportada
+            </p>
+            <p className="text-zinc-700 dark:text-zinc-300 bg-zinc-50 dark:bg-zinc-800/50 p-2 rounded wrap-break-word">
+              {warranty.failureDescription}
+            </p>
+          </div>
+        )}
 
         <div className="grid grid-cols-2 gap-4 bg-zinc-50 dark:bg-zinc-900/50 p-3 rounded-md">
           <div>
