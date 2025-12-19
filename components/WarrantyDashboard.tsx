@@ -45,7 +45,7 @@ export function WarrantyDashboard() {
   const [locationFilter, setLocationFilter] = useState<string>("");
 
   const fetchLocations = useCallback(async () => {
-    const result = await getLocations();
+    const result = await getLocations(true);
     if (result.data) {
       setLocations(result.data);
     }
@@ -190,7 +190,7 @@ export function WarrantyDashboard() {
               <option value="">Todas las ubicaciones</option>
               {locations.map((loc) => (
                 <option key={loc.id} value={loc.id}>
-                  {loc.name} {!loc.isActive && "(Inactiva)"}
+                  {loc.name}
                 </option>
               ))}
             </select>
@@ -307,9 +307,10 @@ export function WarrantyDashboard() {
         isOpen={isModalOpen}
         onClose={handleCloseModal}
         warrantyToEdit={editingWarranty}
-        availableLocations={locations
-          .filter((l) => l.isActive)
-          .map((l) => ({ id: l.id, name: l.name }))}
+        availableLocations={locations.map((l) => ({
+          id: l.id,
+          name: l.name,
+        }))}
         onSuccess={() => {
           fetchWarranties();
         }}
