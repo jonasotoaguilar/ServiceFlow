@@ -205,7 +205,7 @@ export function WarrantyDashboard() {
             </label>
             <select
               id="location-filter"
-              className="flex h-9 w-full sm:w-[11.25rem] rounded-md border border-zinc-200 bg-white px-3 py-1 text-sm text-zinc-900 focus-visible:outline-none focus:ring-2 focus:ring-zinc-950 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100"
+              className="flex h-9 w-full sm:w-45 rounded-md border border-zinc-200 bg-white px-3 py-1 text-sm text-zinc-900 focus-visible:outline-none focus:ring-2 focus:ring-zinc-950 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100"
               value={locationFilter}
               onChange={(e) => setLocationFilter(e.target.value)}
             >
@@ -218,17 +218,16 @@ export function WarrantyDashboard() {
             </select>
           </div>
 
-          <div
+          <fieldset
             className="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0"
-            role="group"
             aria-labelledby="status-filter-label"
           >
-            <span
+            <legend
               id="status-filter-label"
               className="text-sm text-zinc-500 dark:text-zinc-400 flex items-center gap-1 shrink-0"
             >
               <Filter className="h-4 w-4" aria-hidden="true" /> Estados:
-            </span>
+            </legend>
             {(["pending", "ready", "completed"] as WarrantyStatus[]).map(
               (status) => {
                 const isActive = statusFilter.includes(status);
@@ -254,14 +253,11 @@ export function WarrantyDashboard() {
                 );
               }
             )}
-          </div>
+          </fieldset>
         </div>
       </section>
 
-      <section
-        className="relative min-h-[18.75rem]"
-        aria-label="Lista de garantías"
-      >
+      <section className="relative min-h-75" aria-label="Lista de garantías">
         {isLoading && (
           <div className="absolute inset-0 bg-white/50 dark:bg-zinc-950/50 z-10 flex items-center justify-center backdrop-blur-sm">
             <div className="text-zinc-500 text-sm">Cargando...</div>

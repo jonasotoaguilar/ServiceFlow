@@ -82,7 +82,7 @@ export default function LocationsManager({
       title: "Eliminar Ubicación",
       description: `¿Estás seguro de eliminar la ubicación "${name}"? Esta acción no se puede deshacer.`,
       variant: "danger",
-      onConfirm: async () => {
+      onConfirm: () => {
         startTransition(async () => {
           const result = await deleteLocation(id, name);
           if (result.error) {
@@ -101,7 +101,7 @@ export default function LocationsManager({
       title: `${currentStatus ? "Desactivar" : "Habilitar"} Ubicación`,
       description: `¿Estás seguro de ${action} esta ubicación?`,
       variant: currentStatus ? "warning" : ("default" as any),
-      onConfirm: async () => {
+      onConfirm: () => {
         startTransition(async () => {
           const result = await toggleLocationActive(id, !currentStatus);
           if (result.error) {

@@ -89,7 +89,7 @@ export function WarrantyModal({
         readyDate: undefined,
       }));
     }
-  }, [formData.status]);
+  }, [formData.deliveryDate, formData.readyDate, formData.status]);
 
   const handleRutChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const formatted = formatRut(e.target.value);
@@ -100,15 +100,6 @@ export function WarrantyModal({
     const val = e.target.value;
     const formatted = formatChileanPhone(val);
     setFormData({ ...formData, contact: formatted });
-  };
-
-  const handleNumberInput = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (
-      !/\d/.test(e.key) &&
-      !["Backspace", "Delete", "ArrowLeft", "ArrowRight", "Tab"].includes(e.key)
-    ) {
-      e.preventDefault();
-    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
