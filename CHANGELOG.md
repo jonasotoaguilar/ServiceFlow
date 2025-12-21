@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.0.0](https://github.com/jonasotoaguilar/warranty-system/compare/v1.3.0...v2.0.0) (2025-12-21)
+
+
+### ⚠ BREAKING CHANGES
+
+* **auth:** migrate to authentik
+
+### Features
+
+* **auth:** migrate to authentik ([323a0dd](https://github.com/jonasotoaguilar/warranty-system/commit/323a0ddab78858709c3f94f4d1e0b351c323130c))
+
+
+### Bug Fixes
+
+* **build:** resolve prerender errors by adding Suspense ([12db511](https://github.com/jonasotoaguilar/warranty-system/commit/12db5117b36c6123b70773805cfdd9512ec4aea6))
+* **prisma:** solve type error in seed-dummy script ([a0cf447](https://github.com/jonasotoaguilar/warranty-system/commit/a0cf447e7a98e0aa396eb9f6206e7d194f390f33))
+
 ### [1.3.1](https://github.com/jonasotoaguilar/warranty-system/compare/v1.3.0...v1.3.1) (2025-12-20)
 
 
