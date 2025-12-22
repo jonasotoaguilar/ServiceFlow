@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.0.4](https://github.com/jonasotoaguilar/warranty-system/compare/v2.0.3...v2.0.4) (2025-12-22)
+
+
+### Bug Fixes
+
+* implement server-side logout redirect ([12b7653](https://github.com/jonasotoaguilar/warranty-system/commit/12b7653c44270b4dee0235250945e6d66198bf51))
+* use authentik invalidation flow for reliable logout ([ab2a95b](https://github.com/jonasotoaguilar/warranty-system/commit/ab2a95b30e66f556d6cc8e12a8d737c5d429d2bc))
+
 ### [2.0.2](https://github.com/jonasotoaguilar/warranty-system/compare/v2.0.0...v2.0.2) (2025-12-22)
 
 
