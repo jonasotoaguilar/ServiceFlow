@@ -165,7 +165,7 @@ export function WarrantyDashboard() {
           <Button
             variant="outline"
             onClick={() => {
-              globalThis.location.href = "/akprox/auth/logout";
+              globalThis.location.href = `/outpost.goauthentik.io/auth/logout?rd=${process.env.NEXT_PUBLIC_AUTHENTIK_URL}`;
             }}
             className="bg-zinc-100 text-zinc-950 hover:bg-zinc-200 border-zinc-200 dark:bg-zinc-900 dark:text-zinc-50 dark:hover:bg-zinc-800 dark:border-zinc-800 ml-auto sm:ml-0"
           >
