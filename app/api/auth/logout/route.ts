@@ -1,20 +1,20 @@
 import { NextResponse } from "next/server";
 
-export async function GET() {
+export async function GET(request: Request) {
   const authentikUrl = process.env.NEXT_PUBLIC_AUTHENTIK_URL;
+  const baseUrl = new URL(request.url).origin;
 
-  if (authentikUrl) {
-    // Redirección directa al servidor de Authentik (Runtime)
-    return NextResponse.redirect(
-      `${authentikUrl}/if/flow/default-invalidation-flow/`
-    );
+  console.log(`[Logout] Authentik URL Configured: ${authentikUrl}`);
+
+  // Si la URL de Authentik es distinta a la de la web, vamos al servidor de identidad directamente
+  if (authentikUrl && authentikUrl !== baseUrl) {
+    const finalUrl = `${authentikUrl}/if/flow/default-invalidation-flow/?next=${baseUrl}`;
+    console.log(`[Logout] Redirecting to absolute Authentik: ${finalUrl}`);
+    return NextResponse.redirect(finalUrl);
   }
 
-  // Fallback si no hay URL configurada
-  return NextResponse.redirect(
-    new URL(
-      "/outpost.goauthentik.io/auth/logout",
-      process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3001"
-    )
-  );
+  // Si no hay URL o es la misma, usamos el endpoint del outpost
+  const fallbackUrl = `${baseUrl}/outpost.goauthentik.io/auth/logout`;
+  console.log(`[Logout] Fallback to relative outpost: ${fallbackUrl}`);
+  return NextResponse.redirect(fallbackUrl);
 }
