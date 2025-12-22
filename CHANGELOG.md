@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.0.7](https://github.com/jonasotoaguilar/warranty-system/compare/v2.0.6...v2.0.7) (2025-12-22)
+
+
+### Bug Fixes
+
+* use sign_out endpoint to avoid akprox 404 ([652db12](https://github.com/jonasotoaguilar/warranty-system/commit/652db127601094ddc20e7bb6c6dba3bb13c9ec86))
+
 ### [2.0.6](https://github.com/jonasotoaguilar/warranty-system/compare/v2.0.5...v2.0.6) (2025-12-22)
 
 
