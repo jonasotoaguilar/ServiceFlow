@@ -1,39 +1,26 @@
-import { headers } from "next/headers";
+import { createSessionClient } from "@/lib/appwrite";
 
-interface AuthentikUser {
+interface AuthUser {
   id: string;
   email: string | null;
   name: string;
-  username: string;
 }
 
-/**
- * Obtiene el usuario autenticado desde las cabeceras inyectadas por Authentik Proxy Provider.
- * Traefik/Dokploy inyectan estas cabeceras tras una autenticación exitosa.
- */
-export async function getAuthUser(): Promise<AuthentikUser | null> {
-  const headersList = await headers();
+export async function getAuthUser(): Promise<AuthUser | null> {
+  try {
+    const { account } = await createSessionClient();
+    const user = await account.get();
 
-  // Lista de headers posibles según configuración de Authentik/Traefik
-  const userId =
-    headersList.get("x-authentik-uid") || headersList.get("remote-user");
-  const email =
-    headersList.get("x-authentik-email") || headersList.get("remote-email");
-  const name =
-    headersList.get("x-authentik-name") || headersList.get("remote-name");
-  const username =
-    headersList.get("x-authentik-username") || headersList.get("remote-user");
-
-  console.log(`[Auth Debug] Headers: ${JSON.stringify(headersList)}`);
-
-  if (!userId && !username) {
+    return {
+      id: user.$id,
+      email: user.email,
+      name: user.name,
+    };
+  } catch (error: any) {
+    // Si el error es "No session", es normal y no debemos ensuciar la consola
+    if (error.message !== "No session") {
+      console.error("[Auth Debug] getAuthUser error:", error);
+    }
     return null;
   }
-
-  return {
-    id: userId || username || "unknown",
-    email: email,
-    name: name || username || "Usuario",
-    username: username || userId || "usuario",
-  };
 }
