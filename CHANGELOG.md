@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [3.0.3](https://github.com/jonasotoaguilar/warranty-system/compare/v3.0.2...v3.0.3) (2026-01-06)
+
+
+### Bug Fixes
+
+* proxy.ts ([4e2552b](https://github.com/jonasotoaguilar/warranty-system/commit/4e2552ba671e69dd12549f972f36052c8a9af114))
+
 ### [3.0.2](https://github.com/jonasotoaguilar/warranty-system/compare/v3.0.1...v3.0.2) (2026-01-06)
 
 ### [3.0.1](https://github.com/jonasotoaguilar/warranty-system/compare/v3.0.0...v3.0.1) (2026-01-06)
