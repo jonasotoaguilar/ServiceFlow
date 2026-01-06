@@ -31,6 +31,7 @@ RUN npx prisma generate
 # Build the application
 # Disable telemetry during build
 ENV NEXT_TELEMETRY_DISABLED=1
+
 RUN npm run build
 
 # Production image, copy all the files and run next
