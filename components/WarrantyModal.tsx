@@ -311,49 +311,51 @@ export function WarrantyModal({
                 />
               </div>
             </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2 text-zinc-900 dark:text-zinc-100">
-                <label
-                  htmlFor="contact"
-                  className="text-sm font-medium text-zinc-700 dark:text-zinc-300"
-                >
-                  Teléfono *
-                </label>
-                <Input
-                  id="contact"
-                  required
-                  disabled={isLocked}
-                  placeholder="+56 9..."
-                  value={formData.contact || ""}
-                  onChange={handlePhoneChange}
-                  maxLength={15}
-                  pattern="\+56 9 \d{4} \d{4}"
-                  title="Rellene el campo con el formato: +56 9 XXXX XXXX"
-                />
-              </div>
-              <div className="grid gap-2 text-zinc-900 dark:text-zinc-100">
-                <label
-                  htmlFor="email"
-                  className="text-sm font-medium text-zinc-700 dark:text-zinc-300"
-                >
-                  Email
-                </label>
-                <Input
-                  id="email"
-                  disabled={isLocked}
-                  type="email"
-                  placeholder="cliente@email.com"
-                  value={formData.email || ""}
-                  onChange={(e) =>
-                    setFormData({ ...formData, email: e.target.value })
-                  }
-                  maxLength={320}
-                />
-              </div>
-            </div>
           </div>
         )}
+
+        <div className="space-y-4 p-3 border border-zinc-200 dark:border-zinc-800 rounded-lg bg-zinc-50/50 dark:bg-zinc-900/30">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-2 text-zinc-900 dark:text-zinc-100">
+              <label
+                htmlFor="contact"
+                className="text-sm font-medium text-zinc-700 dark:text-zinc-300"
+              >
+                Teléfono *
+              </label>
+              <Input
+                id="contact"
+                required
+                disabled={isLocked}
+                placeholder="+56 9..."
+                value={formData.contact || ""}
+                onChange={handlePhoneChange}
+                maxLength={15}
+                pattern="\+56 9 \d{4} \d{4}"
+                title="Rellene el campo con el formato: +56 9 XXXX XXXX"
+              />
+            </div>
+            <div className="grid gap-2 text-zinc-900 dark:text-zinc-100">
+              <label
+                htmlFor="email"
+                className="text-sm font-medium text-zinc-700 dark:text-zinc-300"
+              >
+                Email
+              </label>
+              <Input
+                id="email"
+                disabled={isLocked}
+                type="email"
+                placeholder="cliente@email.com"
+                value={formData.email || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, email: e.target.value })
+                }
+                maxLength={320}
+              />
+            </div>
+          </div>
+        </div>
 
         <div className="space-y-4 p-3 border border-zinc-200 dark:border-zinc-800 rounded-lg bg-zinc-50/50 dark:bg-zinc-900/30">
           <div className="grid grid-cols-2 gap-4">
