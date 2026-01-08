@@ -170,11 +170,18 @@ export function WarrantyModal({
                     : ""
                 }
                 onChange={(e) => {
-                  const date = new Date(e.target.value);
-                  setFormData({
-                    ...formData,
-                    entryDate: date.toISOString(),
-                  });
+                  const val = e.target.value;
+                  if (!val) {
+                    setFormData({ ...formData, entryDate: undefined });
+                    return;
+                  }
+                  const date = new Date(val);
+                  if (!isNaN(date.getTime())) {
+                    setFormData({
+                      ...formData,
+                      entryDate: date.toISOString(),
+                    });
+                  }
                 }}
               />
             </div>
