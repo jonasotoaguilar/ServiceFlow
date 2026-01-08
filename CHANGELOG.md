@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [3.1.0](https://github.com/jonasotoaguilar/warranty-system/compare/v3.0.2...v3.1.0) (2026-01-08)
+
+
+### Features
+
+* **warranties:** add entry date field and sku validation logic ([962a703](https://github.com/jonasotoaguilar/warranty-system/commit/962a703623442b99335a0a6ea56243545d9c2b0a))
+* **warranties:** hide immutable fields in edit mode ([3726052](https://github.com/jonasotoaguilar/warranty-system/commit/3726052ffe1b4163167c68d9c9a137a6c37b6275))
+* **warranties:** optimize entry date selection logic ([38eb753](https://github.com/jonasotoaguilar/warranty-system/commit/38eb7537b1a0562027356f758c979539e4091963))
+
+
+### Bug Fixes
+
+* add fallback for appwrite endpoint in next config and clean dockerfile ([3120baa](https://github.com/jonasotoaguilar/warranty-system/commit/3120baa90b69f6c88ce323081fe2f2e394e36573))
+* **auth:** redirect to login after logout ([1a4421d](https://github.com/jonasotoaguilar/warranty-system/commit/1a4421d8c5c9bd5960679e74783f8bcfc06be546))
+* **ci:** update docker tag generation to use semver ([23c4374](https://github.com/jonasotoaguilar/warranty-system/commit/23c437480192c9e2add161bf9f4c937646cdfe86))
+* **dashboard:** use server action for logout ([6055e39](https://github.com/jonasotoaguilar/warranty-system/commit/6055e3962022a98d6062072d44c173547dd4860d))
+* proxy.ts ([4e2552b](https://github.com/jonasotoaguilar/warranty-system/commit/4e2552ba671e69dd12549f972f36052c8a9af114))
+* **ui:** adjust filter layout and fix undefined date error in warranty modal ([3b74f20](https://github.com/jonasotoaguilar/warranty-system/commit/3b74f2001181bfa079d69a8a1ecff19d587436c0))
+* **ui:** enforce dark color scheme for date inputs and cleanup unused var ([b0383ae](https://github.com/jonasotoaguilar/warranty-system/commit/b0383ae54da5cd4a50084a5e58dccd7e965f3da5))
+* **ui:** prevent empty container rendering in edit mode ([5f0babd](https://github.com/jonasotoaguilar/warranty-system/commit/5f0babdd5f4a2c601757f6f81bcb4ce6a7c4037b))
+* v3.0.3 ([56ffa94](https://github.com/jonasotoaguilar/warranty-system/commit/56ffa94d1bf38c55f8b6d09378e0d99fcca91258))
+
 ### [3.0.3](https://github.com/jonasotoaguilar/warranty-system/compare/v3.0.2...v3.0.3) (2026-01-06)
 
 

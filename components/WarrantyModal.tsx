@@ -58,6 +58,8 @@ export function WarrantyModal({
         contact: "+56 9 ",
         email: "",
         rut: "",
+        sku: "",
+        entryDate: new Date().toISOString(),
       });
     }
   }, [warrantyToEdit, isOpen, LOCATIONS]);
@@ -115,7 +117,6 @@ export function WarrantyModal({
         ? JSON.stringify(formData)
         : JSON.stringify({
             ...formData,
-            entryDate: new Date().toISOString(),
           });
 
       const res = await fetch(url, {
@@ -150,156 +151,238 @@ export function WarrantyModal({
       title={warrantyToEdit ? "Editar Garantía" : "Nueva Garantía"}
     >
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-4 p-3 border border-zinc-200 dark:border-zinc-800 rounded-lg bg-zinc-50/50 dark:bg-zinc-900/30">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="grid gap-2 text-zinc-900 dark:text-zinc-100">
+        {!isEditing && (
+          <div className="space-y-4 p-3 border border-zinc-200 dark:border-zinc-800 rounded-lg bg-zinc-50/50 dark:bg-zinc-900/30">
+            <div className="grid gap-2 text-zinc-900 dark:text-zinc-100 mb-4">
               <label
-                htmlFor="invoice-number"
+                htmlFor="entry-date"
                 className="text-sm font-medium text-zinc-700 dark:text-zinc-300"
               >
-                N° Boleta *
+                Fecha de Ingreso *
               </label>
               <Input
-                id="invoice-number"
+                id="entry-date"
+                type="date"
                 required
-                autoFocus
-                disabled={isLocked || isEditing}
-                placeholder="123456"
-                value={formData.invoiceNumber || ""}
-                maxLength={20}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    invoiceNumber: e.target.value || undefined,
-                  })
+                max={new Date().toISOString().split("T")[0]}
+                value={
+                  formData.entryDate
+                    ? new Date(formData.entryDate).toISOString().split("T")[0]
+                    : ""
                 }
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (!val) {
+                    setFormData({ ...formData, entryDate: undefined });
+                    return;
+                  }
+
+                  // Logic: If today, use current time. If past, use 10:00 AM.
+                  const now = new Date();
+
+                  // Reset hours to compare just dates
+                  const today = new Date();
+                  today.setHours(0, 0, 0, 0);
+
+                  // Adjust for timezone offset to ensure correct "local" date comparison
+                  // or simpler: compare date strings
+                  const isToday = val === now.toISOString().split("T")[0];
+
+                  if (isToday) {
+                    // Use current time
+                    const dateWithCurrentTime = new Date(val);
+                    dateWithCurrentTime.setHours(
+                      now.getHours(),
+                      now.getMinutes(),
+                      now.getSeconds()
+                    );
+                    // Adjust for local timezone offset when creating from YYYY-MM-DD
+                    // But actually new Date(val) treats it as UTC usually for 'YYYY-MM-DD'?
+                    // Let's use reliable construction
+                    const [y, m, d] = val.split("-").map(Number);
+                    const finalDate = new Date(
+                      y,
+                      m - 1,
+                      d,
+                      now.getHours(),
+                      now.getMinutes(),
+                      now.getSeconds()
+                    );
+                    setFormData({
+                      ...formData,
+                      entryDate: finalDate.toISOString(),
+                    });
+                  } else {
+                    // Use 10:00 AM
+                    const [y, m, d] = val.split("-").map(Number);
+                    const finalDate = new Date(y, m - 1, d, 10, 0, 0);
+                    setFormData({
+                      ...formData,
+                      entryDate: finalDate.toISOString(),
+                    });
+                  }
+                }}
               />
             </div>
-            <div className="grid gap-2 text-zinc-900 dark:text-zinc-100">
-              <label
-                htmlFor="sku"
-                className="text-sm font-medium text-zinc-700 dark:text-zinc-300"
-              >
-                SKU
-              </label>
-              <Input
-                id="sku"
-                disabled={isLocked}
-                placeholder="Código producto"
-                value={formData.sku || ""}
-                maxLength={20}
-                onChange={(e) =>
-                  setFormData({ ...formData, sku: e.target.value })
-                }
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2 text-zinc-900 dark:text-zinc-100">
+                <label
+                  htmlFor="invoice-number"
+                  className="text-sm font-medium text-zinc-700 dark:text-zinc-300"
+                >
+                  N° Boleta *
+                </label>
+                <Input
+                  id="invoice-number"
+                  required
+                  autoFocus
+                  disabled={isLocked || isEditing}
+                  placeholder="123456"
+                  value={formData.invoiceNumber || ""}
+                  maxLength={20}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      invoiceNumber: e.target.value || undefined,
+                    })
+                  }
+                />
+              </div>
+              <div className="grid gap-2 text-zinc-900 dark:text-zinc-100">
+                <label
+                  htmlFor="sku"
+                  className="text-sm font-medium text-zinc-700 dark:text-zinc-300"
+                >
+                  SKU *
+                </label>
+                <Input
+                  id="sku"
+                  required
+                  disabled={isLocked || isEditing}
+                  placeholder="Código producto"
+                  value={formData.sku || ""}
+                  maxLength={20}
+                  onChange={(e) =>
+                    setFormData({ ...formData, sku: e.target.value })
+                  }
+                />
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
-        <div className="space-y-4 p-3 border border-zinc-200 dark:border-zinc-800 rounded-lg bg-zinc-50/50 dark:bg-zinc-900/30">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="sm:col-span-2 grid gap-2 text-zinc-900 dark:text-zinc-100">
-              <label
-                htmlFor="client-name"
-                className="text-sm font-medium text-zinc-700 dark:text-zinc-300"
-              >
-                Cliente *
-              </label>
-              <Input
-                id="client-name"
-                disabled={isLocked || isEditing}
-                required
-                placeholder="Nombre completo"
-                value={formData.clientName || ""}
-                maxLength={25}
-                onChange={(e) =>
-                  setFormData({ ...formData, clientName: e.target.value })
-                }
-              />
+        {!isEditing && (
+          <div className="space-y-4 p-3 border border-zinc-200 dark:border-zinc-800 rounded-lg bg-zinc-50/50 dark:bg-zinc-900/30">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="sm:col-span-2 grid gap-2 text-zinc-900 dark:text-zinc-100">
+                <label
+                  htmlFor="client-name"
+                  className="text-sm font-medium text-zinc-700 dark:text-zinc-300"
+                >
+                  Cliente *
+                </label>
+                <Input
+                  id="client-name"
+                  disabled={isLocked || isEditing}
+                  required
+                  placeholder="Nombre completo"
+                  value={formData.clientName || ""}
+                  maxLength={25}
+                  onChange={(e) =>
+                    setFormData({ ...formData, clientName: e.target.value })
+                  }
+                />
+              </div>
+              <div className="grid gap-2 text-zinc-900 dark:text-zinc-100">
+                <label
+                  htmlFor="rut"
+                  className="text-sm font-medium text-zinc-700 dark:text-zinc-300"
+                >
+                  RUT *
+                </label>
+                <Input
+                  id="rut"
+                  disabled={isLocked || isEditing}
+                  required
+                  placeholder="12.345.678-9"
+                  value={formData.rut || ""}
+                  onChange={handleRutChange}
+                  maxLength={12}
+                />
+              </div>
             </div>
-            <div className="grid gap-2 text-zinc-900 dark:text-zinc-100">
-              <label
-                htmlFor="rut"
-                className="text-sm font-medium text-zinc-700 dark:text-zinc-300"
-              >
-                RUT *
-              </label>
-              <Input
-                id="rut"
-                disabled={isLocked || isEditing}
-                required
-                placeholder="12.345.678-9"
-                value={formData.rut || ""}
-                onChange={handleRutChange}
-                maxLength={12}
-              />
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2 text-zinc-900 dark:text-zinc-100">
+                <label
+                  htmlFor="contact"
+                  className="text-sm font-medium text-zinc-700 dark:text-zinc-300"
+                >
+                  Teléfono *
+                </label>
+                <Input
+                  id="contact"
+                  required
+                  disabled={isLocked}
+                  placeholder="+56 9..."
+                  value={formData.contact || ""}
+                  onChange={handlePhoneChange}
+                  maxLength={15}
+                  pattern="\+56 9 \d{4} \d{4}"
+                  title="Rellene el campo con el formato: +56 9 XXXX XXXX"
+                />
+              </div>
+              <div className="grid gap-2 text-zinc-900 dark:text-zinc-100">
+                <label
+                  htmlFor="email"
+                  className="text-sm font-medium text-zinc-700 dark:text-zinc-300"
+                >
+                  Email
+                </label>
+                <Input
+                  id="email"
+                  disabled={isLocked}
+                  type="email"
+                  placeholder="cliente@email.com"
+                  value={formData.email || ""}
+                  onChange={(e) =>
+                    setFormData({ ...formData, email: e.target.value })
+                  }
+                  maxLength={320}
+                />
+              </div>
             </div>
           </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="grid gap-2 text-zinc-900 dark:text-zinc-100">
-              <label
-                htmlFor="contact"
-                className="text-sm font-medium text-zinc-700 dark:text-zinc-300"
-              >
-                Teléfono *
-              </label>
-              <Input
-                id="contact"
-                required
-                disabled={isLocked}
-                placeholder="+56 9..."
-                value={formData.contact || ""}
-                onChange={handlePhoneChange}
-                maxLength={15}
-                pattern="\+56 9 \d{4} \d{4}"
-                title="Rellene el campo con el formato: +56 9 XXXX XXXX"
-              />
-            </div>
-            <div className="grid gap-2 text-zinc-900 dark:text-zinc-100">
-              <label
-                htmlFor="email"
-                className="text-sm font-medium text-zinc-700 dark:text-zinc-300"
-              >
-                Email
-              </label>
-              <Input
-                id="email"
-                disabled={isLocked}
-                type="email"
-                placeholder="cliente@email.com"
-                value={formData.email || ""}
-                onChange={(e) =>
-                  setFormData({ ...formData, email: e.target.value })
-                }
-                maxLength={320}
-              />
-            </div>
-          </div>
-        </div>
+        )}
 
         <div className="space-y-4 p-3 border border-zinc-200 dark:border-zinc-800 rounded-lg bg-zinc-50/50 dark:bg-zinc-900/30">
           <div className="grid grid-cols-2 gap-4">
-            <div className="grid gap-2 text-zinc-900 dark:text-zinc-100">
-              <label
-                htmlFor="product"
-                className="text-sm font-medium text-zinc-700 dark:text-zinc-300"
-              >
-                Producto *
-              </label>
-              <Input
-                id="product"
-                disabled={isLocked || isEditing}
-                required
-                placeholder="Nombre del producto"
-                value={formData.product || ""}
-                maxLength={40}
-                onChange={(e) =>
-                  setFormData({ ...formData, product: e.target.value })
-                }
-              />
-            </div>
-            <div className="grid gap-2 text-zinc-900 dark:text-zinc-100">
+            {!isEditing && (
+              <div className="grid gap-2 text-zinc-900 dark:text-zinc-100">
+                <label
+                  htmlFor="product"
+                  className="text-sm font-medium text-zinc-700 dark:text-zinc-300"
+                >
+                  Producto *
+                </label>
+                <Input
+                  id="product"
+                  disabled={isLocked || isEditing}
+                  required
+                  placeholder="Nombre del producto"
+                  value={formData.product || ""}
+                  maxLength={40}
+                  onChange={(e) =>
+                    setFormData({ ...formData, product: e.target.value })
+                  }
+                />
+              </div>
+            )}
+            <div
+              className={`${
+                isEditing ? "col-span-2" : ""
+              } grid gap-2 text-zinc-900 dark:text-zinc-100`}
+            >
               <label
                 htmlFor="repair-cost"
                 className="text-sm font-medium text-zinc-700 dark:text-zinc-300"

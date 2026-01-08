@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { getLocations } from "@/app/actions/locations";
+import { logout } from "@/app/actions/auth";
 import { Warranty, WarrantyStatus } from "@/lib/types";
 import { WarrantyTable } from "./WarrantyTable";
 import { WarrantyModal } from "./WarrantyModal";
@@ -164,8 +165,8 @@ export function WarrantyDashboard() {
           </Button>
           <Button
             variant="outline"
-            onClick={() => {
-              globalThis.location.href = "/api/auth/logout";
+            onClick={async () => {
+              await logout();
             }}
             className="bg-zinc-100 text-zinc-950 hover:bg-zinc-200 border-zinc-200 dark:bg-zinc-900 dark:text-zinc-50 dark:hover:bg-zinc-800 dark:border-zinc-800 ml-auto sm:ml-0"
           >
@@ -195,11 +196,11 @@ export function WarrantyDashboard() {
           />
         </div>
 
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full sm:w-auto">
-          <div className="flex items-center gap-2 w-full sm:w-auto">
+        <div className="flex flex-col sm:flex-row items-end sm:items-center gap-4 w-full sm:w-auto">
+          <div className="flex flex-col items-start gap-1.5 w-full sm:w-auto">
             <label
               htmlFor="location-filter"
-              className="text-sm text-zinc-500 dark:text-zinc-400 flex items-center gap-1 shrink-0"
+              className="text-sm text-zinc-500 dark:text-zinc-400 flex items-center gap-1 shrink-0 px-1"
             >
               <MapPin className="h-4 w-4" aria-hidden="true" /> Ubicación:
             </label>
@@ -219,40 +220,42 @@ export function WarrantyDashboard() {
           </div>
 
           <fieldset
-            className="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0"
+            className="flex flex-col items-start gap-1.5 pb-2 sm:pb-0"
             aria-labelledby="status-filter-label"
           >
             <legend
               id="status-filter-label"
-              className="text-sm text-zinc-500 dark:text-zinc-400 flex items-center gap-1 shrink-0"
+              className="text-sm text-zinc-500 dark:text-zinc-400 flex items-center gap-1 shrink-0 px-1"
             >
               <Filter className="h-4 w-4" aria-hidden="true" /> Estados:
             </legend>
-            {(["pending", "ready", "completed"] as WarrantyStatus[]).map(
-              (status) => {
-                const isActive = statusFilter.includes(status);
-                const labels = {
-                  pending: "Pendientes",
-                  ready: "Listas",
-                  completed: "Completadas",
-                };
-                return (
-                  <button
-                    key={status}
-                    type="button"
-                    onClick={() => toggleStatusFilter(status)}
-                    aria-pressed={isActive}
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors border ${
-                      isActive
-                        ? "bg-zinc-900 text-zinc-50 border-zinc-900 dark:bg-zinc-100 dark:text-zinc-900 dark:border-zinc-100"
-                        : "bg-transparent text-zinc-600 border-zinc-200 hover:bg-zinc-100 dark:text-zinc-400 dark:border-zinc-800 dark:hover:bg-zinc-800"
-                    }`}
-                  >
-                    {labels[status]}
-                  </button>
-                );
-              }
-            )}
+            <div className="flex items-center gap-2 overflow-x-auto">
+              {(["pending", "ready", "completed"] as WarrantyStatus[]).map(
+                (status) => {
+                  const isActive = statusFilter.includes(status);
+                  const labels = {
+                    pending: "Pendientes",
+                    ready: "Listas",
+                    completed: "Completadas",
+                  };
+                  return (
+                    <button
+                      key={status}
+                      type="button"
+                      onClick={() => toggleStatusFilter(status)}
+                      aria-pressed={isActive}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors border ${
+                        isActive
+                          ? "bg-zinc-900 text-zinc-50 border-zinc-900 dark:bg-zinc-100 dark:text-zinc-900 dark:border-zinc-100"
+                          : "bg-transparent text-zinc-600 border-zinc-200 hover:bg-zinc-100 dark:text-zinc-400 dark:border-zinc-800 dark:hover:bg-zinc-800"
+                      }`}
+                    >
+                      {labels[status]}
+                    </button>
+                  );
+                }
+              )}
+            </div>
           </fieldset>
         </div>
       </section>

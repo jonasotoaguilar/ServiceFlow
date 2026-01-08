@@ -10,7 +10,8 @@ El proyecto está construido con la última tecnología disponible (a fecha 2024
 - **Lenguaje**: [TypeScript](https://www.typescriptlang.org/)
 - **Interfaz (UI)**: [React 19](https://react.dev/)
 - **Estilos**: [Tailwind CSS v4](https://tailwindcss.com/) (Oxide Engine)
-- **Base de Datos**: [PostgreSQL](https://www.postgresql.org/) (vía [Supabase](https://supabase.com/))
+- **Base de Datos**: [PostgreSQL](https://www.postgresql.org/) (Gestionada con Prisma)
+- **Autenticación**: [Appwrite](https://appwrite.io/)
 - **ORM**: [Prisma 7](https://www.prisma.io/) (con **Driver Adapters** para Serverless/Edge)
 - **Containerización**: [Docker](https://www.docker.com/) & Docker Compose
 - **Iconos**: [Lucide React](https://lucide.dev/)
@@ -33,54 +34,52 @@ El proyecto está construido con la última tecnología disponible (a fecha 2024
 
 - [Node.js](https://nodejs.org/) (v20 o superior recomendado)
 - [Docker](https://www.docker.com/) (Opcional, para despliegue containerizado)
-- Cuenta en [Supabase](https://supabase.com/)
+- Instancia de [Appwrite](https://appwrite.io/) (Cloud o Self-hosted)
+- Base de datos PostgreSQL
 
 ## ⚙️ Configuración del Entorno
 
-1.  **Clonar el repositorio**
+1. **Clonar el repositorio**
 
-    ```bash
-    git clone <url-del-repositorio>
-    cd warranty-system
-    ```
+   ```bash
+   git clone <url-del-repositorio>
+   cd warranty-system
+   ```
 
-2.  **Configurar Variables de Entorno**
+2. **Configurar Variables de Entorno**
 
-    Crea un archivo `.env` en la raíz del proyecto. **Importante**: Con Prisma 7 y Driver Adapters, la configuración de conexión ha cambiado ligeramente para optimizar el uso de Supabase Pooling.
+   Crea un archivo `.env` en la raíz del proyecto. Ver `docs/CONFIG.md` para más detalles.
 
-    ```env
-    # Conexión principal (Transaction Pooler - Puerto 6543)
-    # Se usa para la aplicación en ejecución
-    DATABASE_URL="postgresql://postgres:[PASSWORD]@[HOST]:6543/postgres?pgbouncer=true"
+   ```env
+   # Database (Prisma / PostgreSQL)
+   DATABASE_URL="postgresql://postgres:[PASSWORD]@[HOST]:6543/postgres?pgbouncer=true"
+   DIRECT_URL="postgresql://postgres:[PASSWORD]@[HOST]:5432/postgres"
 
-    # Conexión Directa (Session Pooler - Puerto 5432)
-    # Se usa SOLO para migraciones y CLI de Prisma (prisma.config.ts)
-    DIRECT_URL="postgresql://postgres:[PASSWORD]@[HOST]:5432/postgres"
+   # Auth (Appwrite)
+   NEXT_PUBLIC_APPWRITE_PROJECT="[PROJECT_ID]"
+   NEXT_PUBLIC_APPWRITE_ENDPOINT="https://cloud.appwrite.io/v1"
+   APPWRITE_API_KEY="[YOUR_SECRET_API_KEY]"
+   ```
 
-    # Supabase Auth & Public
-    NEXT_PUBLIC_SUPABASE_URL="https://[PROJECT-ID].supabase.co"
-    NEXT_PUBLIC_SUPABASE_ANON_KEY="[YOUR-ANON-KEY-STARTING-WITH-EY...]"
-    ```
+3. **Instalar dependencias**
 
-3.  **Instalar dependencias**
+   ```bash
+   npm install
+   ```
 
-    ```bash
-    npm install
-    ```
+4. **Inicializar la Base de Datos**
 
-4.  **Inicializar la Base de Datos**
+   Gracias a `prisma.config.ts` (nuevo en Prisma 7), la CLI utilizará automáticamente la `DIRECT_URL` para realizar cambios en el esquema sin romper el pool de conexiones de la aplicación.
 
-    Gracias a `prisma.config.ts` (nuevo en Prisma 7), la CLI utilizará automáticamente la `DIRECT_URL` para realizar cambios en el esquema sin romper el pool de conexiones de la aplicación.
+   ```bash
+   npx prisma migrate dev --name init
+   ```
 
-    ```bash
-    npx prisma migrate dev --name init
-    ```
+   _(Opcional) Poblar con datos de prueba:_
 
-    _(Opcional) Poblar con datos de prueba:_
-
-    ```bash
-    npx tsx prisma/seed-dummy.ts
-    ```
+   ```bash
+   npx tsx prisma/seed-dummy.ts
+   ```
 
 ## ▶️ Ejecución en Desarrollo
 
@@ -96,20 +95,21 @@ La aplicación estará disponible en `http://localhost:3000`.
 
 El proyecto incluye configuración lista para producción usando Docker.
 
-1.  **Asegúrate de tener el archivo `.env` configurado correctamente.**
+1. **Asegúrate de tener el archivo `.env` configurado correctamente.**
 
-2.  **Construir y levantar el contenedor:**
+2. **Construir y levantar el contenedor:**
 
-    ```bash
-    docker-compose up -d --build
-    ```
+   ```bash
+   docker-compose up -d --build
+   ```
 
-    Esto iniciará la aplicación en el puerto **3000** en modo producción optimizado (Standalone).
+   Esto iniciará la aplicación en el puerto **3000** en modo producción optimizado (Standalone).
 
-3.  **Ver logs:**
-    ```bash
-    docker-compose logs -f
-    ```
+3. **Ver logs:**
+
+   ```bash
+   docker-compose logs -f
+   ```
 
 ## 📁 Estructura del Proyecto
 
@@ -124,8 +124,8 @@ El proyecto incluye configuración lista para producción usando Docker.
 
 ## 🤝 Contribución
 
-1.  Hacer un fork del repositorio.
-2.  Crear una rama para tu feature (`git checkout -b feature/nueva-feature`).
-3.  Hacer commit de tus cambios (`git commit -m 'feat: agregar nueva funcionalidad'`).
-4.  Hacer push a la rama (`git push origin feature/nueva-feature`).
-5.  Abrir un Pull Request.
+1. Hacer un fork del repositorio.
+2. Crear una rama para tu feature (`git checkout -b feature/nueva-feature`).
+3. Hacer commit de tus cambios (`git commit -m 'feat: agregar nueva funcionalidad'`).
+4. Hacer push a la rama (`git push origin feature/nueva-feature`).
+5. Abrir un Pull Request.

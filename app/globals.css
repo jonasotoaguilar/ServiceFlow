@@ -82,4 +82,8 @@ body {
   .dark * {
     scrollbar-color: #27272a transparent;
   }
+  .dark input[type="date"],
+  .dark input[type="datetime-local"] {
+    color-scheme: dark;
+  }
 }
