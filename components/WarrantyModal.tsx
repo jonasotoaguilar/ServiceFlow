@@ -58,6 +58,8 @@ export function WarrantyModal({
         contact: "+56 9 ",
         email: "",
         rut: "",
+        sku: "",
+        entryDate: new Date().toISOString(),
       });
     }
   }, [warrantyToEdit, isOpen, LOCATIONS]);
@@ -115,7 +117,6 @@ export function WarrantyModal({
         ? JSON.stringify(formData)
         : JSON.stringify({
             ...formData,
-            entryDate: new Date().toISOString(),
           });
 
       const res = await fetch(url, {
@@ -151,6 +152,33 @@ export function WarrantyModal({
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-4 p-3 border border-zinc-200 dark:border-zinc-800 rounded-lg bg-zinc-50/50 dark:bg-zinc-900/30">
+          {!isEditing && (
+            <div className="grid gap-2 text-zinc-900 dark:text-zinc-100 mb-4">
+              <label
+                htmlFor="entry-date"
+                className="text-sm font-medium text-zinc-700 dark:text-zinc-300"
+              >
+                Fecha de Ingreso *
+              </label>
+              <Input
+                id="entry-date"
+                type="datetime-local"
+                required
+                value={
+                  formData.entryDate
+                    ? new Date(formData.entryDate).toISOString().slice(0, 16)
+                    : ""
+                }
+                onChange={(e) => {
+                  const date = new Date(e.target.value);
+                  setFormData({
+                    ...formData,
+                    entryDate: date.toISOString(),
+                  });
+                }}
+              />
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-2 text-zinc-900 dark:text-zinc-100">
               <label
@@ -180,11 +208,12 @@ export function WarrantyModal({
                 htmlFor="sku"
                 className="text-sm font-medium text-zinc-700 dark:text-zinc-300"
               >
-                SKU
+                SKU {!isEditing && "*"}
               </label>
               <Input
                 id="sku"
-                disabled={isLocked}
+                required={!isEditing}
+                disabled={isLocked || isEditing}
                 placeholder="Código producto"
                 value={formData.sku || ""}
                 maxLength={20}
