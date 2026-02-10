@@ -1,5 +1,5 @@
 # Workspace
-warranty-system.code-workspace
+Service-system.code-workspace
 
 # Prisma
 /lib/generated/prisma
@@ -24,6 +24,8 @@ yarn-error.log*
 # VSCode
 .vscode
 .agent
+.agents
+.claude
 
 # Typescript
 tsconfig.tsbuildinfo

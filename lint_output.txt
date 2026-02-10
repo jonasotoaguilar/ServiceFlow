@@ -1,0 +1,84 @@
+
+> Service-system@3.2.0 lint /home/jona/Proyectos/ServiceFlow
+> eslint .
+
+
+/home/jona/Proyectos/ServiceFlow/.agents/skills/react-hook-form-zod/templates/advanced-form.tsx
+  119:21  warning  Compilation Skipped: Use of incompatible library
+
+This API returns functions which cannot be memoized without leading to stale UI. To prevent this, by default React Compiler will skip memoizing this component/hook. However, you may see issues if values from this API are passed to other components/hooks that are memoized.
+
+/home/jona/Proyectos/ServiceFlow/.agents/skills/react-hook-form-zod/templates/advanced-form.tsx:119:21
+  117 |
+  118 |   // Watch isStudent to conditionally show school field
+> 119 |   const isStudent = watch('isStudent')
+      |                     ^^^^^ React Hook Form's `useForm()` API returns a `watch()` function which cannot be memoized safely.
+  120 |
+  121 |   const onSubmit = async (data: ProfileFormData) => {
+  122 |     console.log('Profile data:', data)  react-hooks/incompatible-library
+
+/home/jona/Proyectos/ServiceFlow/.agents/skills/react-hook-form-zod/templates/server-validation.ts
+  260:10  error  Parsing error: '>' expected
+
+/home/jona/Proyectos/ServiceFlow/.agents/skills/shadcn-ui/examples/data-table.tsx
+  157:17  warning  Compilation Skipped: Use of incompatible library
+
+This API returns functions which cannot be memoized without leading to stale UI. To prevent this, by default React Compiler will skip memoizing this component/hook. However, you may see issues if values from this API are passed to other components/hooks that are memoized.
+
+/home/jona/Proyectos/ServiceFlow/.agents/skills/shadcn-ui/examples/data-table.tsx:157:17
+  155 |   const [rowSelection, setRowSelection] = React.useState({})
+  156 |
+> 157 |   const table = useReactTable({
+      |                 ^^^^^^^^^^^^^ TanStack Table's `useReactTable()` API returns functions that cannot be memoized safely
+  158 |     data,
+  159 |     columns,
+  160 |     onSortingChange: setSorting,  react-hooks/incompatible-library
+
+/home/jona/Proyectos/ServiceFlow/.claude/skills/react-hook-form-zod/templates/advanced-form.tsx
+  119:21  warning  Compilation Skipped: Use of incompatible library
+
+This API returns functions which cannot be memoized without leading to stale UI. To prevent this, by default React Compiler will skip memoizing this component/hook. However, you may see issues if values from this API are passed to other components/hooks that are memoized.
+
+/home/jona/Proyectos/ServiceFlow/.claude/skills/react-hook-form-zod/templates/advanced-form.tsx:119:21
+  117 |
+  118 |   // Watch isStudent to conditionally show school field
+> 119 |   const isStudent = watch('isStudent')
+      |                     ^^^^^ React Hook Form's `useForm()` API returns a `watch()` function which cannot be memoized safely.
+  120 |
+  121 |   const onSubmit = async (data: ProfileFormData) => {
+  122 |     console.log('Profile data:', data)  react-hooks/incompatible-library
+
+/home/jona/Proyectos/ServiceFlow/.claude/skills/react-hook-form-zod/templates/server-validation.ts
+  260:10  error  Parsing error: '>' expected
+
+/home/jona/Proyectos/ServiceFlow/.claude/skills/shadcn-ui/examples/data-table.tsx
+  157:17  warning  Compilation Skipped: Use of incompatible library
+
+This API returns functions which cannot be memoized without leading to stale UI. To prevent this, by default React Compiler will skip memoizing this component/hook. However, you may see issues if values from this API are passed to other components/hooks that are memoized.
+
+/home/jona/Proyectos/ServiceFlow/.claude/skills/shadcn-ui/examples/data-table.tsx:157:17
+  155 |   const [rowSelection, setRowSelection] = React.useState({})
+  156 |
+> 157 |   const table = useReactTable({
+      |                 ^^^^^^^^^^^^^ TanStack Table's `useReactTable()` API returns functions that cannot be memoized safely
+  158 |     data,
+  159 |     columns,
+  160 |     onSortingChange: setSorting,  react-hooks/incompatible-library
+
+/home/jona/Proyectos/ServiceFlow/components/services/ServicesModal.tsx
+  471:34  warning  Compilation Skipped: Use of incompatible library
+
+This API returns functions which cannot be memoized without leading to stale UI. To prevent this, by default React Compiler will skip memoizing this component/hook. However, you may see issues if values from this API are passed to other components/hooks that are memoized.
+
+/home/jona/Proyectos/ServiceFlow/components/services/ServicesModal.tsx:471:34
+  469 | 											type="text"
+  470 | 											placeholder="0.00"
+> 471 | 											value={formatCurrency(form.watch("repairCost") || 0)}
+      | 											                      ^^^^ React Hook Form's `useForm()` API returns a `watch()` function which cannot be memoized safely.
+  472 | 											onChange={(event) => {
+  473 | 												const num = parseCurrency(event.target.value);
+  474 | 												if (num <= 999999999) {  react-hooks/incompatible-library
+
+✖ 7 problems (2 errors, 5 warnings)
+
+ ELIFECYCLE  Command failed with exit code 1.

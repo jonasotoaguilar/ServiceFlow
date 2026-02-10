@@ -1,4 +1,4 @@
-# Project Guidelines
+# AI Agent Ruleset
 
 ### Auto-invoke Skills
 
@@ -20,28 +20,29 @@ When performing these actions, ALWAYS invoke the corresponding skill FIRST:
 
 ## Stack and Versions
 
-- **Next.js**: 16.0.10 (App Router)
-- **React**: 19.2.3
-- **TypeScript**: 5.9.3
+- **Next.js**: 16.1.6 (App Router)
+- **React**: 19.2.4
+- **TypeScript**: 5.x
 - **Tailwind CSS**: 4.1.18
-- **Prisma**: 7.2.0
-- **Appwrite**: 14.1.0 (Node SDK)
-- **PostgreSQL**: 8.16.3 (pg driver)
-- **ESLint**: 9.39.2
-- **npm**: (Project uses package-lock.json)
+- **Zod**: 4.3.6
+- **React Hook Form**: 7.71.1
+- **Vitest**: 4.0.18
+- **Biome**: 2.3.14
+- **pnpm**: 10.7.1
 
 ## Commands
 
 ```bash
-npm run dev               # Development (http://localhost:3000)
-npm run build             # Production build
-npm run start             # Production server
-npm run lint              # Linter (ESLint)
-npm run changelog         # Generate changelog
-npm run version           # standard-version dry-run
-npx prisma studio         # Open Prisma Studio
-npx prisma generate       # Generate Prisma Client
-npx prisma migrate dev    # Run migrations
+pnpm dev                  # Development (http://localhost:3000)
+pnpm build                # Production build
+pnpm start                # Production server
+pnpm lint                 # Linter (Biome)
+pnpm lint:fix             # Auto-fix linting
+pnpm format               # Format code
+pnpm check                # Lint + format
+pnpm tsc                  # Type checking
+pnpm test                 # Tests
+pnpm coverage             # Tests with coverage
 ```
 
 ## Project Structure
@@ -49,44 +50,55 @@ npx prisma migrate dev    # Run migrations
 ```
 app/
 ├── actions/               # Server Actions
+│   ├── auth.ts           # Authentication actions
+│   ├── locations.ts      # Location management actions
+│   └── logs.ts           # Log management actions
 ├── api/                   # API Routes
-├── locations/             # Location routes
+│   └── Services/       # Service related endpoints
+├── locations/             # Locations feature
 ├── login/                 # Login page
-├── logs/                  # Logs routes
-├── register/              # Register page
+├── logs/                  # System logs feature
+├── register/              # Registration page
 ├── globals.css            # Global styles
 ├── layout.tsx             # Root layout
-└── page.tsx               # Root page
+└── page.tsx               # Home page
 
 components/
-├── auth/                  # Authentication components
-├── ui/                    # UI components
-├── WarrantyDashboard.tsx  # Dashboard component
-├── WarrantyDetailsModal.tsx
-├── WarrantyModal.tsx
-└── WarrantyTable.tsx
+├── services/             # Service components
+│   ├── ServicesDashboard.tsx
+│   ├── ServicesTable.tsx
+│   ├── ServicesModal.tsx
+│   └── ServicesDetailsModal.tsx
+├── auth/                  # Authentication forms
+└── ui/                    # UI Components (shadcn & custom)
 
 lib/
-├── appwrite.ts            # Appwrite configuration
-├── auth.ts                # Appwrite authentication helper
+├── appwrite.ts            # Appwrite client configuration
+├── auth.ts                # Authentication logic
 ├── storage.ts             # Storage utilities
-├── types.ts               # Type definitions
-└── utils.ts               # Utility functions
+├── types.ts               # Shared type definitions
+└── utils.ts               # General utility functions
+
+scripts/                   # Utility scripts
+└── setup-appwrite.ts      # Setup script
 ```
 
 ## Security Limits
 
 ### DO NOT:
 
-- ❌ Commit `.env` or secrets
-- ❌ Use `any` in TypeScript (unless absolutely necessary)
-- ❌ Expose Appwrite Admin Keys in client-side code
-- ❌ Disable ESLint rules without justification
+- ❌ Use `any` in TypeScript
+- ❌ Disable ESLint/Biome rules without justification
+- ❌ Commit `.env.local` or secrets
+- ❌ Use `dangerouslySetInnerHTML` without sanitization
+- ❌ Direct fetch to external APIs from Client Components (use Server Actions)
 
 ### DO:
 
-- ✅ Use Server Actions for data mutations
-- ✅ Validate inputs
-- ✅ Use strict type safety
-- ✅ Follow Tailwind CSS conventions
-- ✅ Use Prettier/ESLint for formatting
+- ✅ Validate forms with Zod
+- ✅ Use Server Components by default
+- ✅ Strict type safety
+- ✅ Tests for critical components
+- ✅ Follow shadcn/ui conventions
+- ✅ Lint code with Biome (`pnpm lint`)
+- ✅ Tests for all components (`pnpm test`)

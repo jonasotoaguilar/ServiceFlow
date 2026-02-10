@@ -38,7 +38,7 @@ export async function getLocations(onlyActive = false) {
       locations.map(async (loc) => {
         const activePromise = databases.listDocuments(
           DB_ID,
-          COLLECTIONS.WARRANTIES,
+          COLLECTIONS.Services,
           [
             Query.equal("userId", user.id),
             Query.equal("locationId", loc.id),
@@ -49,7 +49,7 @@ export async function getLocations(onlyActive = false) {
 
         const completedPromise = databases.listDocuments(
           DB_ID,
-          COLLECTIONS.WARRANTIES,
+          COLLECTIONS.Services,
           [
             Query.equal("userId", user.id),
             Query.equal("locationId", loc.id),
@@ -94,7 +94,7 @@ export async function getLocations(onlyActive = false) {
     return { data: enrichedLocations };
   } catch (error) {
     console.error("Failed to fetch locations:", error);
-    return { error: "Error al cargar ubicaciones" };
+    return { error: "Error al cargar Sedes" };
   }
 }
 
@@ -106,6 +106,7 @@ export async function createLocation(prevState: any, formData: FormData) {
   }
 
   const name = formData.get("name") as string;
+  const address = formData.get("address") as string;
 
   if (!name || name.trim() === "") {
     return { error: "El nombre es requerido" };
@@ -114,7 +115,7 @@ export async function createLocation(prevState: any, formData: FormData) {
   try {
     const normalizedNew = normalizeString(name);
 
-    // Obtener todas las ubicaciones del usuario para comparar
+    // Obtener todas las Sedes del usuario para comparar
     const existingResult = await databases.listDocuments(
       DB_ID,
       COLLECTIONS.LOCATIONS,
@@ -126,22 +127,109 @@ export async function createLocation(prevState: any, formData: FormData) {
     );
 
     if (isDuplicate) {
-      return { error: "Ya existe una ubicación con este nombre (o similar)" };
+      return { error: "Ya existe una Sede con este nombre (o similar)" };
     }
 
-    await databases.createDocument(DB_ID, COLLECTIONS.LOCATIONS, ID.unique(), {
+    const docData: any = {
       name: name.trim(),
       userId: user.id,
       isActive: true, // Default
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-    });
+    };
+
+    if (address && address.trim()) {
+      docData.address = address.trim();
+    }
+
+    await databases.createDocument(DB_ID, COLLECTIONS.LOCATIONS, ID.unique(), docData);
 
     revalidatePath("/locations");
-    return { success: true, message: "Ubicación creada correctamente" };
+    return { success: true, message: "Sede creada correctamente" };
   } catch (error: any) {
     console.error("Error creating location:", error);
-    return { error: "Error al crear la ubicación" };
+    return { error: "Error al crear la Sede" };
+  }
+}
+
+export async function updateLocation(prevState: any, formData: FormData) {
+  const user = await getAuthUser();
+
+  if (!user) {
+    return { error: "No autenticado" };
+  }
+
+  const id = formData.get("id") as string;
+  const name = formData.get("name") as string;
+  const address = formData.get("address") as string;
+
+  if (!id) {
+    return { error: "ID de Sede requerido" };
+  }
+
+  if (!name || name.trim() === "") {
+    return { error: "El nombre es requerido" };
+  }
+
+  if (name.trim().length < 3) {
+    return { error: "El nombre debe tener al menos 3 caracteres" };
+  }
+
+  if (name.trim().length > 100) {
+    return { error: "El nombre no puede exceder 100 caracteres" };
+  }
+
+  if (address && address.trim().length > 200) {
+    return { error: "La dirección no puede exceder 200 caracteres" };
+  }
+
+  try {
+    // Verificar que la Sede pertenece al usuario
+    const location = await databases.getDocument(
+      DB_ID,
+      COLLECTIONS.LOCATIONS,
+      id
+    );
+
+    if (!location || location.userId !== user.id) {
+      return { error: "Sede no encontrada" };
+    }
+
+    const normalizedNew = normalizeString(name);
+
+    // Verificar duplicados (excluyendo la Sede actual)
+    const existingResult = await databases.listDocuments(
+      DB_ID,
+      COLLECTIONS.LOCATIONS,
+      [Query.equal("userId", user.id), Query.limit(100)]
+    );
+
+    const isDuplicate = existingResult.documents.some(
+      (loc: any) => loc.$id !== id && normalizeString(loc.name) === normalizedNew
+    );
+
+    if (isDuplicate) {
+      return { error: "Ya existe otra Sede con este nombre (o similar)" };
+    }
+
+    const updateData: any = {
+      name: name.trim(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    if (address && address.trim()) {
+      updateData.address = address.trim();
+    } else {
+      updateData.address = null;
+    }
+
+    await databases.updateDocument(DB_ID, COLLECTIONS.LOCATIONS, id, updateData);
+
+    revalidatePath("/locations");
+    return { success: true, message: "Sede actualizada correctamente" };
+  } catch (error: any) {
+    console.error("Error updating location:", error);
+    return { error: "Error al actualizar la Sede" };
   }
 }
 
@@ -166,7 +254,7 @@ export async function toggleLocationActive(id: string, active: boolean) {
     return { success: true };
   } catch (error) {
     console.error("Error toggling location active:", error);
-    return { error: "Error al actualizar la ubicación" };
+    return { error: "Error al actualizar la Sede" };
   }
 }
 
@@ -178,7 +266,7 @@ export async function deleteLocation(id: string, name: string) {
   }
 
   try {
-    // Verificar si la ubicación pertenece al usuario
+    // Verificar si la Sede pertenece al usuario
     const location = await databases.getDocument(
       DB_ID,
       COLLECTIONS.LOCATIONS,
@@ -186,13 +274,13 @@ export async function deleteLocation(id: string, name: string) {
     );
 
     if (!location || location.userId !== user.id) {
-      return { error: "Ubicación no encontrada" };
+      return { error: "Sede no encontrada" };
     }
 
-    // Validar si está en uso en cualquier garantía (cualquier status)
-    const warrantiesRes = await databases.listDocuments(
+    // Validar si está en uso en cualquier servicio (cualquier status)
+    const ServicesRes = await databases.listDocuments(
       DB_ID,
-      COLLECTIONS.WARRANTIES,
+      COLLECTIONS.Services,
       [
         Query.equal("userId", user.id),
         Query.equal("locationId", id),
@@ -212,10 +300,10 @@ export async function deleteLocation(id: string, name: string) {
       ]
     );
 
-    if (warrantiesRes.total > 0 || logsRes.total > 0) {
+    if (ServicesRes.total > 0 || logsRes.total > 0) {
       return {
         error:
-          "No se puede eliminar una ubicación con historial de garantías o movimientos.",
+          "No se puede eliminar una Sede con historial de servicios o movimientos.",
       };
     }
 
@@ -224,6 +312,6 @@ export async function deleteLocation(id: string, name: string) {
     return { success: true };
   } catch (error) {
     console.error("Error deleting location:", error);
-    return { error: "Error al eliminar la ubicación" };
+    return { error: "Error al eliminar la Sede" };
   }
 }
