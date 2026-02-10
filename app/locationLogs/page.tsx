@@ -3,6 +3,7 @@ import { getLocations } from "@/app/actions/locations";
 import LogsManager from "./logsManager";
 import { getAuthUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { Navbar } from "@/components/layout/Navbar";
 
 export default async function LogsPage() {
   const user = await getAuthUser();
@@ -23,10 +24,11 @@ export default async function LogsPage() {
   }
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-6xl">
+    <div className="min-h-screen bg-background">
+      <Navbar />
       <LogsManager
         initialLogs={logsResult.data}
-        initialTotal={logsResult.total}
+        initialTotal={logsResult.total || 0}
         locations={locationsResult.data || []}
       />
     </div>
