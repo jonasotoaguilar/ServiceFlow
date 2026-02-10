@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useRef, useState, useEffect } from "react";
-import { LogOut, User, ChevronDown } from "lucide-react";
+import { LogOut, User, ChevronDown, Menu, X } from "lucide-react";
 import { logout } from "@/app/actions/auth";
 
 interface NavbarProps {
@@ -15,6 +15,7 @@ interface NavbarProps {
 
 export function Navbar({ user }: Readonly<NavbarProps>) {
 	const [showDropdown, setShowDropdown] = useState(false);
+	const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 	const dropdownRef = useRef<HTMLDivElement>(null);
 
 	const pathname = usePathname();
@@ -98,8 +99,21 @@ export function Navbar({ user }: Readonly<NavbarProps>) {
 					</nav>
 
 					{/* Logout Button */}
-					{/* User Menu */}
-					<div className="relative" ref={dropdownRef}>
+					<div className="flex items-center gap-2">
+						<button
+							className="md:hidden p-2 text-slate-400 hover:text-white transition-colors rounded-lg hover:bg-white/5"
+							onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+							aria-label="Toggle menu"
+						>
+							{isMobileMenuOpen ? (
+								<X className="w-5 h-5" />
+							) : (
+								<Menu className="w-5 h-5" />
+							)}
+						</button>
+
+						{/* User Menu */}
+						<div className="relative" ref={dropdownRef}>
 						<button
 							onClick={() => setShowDropdown(!showDropdown)}
 							className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5 transition-all group"
@@ -140,8 +154,48 @@ export function Navbar({ user }: Readonly<NavbarProps>) {
 								</button>
 							</div>
 						)}
+						</div>
 					</div>
 				</div>
+
+				{/* Mobile Navigation Menu */}
+				{isMobileMenuOpen && (
+					<div className="md:hidden py-4 border-t border-white/5 space-y-1 bg-slate-900/95 backdrop-blur-xl absolute top-16 left-0 right-0 shadow-2xl animate-in slide-in-from-top-5 fade-in duration-200 border-b border-slate-800 z-50">
+						<Link
+							href="/dashboard"
+							onClick={() => setIsMobileMenuOpen(false)}
+							className={`flex items-center gap-3 px-6 py-3 text-base font-medium transition-all ${
+								isActive("/dashboard")
+									? "bg-primary/10 text-primary border-l-4 border-primary"
+									: "text-slate-400 hover:text-white hover:bg-white/5 border-l-4 border-transparent"
+							}`}
+						>
+							Servicios
+						</Link>
+						<Link
+							href="/locations"
+							onClick={() => setIsMobileMenuOpen(false)}
+							className={`flex items-center gap-3 px-6 py-3 text-base font-medium transition-all ${
+								isActive("/locations")
+									? "bg-primary/10 text-primary border-l-4 border-primary"
+									: "text-slate-400 hover:text-white hover:bg-white/5 border-l-4 border-transparent"
+							}`}
+						>
+							Sedes
+						</Link>
+						<Link
+							href="/locationLogs"
+							onClick={() => setIsMobileMenuOpen(false)}
+							className={`flex items-center gap-3 px-6 py-3 text-base font-medium transition-all ${
+								isActive("/locationLogs")
+									? "bg-primary/10 text-primary border-l-4 border-primary"
+									: "text-slate-400 hover:text-white hover:bg-white/5 border-l-4 border-transparent"
+							}`}
+						>
+							Movimientos
+						</Link>
+					</div>
+				)}
 			</div>
 		</header>
 	);
