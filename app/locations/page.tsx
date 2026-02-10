@@ -21,7 +21,7 @@ export default async function LocationsPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
+      <Navbar user={user} />
       <LocationsManager locations={locations} />
     </div>
   );

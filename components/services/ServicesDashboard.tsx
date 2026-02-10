@@ -32,9 +32,13 @@ interface ServiceDashboardProps {
 		page: number;
 		limit: number;
 	};
+	user?: {
+		name: string;
+		email?: string | null;
+	} | null;
 }
 
-export function ServiceDashboard({ initialData }: ServiceDashboardProps) {
+export function ServiceDashboard({ initialData, user }: Readonly<ServiceDashboardProps>) {
 	// State Management
 	const [Services, setServices] = useState<Service[]>(
 		initialData?.data || [],
@@ -236,7 +240,7 @@ export function ServiceDashboard({ initialData }: ServiceDashboardProps) {
 	return (
     <div className="min-h-screen bg-background font-sans text-slate-100">
       {/* Navigation Header */}
-      <Navbar />
+      <Navbar user={user} />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats Row */}

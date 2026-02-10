@@ -25,7 +25,7 @@ export default async function LogsPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
+      <Navbar user={user} />
       <LogsManager
         initialLogs={logsResult.data}
         initialTotal={logsResult.total || 0}
