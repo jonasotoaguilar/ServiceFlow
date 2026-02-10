@@ -9,8 +9,22 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: "var(--background)",
-        foreground: "var(--foreground)",
+        background: "var(--color-background)",
+        foreground: "var(--color-foreground)",
+        surface: "var(--color-surface)",
+        primary: {
+          DEFAULT: "var(--color-primary)",
+          foreground: "var(--color-foreground)",
+        },
+        muted: {
+          DEFAULT: "#94a3b8",
+          foreground: "var(--color-muted-foreground)",
+        },
+        destructive: {
+          DEFAULT: "var(--color-destructive)",
+        },
+        input: "var(--color-surface)",
+        border: "var(--color-border)",
       },
     },
   },
