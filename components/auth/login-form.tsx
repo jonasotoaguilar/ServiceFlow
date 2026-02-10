@@ -1,94 +1,201 @@
 "use client";
 
-import { useActionState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { loginSchema, LoginValues } from "@/lib/schemas";
 import { login } from "@/app/actions/auth";
 import Link from "next/link";
-import { Loader2 } from "lucide-react";
+import { Loader2, Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { cn } from "@/lib/utils";
 
 export function LoginForm() {
-  const [state, action, isPending] = useActionState(login, null);
+	const [isPending, startTransition] = useTransition();
+	const [error, setError] = useState<string | null>(null);
+	const [showPassword, setShowPassword] = useState(false);
+	const router = useRouter();
 
-  return (
-    <div className="w-full max-w-md p-8 space-y-8 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 dark:border-zinc-800">
-      <div className="text-center">
-        <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400">
-          Bienvenido
-        </h2>
-        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-          Inicia sesión para gestionar tus garantías
-        </p>
-      </div>
+	const form = useForm<LoginValues>({
+		resolver: zodResolver(loginSchema),
+		defaultValues: {
+			email: "",
+			password: "",
+		},
+	});
 
-      <form action={action} className="mt-8 space-y-6">
-        <div className="space-y-4">
-          <div>
-            <label
-              htmlFor="email"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-            >
-              Correo Electrónico
-            </label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              autoComplete="email"
-              required
-              className="mt-1 block w-full px-3 py-2 bg-white dark:bg-zinc-950 border border-gray-300 dark:border-zinc-800 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
-              placeholder="tu@email.com"
-            />
-          </div>
+	const onSubmit = async (data: LoginValues) => {
+		setError(null);
+		startTransition(async () => {
+			const formData = new FormData();
+			formData.append("email", data.email);
+			formData.append("password", data.password);
 
-          <div>
-            <label
-              htmlFor="password"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-            >
-              Contraseña
-            </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              required
-              className="mt-1 block w-full px-3 py-2 bg-white dark:bg-zinc-950 border border-gray-300 dark:border-zinc-800 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
-              placeholder="••••••••"
-            />
-          </div>
-        </div>
+			const result = await login(formData);
 
-        {state?.error && (
-          <div className="p-3 text-sm text-red-500 bg-red-50 dark:bg-red-900/20 rounded-lg flex items-center justify-center animate-shake">
-            {state.error}
-          </div>
-        )}
+			if (result?.error) {
+				setError(result.error);
+			} else {
+				router.push("/");
+			}
+		});
+	};
 
-        <div>
-          <button
-            type="submit"
-            disabled={isPending}
-            className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:shadow-lg"
-          >
-            {isPending ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : (
-              "Iniciar Sesión"
-            )}
-          </button>
-        </div>
-      </form>
-      <div className="text-center text-sm">
-        <span className="text-gray-500 dark:text-gray-400">
-          ¿No tienes cuenta?{" "}
-        </span>
-        <Link
-          href="/register"
-          className="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors"
-        >
-          Regístrate
-        </Link>
-      </div>
-    </div>
-  );
+
+
+	return (
+		<div className="w-full max-w-[450px] glass-card rounded-xl p-8 md:p-10 shadow-2xl animate-fade-in relative z-10 mx-auto">
+			{/* Branding */}
+			<div className="flex flex-col items-center mb-8">
+				<div className="w-16 h-16 bg-primary rounded-xl flex items-center justify-center mb-4 shadow-lg shadow-primary/20">
+					{/* Replace with your logo or icon */}
+					<svg
+						className="w-8 h-8 text-primary-foreground"
+						fill="none"
+						stroke="currentColor"
+						viewBox="0 0 24 24"
+						xmlns="http://www.w3.org/2000/svg"
+					>
+						<path
+							strokeLinecap="round"
+							strokeLinejoin="round"
+							strokeWidth={2}
+							d="M13 10V3L4 14h7v7l9-11h-7z"
+						/>
+					</svg>
+				</div>
+				<h1 className="text-3xl font-bold text-foreground mb-2">
+					Bienvenido
+				</h1>
+				<p className="text-muted-foreground text-sm text-center">
+					Inicia sesión para continuar en ServiceFlow
+				</p>
+			</div>
+
+			<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+				{/* Email Field */}
+				<div className="space-y-2">
+					<label
+						htmlFor="email"
+						className="text-sm font-medium text-foreground ml-1"
+					>
+						Correo electrónico
+					</label>
+					<div className="relative group">
+						<div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+							<Mail className="w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+						</div>
+						<input
+							{...form.register("email")}
+							id="email"
+							type="email"
+							placeholder="nombre@ejemplo.com"
+							className={cn(
+								"block w-full pl-10 pr-3 py-3 bg-surface border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all",
+								form.formState.errors.email
+									? "border-destructive focus:ring-destructive"
+									: "border-input"
+							)}
+						/>
+					</div>
+					{form.formState.errors.email && (
+						<p className="text-xs text-destructive ml-1">
+							{form.formState.errors.email.message}
+						</p>
+					)}
+				</div>
+
+				{/* Password Field */}
+				<div className="space-y-2">
+					<div className="flex justify-between items-center px-1">
+						<label
+							htmlFor="password"
+							className="text-sm font-medium text-foreground"
+						>
+							Contraseña
+						</label>
+					</div>
+					<div className="relative group">
+						<div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+							<Lock className="w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+						</div>
+						<input
+							{...form.register("password")}
+							id="password"
+							type={showPassword ? "text" : "password"}
+							placeholder="••••••••"
+							className={cn(
+								"block w-full pl-10 pr-12 py-3 bg-surface border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all",
+								form.formState.errors.password
+									? "border-destructive focus:ring-destructive"
+									: "border-input"
+							)}
+						/>
+						<button
+							type="button"
+							onClick={() => setShowPassword(!showPassword)}
+							className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground hover:text-foreground transition-colors"
+						>
+							{showPassword ? (
+								<EyeOff className="w-5 h-5" />
+							) : (
+								<Eye className="w-5 h-5" />
+							)}
+						</button>
+					</div>
+					{form.formState.errors.password && (
+						<p className="text-xs text-destructive ml-1">
+							{form.formState.errors.password.message}
+						</p>
+					)}
+				</div>
+
+				{error && (
+					<div className="p-3 text-sm text-destructive bg-destructive/10 rounded-lg flex items-center justify-center animate-shake border border-destructive/20">
+						{error}
+					</div>
+				)}
+
+				<button
+					type="submit"
+					disabled={isPending}
+					className="w-full py-3 px-4 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-lg shadow-lg shadow-primary/30 transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+				>
+					{isPending ? (
+						<Loader2 className="w-5 h-5 animate-spin" />
+					) : (
+						<>
+							<span>Ingresar</span>
+							<svg
+								className="w-5 h-5"
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24"
+							>
+								<path
+									strokeLinecap="round"
+									strokeLinejoin="round"
+									strokeWidth={2}
+									d="M17 8l4 4m0 0l-4 4m4-4H3"
+								/>
+							</svg>
+						</>
+					)}
+				</button>
+			</form>
+
+			{/* Footer Link */}
+			<div className="mt-8 pt-6 border-t border-slate-200 dark:border-white/10 text-center">
+				<p className="text-sm text-slate-600 dark:text-slate-400">
+					¿No tienes cuenta?{" "}
+					<Link
+						href="/register"
+						className="font-semibold text-primary hover:text-blue-400 transition-colors"
+					>
+						Regístrate
+					</Link>
+				</p>
+			</div>
+		</div>
+	);
 }
