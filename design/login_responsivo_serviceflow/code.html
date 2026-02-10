@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>ServiceFlow | Login</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#3c83f6",
+                        "background-light": "#f5f7f8",
+                        "background-dark": "#0f172a", // Deep Obsidian as requested
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .glow-orb {
+            filter: blur(80px);
+            opacity: 0.4;
+        }
+    </style>
+</head>
+<body class="font-display bg-background-light dark:bg-background-dark min-h-screen flex items-center justify-center relative overflow-hidden">
+<!-- Background Orbs -->
+<div class="absolute top-[-10%] left-[-10%] w-[40rem] h-[40rem] rounded-full bg-primary glow-orb pointer-events-none"></div>
+<div class="absolute bottom-[-10%] right-[-10%] w-[35rem] h-[35rem] rounded-full bg-blue-900 glow-orb pointer-events-none"></div>
+<main class="w-full flex items-center justify-center p-4 z-10">
+<div class="w-full max-w-md glass-card rounded-xl p-8 md:p-10 shadow-2xl">
+<!-- Branding -->
+<div class="flex flex-col items-center mb-8">
+<div class="w-16 h-16 bg-primary rounded-xl flex items-center justify-center mb-4 shadow-lg shadow-primary/20">
+<span class="material-icons-round text-white text-4xl">dynamic_feed</span>
+</div>
+<h1 class="text-3xl font-bold text-slate-900 dark:text-white mb-2">Bienvenido</h1>
+<p class="text-slate-500 dark:text-slate-400 text-sm">Inicia sesión para continuar en ServiceFlow</p>
+</div>
+<!-- Login Form -->
+<form action="#" class="space-y-6" method="POST">
+<!-- Email Field -->
+<div class="space-y-2">
+<label class="text-sm font-medium text-slate-700 dark:text-slate-300 ml-1" for="email">Correo electrónico</label>
+<div class="relative group">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+<span class="material-icons-round text-slate-400 dark:text-slate-500 text-xl group-focus-within:text-primary transition-colors">mail</span>
+</div>
+<input class="block w-full pl-10 pr-3 py-3 bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-white/10 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all" id="email" name="email" placeholder="nombre@ejemplo.com" required="" type="email"/>
+</div>
+</div>
+<!-- Password Field -->
+<div class="space-y-2">
+<div class="flex justify-between items-center px-1">
+<label class="text-sm font-medium text-slate-700 dark:text-slate-300" for="password">Contraseña</label>
+<a class="text-xs font-medium text-primary hover:text-blue-400 transition-colors" href="#">¿Olvidaste tu contraseña?</a>
+</div>
+<div class="relative group">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+<span class="material-icons-round text-slate-400 dark:text-slate-500 text-xl group-focus-within:text-primary transition-colors">lock</span>
+</div>
+<input class="block w-full pl-10 pr-12 py-3 bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-white/10 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all" id="password" name="password" placeholder="••••••••" required="" type="password"/>
+<button class="absolute inset-y-0 right-0 pr-3 flex items-center" type="button">
+<span class="material-icons-round text-slate-400 dark:text-slate-500 text-xl hover:text-slate-300 transition-colors">visibility</span>
+</button>
+</div>
+</div>
+<!-- Submit Button -->
+<button class="w-full py-3 px-4 bg-gradient-to-r from-primary to-blue-600 hover:from-blue-500 hover:to-blue-700 text-white font-semibold rounded-lg shadow-lg shadow-primary/30 transition-all active:scale-[0.98] flex items-center justify-center gap-2" type="submit">
+<span>Ingresar</span>
+<span class="material-icons-round text-lg">arrow_forward</span>
+</button>
+</form>
+<!-- Social/Secondary Login (Optional but adds to premium feel) -->
+<div class="relative my-8">
+<div class="absolute inset-0 flex items-center">
+<div class="w-full border-t border-slate-200 dark:border-white/10"></div>
+</div>
+<div class="relative flex justify-center text-xs uppercase">
+<span class="bg-background-light dark:bg-slate-900/20 px-2 text-slate-500 dark:text-slate-400">O ingresa con</span>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<button class="flex items-center justify-center py-2.5 px-4 rounded-lg bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/10 transition-colors">
+<img alt="Google" class="w-5 h-5 mr-2" data-alt="Google logo icon" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDogb5yzXeGWjeJMKfVBsyqLqy4W6g4_bAyGOohfnmKurOHd38yMwj-hksA2h500v9xcPT93-CAK8cS9GD9CL7A5VLB-_CNOol-VbdSFAD4Hz_mDtQ0UoHQTOzUNn4TmuJYkajWxrxoVj_9FKhS_Z1Th83klft3doc0rqDoqFAWYupCog2efIDE1nVoVWNlsY_lrE-Q_eHcRveGoqH6odqgL8Vi4pPOXhLY0Hg50OTej7sWW0YoaViMTNtfbTOE3Ygv9Gqb4E7OVA"/>
+<span class="text-sm font-medium">Google</span>
+</button>
+<button class="flex items-center justify-center py-2.5 px-4 rounded-lg bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/10 transition-colors">
+<span class="material-icons-round text-xl mr-2">apple</span>
+<span class="text-sm font-medium">Apple</span>
+</button>
+</div>
+<!-- Sign Up Link -->
+<p class="mt-8 text-center text-sm text-slate-600 dark:text-slate-400">
+                ¿No tienes cuenta? 
+                <a class="font-semibold text-primary hover:text-blue-400 transition-colors" href="#">Regístrate</a>
+</p>
+</div>
+</main>
+<!-- Footer decoration / Versioning -->
+<div class="absolute bottom-6 left-0 right-0 text-center pointer-events-none">
+<p class="text-slate-500 dark:text-slate-600 text-xs tracking-widest uppercase">ServiceFlow Premium v1.0</p>
+</div>
+</body></html>

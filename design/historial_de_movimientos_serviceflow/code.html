@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Historial de Movimientos | ServiceFlow</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#3c83f6",
+                        "background-light": "#f5f7f8",
+                        "background-dark": "#0f172a",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+        .glow-line {
+            height: 4px;
+            width: 80px;
+            background: #3c83f6;
+            box-shadow: 0 0 15px rgba(60, 131, 246, 0.8);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.1);
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(60, 131, 246, 0.3);
+            border-radius: 10px;
+        }
+        .bg-gradient-mesh {
+            background-color: #0f172a;
+            background-image: radial-gradient(at 0% 0%, rgba(60, 131, 246, 0.15) 0px, transparent 50%),
+                              radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.05) 0px, transparent 50%);
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen bg-gradient-mesh">
+<div class="max-w-[1440px] mx-auto px-6 py-8">
+<!-- Header Section -->
+<header class="mb-10 flex justify-between items-start">
+<div>
+<nav class="flex items-center space-x-2 text-sm text-slate-500 dark:text-slate-400 mb-4">
+<span>Inicio</span>
+<span class="material-icons-round text-xs">chevron_right</span>
+<span class="text-primary font-medium">Movimientos</span>
+</nav>
+<div class="relative inline-block mb-3">
+<h1 class="text-4xl font-bold tracking-tight">Historial de Movimientos</h1>
+<div class="glow-line mt-2 rounded-full"></div>
+</div>
+<p class="text-slate-500 dark:text-slate-400 text-lg">Registro detallado de flujo de servicios y logística en tiempo real.</p>
+</div>
+<div class="flex items-center space-x-3">
+<button class="p-3 glass-panel rounded-xl hover:bg-primary/20 transition-all group border border-white/10">
+<span class="material-icons-round text-slate-400 group-hover:text-primary group-hover:rotate-180 transition-transform duration-500">refresh</span>
+</button>
+<button class="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-xl flex items-center space-x-2 shadow-lg shadow-primary/20 transition-all font-semibold">
+<span class="material-icons-round text-sm">download</span>
+<span>Exportar Reporte</span>
+</button>
+</div>
+</header>
+<!-- Search & Filter Grid -->
+<section class="glass-panel rounded-2xl p-6 mb-8">
+<div class="flex items-center space-x-2 mb-6 text-xs font-bold uppercase tracking-widest text-primary">
+<span class="material-icons-round text-sm">filter_alt</span>
+<span>Filtros de Búsqueda</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<!-- From Date -->
+<div class="space-y-2">
+<label class="block text-sm font-medium text-slate-400 ml-1">Desde</label>
+<div class="relative">
+<span class="material-icons-round absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-lg">calendar_today</span>
+<input class="w-full bg-slate-800/50 border border-white/5 rounded-xl py-3 pl-10 pr-4 text-slate-200 focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all" type="date"/>
+</div>
+</div>
+<!-- To Date -->
+<div class="space-y-2">
+<label class="block text-sm font-medium text-slate-400 ml-1">Hasta</label>
+<div class="relative">
+<span class="material-icons-round absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-lg">event</span>
+<input class="w-full bg-slate-800/50 border border-white/5 rounded-xl py-3 pl-10 pr-4 text-slate-200 focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all" type="date"/>
+</div>
+</div>
+<!-- Location -->
+<div class="space-y-2">
+<label class="block text-sm font-medium text-slate-400 ml-1">Ubicación</label>
+<div class="relative">
+<span class="material-icons-round absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-lg">place</span>
+<select class="w-full bg-slate-800/50 border border-white/5 rounded-xl py-3 pl-10 pr-4 text-slate-200 focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all appearance-none cursor-pointer">
+<option value="">Todas las sucursales</option>
+<option value="centro">Centro Logístico Principal</option>
+<option value="norte">Sucursal Zona Norte</option>
+<option value="sur">Distribución Sur</option>
+</select>
+<span class="material-icons-round absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">expand_more</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Movements Table -->
+<main class="glass-panel rounded-2xl overflow-hidden border border-white/5">
+<div class="overflow-x-auto custom-scrollbar">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-slate-800/40 text-slate-400 text-xs uppercase tracking-wider">
+<th class="px-6 py-5 font-semibold">N° Boleta</th>
+<th class="px-6 py-5 font-semibold">Producto / Cliente</th>
+<th class="px-6 py-5 font-semibold">Origen</th>
+<th class="px-6 py-5 font-semibold">Destino</th>
+<th class="px-6 py-5 font-semibold">Fecha / Hora</th>
+<th class="px-6 py-5 font-semibold text-center">Acciones</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-white/5">
+<!-- Row 1 -->
+<tr class="group hover:bg-white/5 transition-colors">
+<td class="px-6 py-5">
+<span class="font-mono text-primary font-bold">#SF-9042</span>
+</td>
+<td class="px-6 py-5">
+<div class="flex flex-col">
+<span class="font-semibold text-slate-200">Smartphone Ultra X1</span>
+<span class="text-xs text-slate-500">Alejandro Mendez</span>
+</div>
+</td>
+<td class="px-6 py-5">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-800 text-slate-400 border border-slate-700">
+                                    Almacén Central
+                                </span>
+</td>
+<td class="px-6 py-5">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                    Sucursal Norte
+                                </span>
+</td>
+<td class="px-6 py-5 text-sm">
+<div class="flex flex-col">
+<span class="font-semibold text-slate-300">24 Oct 2023</span>
+<span class="text-xs text-slate-500">14:30 PM</span>
+</div>
+</td>
+<td class="px-6 py-5 text-center">
+<button class="text-slate-500 hover:text-primary transition-colors">
+<span class="material-icons-round">visibility</span>
+</button>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="group hover:bg-white/5 transition-colors">
+<td class="px-6 py-5">
+<span class="font-mono text-primary font-bold">#SF-9041</span>
+</td>
+<td class="px-6 py-5">
+<div class="flex flex-col">
+<span class="font-semibold text-slate-200">MacBook Pro M3</span>
+<span class="text-xs text-slate-500">TechSolutions Inc.</span>
+</div>
+</td>
+<td class="px-6 py-5">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-800 text-slate-400 border border-slate-700">
+                                    Distribución Sur
+                                </span>
+</td>
+<td class="px-6 py-5">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                    Almacén Central
+                                </span>
+</td>
+<td class="px-6 py-5 text-sm">
+<div class="flex flex-col">
+<span class="font-semibold text-slate-300">24 Oct 2023</span>
+<span class="text-xs text-slate-500">11:15 AM</span>
+</div>
+</td>
+<td class="px-6 py-5 text-center">
+<button class="text-slate-500 hover:text-primary transition-colors">
+<span class="material-icons-round">visibility</span>
+</button>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="group hover:bg-white/5 transition-colors">
+<td class="px-6 py-5">
+<span class="font-mono text-primary font-bold">#SF-8998</span>
+</td>
+<td class="px-6 py-5">
+<div class="flex flex-col">
+<span class="font-semibold text-slate-200">Cámara Mirrorless 4K</span>
+<span class="text-xs text-slate-500">Lucía Torres</span>
+</div>
+</td>
+<td class="px-6 py-5">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-800 text-slate-400 border border-slate-700">
+                                    Almacén Central
+                                </span>
+</td>
+<td class="px-6 py-5">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                    Punto Retiro Centro
+                                </span>
+</td>
+<td class="px-6 py-5 text-sm">
+<div class="flex flex-col">
+<span class="font-semibold text-slate-300">23 Oct 2023</span>
+<span class="text-xs text-slate-500">16:45 PM</span>
+</div>
+</td>
+<td class="px-6 py-5 text-center">
+<button class="text-slate-500 hover:text-primary transition-colors">
+<span class="material-icons-round">visibility</span>
+</button>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="group hover:bg-white/5 transition-colors">
+<td class="px-6 py-5">
+<span class="font-mono text-primary font-bold">#SF-8997</span>
+</td>
+<td class="px-6 py-5">
+<div class="flex flex-col">
+<span class="font-semibold text-slate-200">Monitor Gaming 34"</span>
+<span class="text-xs text-slate-500">PC Master Store</span>
+</div>
+</td>
+<td class="px-6 py-5">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-800 text-slate-400 border border-slate-700">
+                                    Aduana Aduanera
+                                </span>
+</td>
+<td class="px-6 py-5">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                    Almacén Central
+                                </span>
+</td>
+<td class="px-6 py-5 text-sm">
+<div class="flex flex-col">
+<span class="font-semibold text-slate-300">23 Oct 2023</span>
+<span class="text-xs text-slate-500">09:00 AM</span>
+</div>
+</td>
+<td class="px-6 py-5 text-center">
+<button class="text-slate-500 hover:text-primary transition-colors">
+<span class="material-icons-round">visibility</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Pagination Footer -->
+<div class="px-6 py-4 bg-slate-800/20 border-t border-white/5 flex items-center justify-between">
+<p class="text-sm text-slate-500">Mostrando <span class="text-slate-300 font-medium">1-4</span> de <span class="text-slate-300 font-medium">152</span> resultados</p>
+<div class="flex space-x-2">
+<button class="px-3 py-1.5 glass-panel rounded-lg text-slate-500 hover:text-white transition-colors flex items-center">
+<span class="material-icons-round text-lg">chevron_left</span>
+</button>
+<button class="px-4 py-1.5 bg-primary text-white rounded-lg font-medium text-sm">1</button>
+<button class="px-4 py-1.5 hover:bg-white/10 text-slate-400 rounded-lg font-medium text-sm transition-colors">2</button>
+<button class="px-4 py-1.5 hover:bg-white/10 text-slate-400 rounded-lg font-medium text-sm transition-colors">3</button>
+<button class="px-3 py-1.5 glass-panel rounded-lg text-slate-500 hover:text-white transition-colors flex items-center">
+<span class="material-icons-round text-lg">chevron_right</span>
+</button>
+</div>
+</div>
+</main>
+<!-- Stats Overview Floating (Optional but adds value) -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-6 mt-8">
+<div class="glass-panel p-5 rounded-2xl flex items-center space-x-4 border-l-4 border-primary">
+<div class="p-3 bg-primary/10 rounded-xl text-primary">
+<span class="material-icons-round">sync_alt</span>
+</div>
+<div>
+<p class="text-xs text-slate-500 uppercase font-bold tracking-wider">Total Movimientos</p>
+<p class="text-2xl font-bold">1,284</p>
+</div>
+</div>
+<div class="glass-panel p-5 rounded-2xl flex items-center space-x-4 border-l-4 border-emerald-500">
+<div class="p-3 bg-emerald-500/10 rounded-xl text-emerald-400">
+<span class="material-icons-round">trending_up</span>
+</div>
+<div>
+<p class="text-xs text-slate-500 uppercase font-bold tracking-wider">En Tránsito</p>
+<p class="text-2xl font-bold">42</p>
+</div>
+</div>
+<div class="glass-panel p-5 rounded-2xl flex items-center space-x-4 border-l-4 border-amber-500">
+<div class="p-3 bg-amber-500/10 rounded-xl text-amber-400">
+<span class="material-icons-round">schedule</span>
+</div>
+<div>
+<p class="text-xs text-slate-500 uppercase font-bold tracking-wider">Pendientes</p>
+<p class="text-2xl font-bold">18</p>
+</div>
+</div>
+<div class="glass-panel p-5 rounded-2xl flex items-center space-x-4 border-l-4 border-slate-500">
+<div class="p-3 bg-slate-500/10 rounded-xl text-slate-400">
+<span class="material-icons-round">inventory_2</span>
+</div>
+<div>
+<p class="text-xs text-slate-500 uppercase font-bold tracking-wider">Completados Hoy</p>
+<p class="text-2xl font-bold">85</p>
+</div>
+</div>
+</div>
+</div>
+</body></html>

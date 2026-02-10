@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#3c83f6",
+                        "background-light": "#f5f7f8",
+                        "background-dark": "#0f172a",
+                        "slate-card": "#1e293b",
+                    },
+                    fontFamily: {
+                        "display": ["Inter"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+        .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .glow-orb {
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(60, 131, 246, 0.15) 0%, rgba(60, 131, 246, 0) 70%);
+            border-radius: 50%;
+            z-index: 0;
+            pointer-events: none;
+        }
+    </style>
+<title>Registro - ServiceFlow</title>
+</head>
+<body class="bg-background-light dark:bg-background-dark min-h-screen flex items-center justify-center relative overflow-hidden font-display">
+<!-- Background Decorative Elements -->
+<div class="glow-orb top-[-100px] left-[-100px]"></div>
+<div class="glow-orb bottom-[-150px] right-[-100px]"></div>
+<main class="w-full flex items-center justify-center p-4 z-10">
+<div class="w-full max-w-md glass-card rounded-xl p-8 shadow-2xl">
+<!-- Logo Section -->
+<div class="flex flex-col items-center mb-8">
+<div class="bg-primary p-3 rounded-lg mb-4 flex items-center justify-center shadow-lg shadow-primary/20">
+<span class="material-icons-round text-white text-3xl">sync_alt</span>
+</div>
+<h1 class="text-2xl font-bold text-gray-900 dark:text-white">ServiceFlow</h1>
+<p class="text-gray-500 dark:text-gray-400 text-sm mt-1">Gestión de servicios premium</p>
+</div>
+<!-- Title -->
+<div class="mb-6">
+<h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100">Crear Cuenta</h2>
+<p class="text-sm text-gray-500 dark:text-gray-400">Completa tus datos para empezar</p>
+</div>
+<!-- Registration Form -->
+<form action="#" class="space-y-4">
+<!-- Name Field -->
+<div>
+<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5" for="name">
+                        Nombre Completo
+                    </label>
+<div class="relative group">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+<span class="material-icons-round text-gray-400 group-focus-within:text-primary transition-colors text-xl">person</span>
+</div>
+<input class="block w-full pl-10 pr-3 py-2.5 bg-gray-50 dark:bg-slate-card border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all text-sm" id="name" name="name" placeholder="Ej. Juan Pérez" required="" type="text"/>
+</div>
+</div>
+<!-- Email Field -->
+<div>
+<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5" for="email">
+                        Correo Electrónico
+                    </label>
+<div class="relative group">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+<span class="material-icons-round text-gray-400 group-focus-within:text-primary transition-colors text-xl">mail</span>
+</div>
+<input class="block w-full pl-10 pr-3 py-2.5 bg-gray-50 dark:bg-slate-card border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all text-sm" id="email" name="email" placeholder="correo@ejemplo.com" required="" type="email"/>
+</div>
+</div>
+<!-- Role Selection -->
+<div>
+<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5" for="role">
+                        Rol en el sistema
+                    </label>
+<div class="relative group">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+<span class="material-icons-round text-gray-400 group-focus-within:text-primary transition-colors text-xl">assignment_ind</span>
+</div>
+<select class="block w-full pl-10 pr-10 py-2.5 bg-gray-50 dark:bg-slate-card border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white appearance-none focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all text-sm" id="role" name="role" required="">
+<option disabled="" selected="" value="">Selecciona un rol</option>
+<option value="tecnico">Técnico</option>
+<option value="admin">Administrador</option>
+</select>
+<div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+<span class="material-icons-round text-gray-400 text-xl">expand_more</span>
+</div>
+</div>
+</div>
+<!-- Password Field -->
+<div>
+<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5" for="password">
+                        Contraseña
+                    </label>
+<div class="relative group">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+<span class="material-icons-round text-gray-400 group-focus-within:text-primary transition-colors text-xl">lock</span>
+</div>
+<input class="block w-full pl-10 pr-3 py-2.5 bg-gray-50 dark:bg-slate-card border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all text-sm" id="password" name="password" placeholder="••••••••" required="" type="password"/>
+</div>
+</div>
+<!-- Terms and Conditions -->
+<div class="flex items-center space-x-2 pt-1">
+<input class="w-4 h-4 text-primary bg-gray-100 border-gray-300 rounded focus:ring-primary dark:ring-offset-background-dark dark:bg-slate-card dark:border-gray-700" id="terms" name="terms" required="" type="checkbox"/>
+<label class="text-xs text-gray-500 dark:text-gray-400" for="terms">
+                        Acepto los <a class="text-primary hover:underline" href="#">Términos de Servicio</a> y la <a class="text-primary hover:underline" href="#">Política de Privacidad</a>
+</label>
+</div>
+<!-- Submit Button -->
+<button class="w-full bg-primary hover:bg-primary/90 text-white font-semibold py-3 px-4 rounded-lg shadow-lg shadow-primary/30 transition-all active:scale-[0.98] mt-2 flex items-center justify-center space-x-2" type="submit">
+<span>Registrarse</span>
+<span class="material-icons-round text-lg">arrow_forward</span>
+</button>
+</form>
+<!-- Footer Link -->
+<div class="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700 text-center">
+<p class="text-sm text-gray-500 dark:text-gray-400">
+                    ¿Ya tienes cuenta? 
+                    <a class="text-primary font-semibold hover:underline decoration-2 underline-offset-4" href="#">
+                        Inicia sesión
+                    </a>
+</p>
+</div>
+</div>
+</main>
+<!-- Footer decoration -->
+<div class="fixed bottom-4 w-full text-center pointer-events-none opacity-20 hidden sm:block">
+<p class="text-xs text-gray-400 uppercase tracking-widest font-medium">ServiceFlow System © 2024</p>
+</div>
+</body></html>
