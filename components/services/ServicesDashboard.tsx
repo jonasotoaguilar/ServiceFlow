@@ -248,7 +248,7 @@ export function ServiceDashboard({ initialData, user }: Readonly<ServiceDashboar
           <button
             onClick={() => toggleStatus("pending")}
             className={`glass-card p-6 border-l-4 border-slate-700/50 bg-surface/20 transition-all cursor-pointer hover:bg-surface/30 text-left w-full ${
-              statusFilter.includes("pending") ? "border-primary!" : ""
+              statusFilter.length === 0 || statusFilter.includes("pending") ? "border-primary!" : ""
             }`}
           >
             <div className="flex justify-between items-start">
@@ -267,7 +267,7 @@ export function ServiceDashboard({ initialData, user }: Readonly<ServiceDashboar
           <button
             onClick={() => toggleStatus("pending")}
             className={`glass-card p-6 border-l-4 border-slate-700/50 bg-surface/20 transition-all cursor-pointer hover:bg-surface/30 text-left w-full ${
-              statusFilter.includes("pending") ? "border-amber-500!" : ""
+              statusFilter.length === 0 || statusFilter.includes("pending") ? "border-amber-500!" : ""
             }`}
           >
             <div className="flex justify-between items-start">
@@ -286,7 +286,7 @@ export function ServiceDashboard({ initialData, user }: Readonly<ServiceDashboar
           <button
             onClick={() => toggleStatus("pending")}
             className={`glass-card p-6 border-l-4 border-slate-700/50 bg-surface/20 transition-all cursor-pointer hover:bg-surface/30 text-left w-full ${
-              statusFilter.includes("pending") ? "border-red-500!" : ""
+              statusFilter.length === 0 || statusFilter.includes("pending") ? "border-red-500!" : ""
             }`}
           >
             <div className="flex justify-between items-start">
@@ -305,7 +305,7 @@ export function ServiceDashboard({ initialData, user }: Readonly<ServiceDashboar
           <button
             onClick={() => toggleStatus("ready")}
             className={`glass-card p-6 border-l-4 border-slate-700/50 bg-surface/20 transition-all cursor-pointer hover:bg-surface/30 text-left w-full ${
-              statusFilter.includes("ready") ? "border-emerald-500!" : ""
+              statusFilter.length === 0 || statusFilter.includes("ready") ? "border-emerald-500!" : ""
             }`}
           >
             <div className="flex justify-between items-start">
@@ -324,7 +324,7 @@ export function ServiceDashboard({ initialData, user }: Readonly<ServiceDashboar
           <button
             onClick={() => toggleStatus("cancelled")}
             className={`glass-card p-6 border-l-4 border-slate-700/50 bg-surface/20 transition-all cursor-pointer hover:bg-surface/30 text-left w-full ${
-              statusFilter.includes("cancelled") ? "border-red-600/80!" : ""
+              statusFilter.length === 0 || statusFilter.includes("cancelled") ? "border-red-600/80!" : ""
             }`}
           >
             <div className="flex justify-between items-start">
@@ -493,7 +493,7 @@ export function ServiceDashboard({ initialData, user }: Readonly<ServiceDashboar
               className="bg-linear-to-r from-primary to-blue-600 hover:from-blue-600 hover:to-primary text-white px-5 py-2.5 rounded-lg font-semibold text-sm flex items-center gap-2 shadow-xl shadow-primary/20 active:scale-95 transition-all"
             >
               <Plus className="w-4 h-4" />
-              Nueva servicio
+              Nuevo servicio
             </button>
           </div>
         </div>
