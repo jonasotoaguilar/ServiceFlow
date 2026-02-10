@@ -1,37 +1,56 @@
 import * as React from "react";
 import { X } from "lucide-react";
+
 interface DialogProps {
-  isOpen: boolean;
-  onClose: () => void;
-  title: string;
-  children: React.ReactNode;
+	isOpen: boolean;
+	onClose: () => void;
+	title: string;
+	children: React.ReactNode;
+	maxWidth?: "sm" | "md" | "lg" | "xl" | "2xl" | "3xl";
+	headerActions?: React.ReactNode;
 }
 
-export function Dialog({
-  isOpen,
-  onClose,
-  title,
-  children,
-}: Readonly<DialogProps>) {
-  if (!isOpen) return null;
+const maxWidths = {
+	sm: "max-w-[384px]",
+	md: "max-w-[448px]",
+	lg: "max-w-[512px]",
+	xl: "max-w-[576px]",
+	"2xl": "max-w-[672px]",
+	"3xl": "max-w-[768px]",
+};
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in-0">
-      <div className="relative w-full max-w-lg max-h-[90vh] flex flex-col rounded-lg border border-zinc-200 bg-white shadow-lg duration-200 sm:rounded-lg dark:border-zinc-800 dark:bg-zinc-950 overflow-hidden">
-        <div className="flex items-center justify-between p-6 border-b border-zinc-100 dark:border-zinc-800">
-          <h2 className="text-lg font-semibold leading-none tracking-tight">
-            {title}
-          </h2>
-          <button
-            onClick={onClose}
-            className="rounded-sm opacity-70 ring-offset-white transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-zinc-950 focus:ring-offset-2 disabled:pointer-events-none dark:ring-offset-zinc-950 dark:focus:ring-zinc-300"
-          >
-            <X className="h-4 w-4" />
-            <span className="sr-only">Close</span>
-          </button>
-        </div>
-        <div className="flex-1 overflow-y-auto p-6">{children}</div>
-      </div>
-    </div>
-  );
+export function Dialog({
+	isOpen,
+	onClose,
+	title,
+	children,
+	maxWidth = "lg",
+	headerActions,
+}: Readonly<DialogProps>) {
+	if (!isOpen) return null;
+
+	return (
+		<div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+			<div
+				className={`glass-effect w-full ${maxWidths[maxWidth]} rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]`}
+			>
+				<div className="px-6 py-5 border-b border-white/10 flex items-center justify-between shrink-0">
+					<div>
+						<h2 className="text-xl font-bold text-white">{title}</h2>
+					</div>
+					<div className="flex items-center gap-2">
+						{headerActions}
+						<button
+							type="button"
+							onClick={onClose}
+							className="text-slate-400 hover:text-white transition-colors bg-white/5 hover:bg-white/10 p-2 rounded-lg"
+						>
+							<X className="h-5 w-5" />
+						</button>
+					</div>
+				</div>
+				<div className="px-6 py-6 overflow-y-auto custom-scrollbar">{children}</div>
+			</div>
+		</div>
+	);
 }
