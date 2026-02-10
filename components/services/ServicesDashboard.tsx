@@ -51,6 +51,7 @@ export function ServiceDashboard({ initialData }: ServiceDashboardProps) {
 	const [hasMounted, setHasMounted] = useState(false);
 	const [statusFilter, setStatusFilter] = useState<ServiceStatus[]>(["pending", "ready"]);
 	const [showStatusDropdown, setShowStatusDropdown] = useState(false);
+	const [showLocationDropdown, setShowLocationDropdown] = useState(false);
 	const [editingService, setEditingService] = useState<Service | null>(null);
 	const [viewingService, setViewingService] = useState<Service | null>(null);
 	const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
@@ -61,7 +62,8 @@ export function ServiceDashboard({ initialData }: ServiceDashboardProps) {
 		Service: Service | null;
 	}>({ isOpen: false, Service: null });
 
-	const dropdownRef = useRef<HTMLDivElement>(null);
+	const statusDropdownRef = useRef<HTMLDivElement>(null);
+	const locationDropdownRef = useRef<HTMLDivElement>(null);
 
 	// Data Fetching
 	const fetchLocations = useCallback(async () => {
@@ -122,8 +124,11 @@ export function ServiceDashboard({ initialData }: ServiceDashboardProps) {
 	// Close dropdown when clicking outside
 	useEffect(() => {
 		const handleClickOutside = (event: MouseEvent) => {
-			if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+			if (statusDropdownRef.current && !statusDropdownRef.current.contains(event.target as Node)) {
 				setShowStatusDropdown(false);
+			}
+			if (locationDropdownRef.current && !locationDropdownRef.current.contains(event.target as Node)) {
+				setShowLocationDropdown(false);
 			}
 		};
 		document.addEventListener("mousedown", handleClickOutside);
@@ -364,73 +369,116 @@ export function ServiceDashboard({ initialData }: ServiceDashboardProps) {
               </span>
             </button>
 
-            {/* Location Dropdown */}
-            <div className="relative">
-              <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                <MapPin className="w-4 h-4 text-slate-400" />
-              </div>
-              <select
-                className="w-full bg-slate-800/50 border-slate-700/50 text-slate-200 rounded-lg pl-10 pr-10 py-2.5 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all appearance-none cursor-pointer"
-                value={locationFilter}
-                onChange={(e) => setLocationFilter(e.target.value)}
-              >
-                <option value="" className="bg-slate-800">Todas las Sedes</option>
-                {locations.map((loc) => (
-                  <option key={loc.id} value={loc.id} className="bg-slate-800">
-                    {loc.name}
-                  </option>
-                ))}
-              </select>
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                <svg
-                  className="w-4 h-4 text-slate-400"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 9l-7 7-7-7"
-                  />
-                </svg>
-              </div>
-            </div>
+						{/* Location Dropdown */}
+						<div className="relative" ref={locationDropdownRef}>
+							<button
+								onClick={() => setShowLocationDropdown(!showLocationDropdown)}
+								className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-slate-800/50 border border-slate-700/50 text-slate-200 hover:bg-slate-800 transition-all min-w-50 justify-between"
+							>
+								<div className="flex items-center gap-2">
+									<MapPin className="w-4 h-4 text-slate-400" />
+									<span className="text-sm font-medium">
+										{locations.find((l) => l.id === locationFilter)?.name || "Todas las Sedes"}
+									</span>
+								</div>
+								<ChevronDown
+									className={`w-4 h-4 transition-transform ${showLocationDropdown ? "rotate-180" : ""}`}
+								/>
+							</button>
+							{showLocationDropdown && (
+								<div className="absolute top-full mt-2 w-full bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-50 overflow-hidden">
+									<button
+										onClick={() => {
+											setLocationFilter("");
+											setShowLocationDropdown(false);
+										}}
+										className={`w-full px-4 py-2.5 text-left text-sm transition-colors ${
+											locationFilter === ""
+												? "bg-primary text-white"
+												: "text-slate-300 hover:bg-slate-700"
+										}`}
+									>
+										Todas las Sedes
+									</button>
+									{locations.map((loc) => (
+										<button
+											key={loc.id}
+											onClick={() => {
+												setLocationFilter(loc.id);
+												setShowLocationDropdown(false);
+											}}
+											className={`w-full px-4 py-2.5 text-left text-sm transition-colors ${
+												locationFilter === loc.id
+													? "bg-primary text-white"
+													: "text-slate-300 hover:bg-slate-700"
+											}`}
+										>
+											{loc.name}
+										</button>
+									))}
+								</div>
+							)}
+						</div>
 
-            {/* Status Filter Dropdown */}
-            <div className="relative" ref={dropdownRef}>
-              <button
-                onClick={() => setShowStatusDropdown(!showStatusDropdown)}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-slate-800/50 border border-slate-700/50 text-slate-200 hover:bg-slate-800 transition-all min-w-45 justify-between"
-              >
-                <span className="text-sm font-medium">{getSelectedLabel()}</span>
-                <ChevronDown className={`w-4 h-4 transition-transform ${showStatusDropdown ? "rotate-180" : ""}`} />
-              </button>
-              {showStatusDropdown && (
-                <div className="absolute top-full mt-2 w-full bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-50 overflow-hidden">
-                  {statusOptions.map((option) => {
-                    const isSelected = statusFilter.includes(option.value);
-                    return (
-                      <button
-                        key={option.value}
-                        onClick={() => toggleStatusInFilter(option.value)}
-                        className="w-full px-4 py-2.5 text-left text-sm transition-colors hover:bg-slate-700 flex items-center justify-between"
-                      >
-                        <span className={isSelected ? `text-${option.color}-500` : "text-slate-300"}>
-                          {option.label}
-                        </span>
-                        {isSelected && (
-                          <svg className={`w-4 h-4 text-${option.color}-500`} fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                          </svg>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
+						{/* Status Filter Dropdown */}
+						<div className="relative" ref={statusDropdownRef}>
+							<button
+								onClick={() => setShowStatusDropdown(!showStatusDropdown)}
+								className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-slate-800/50 border border-slate-700/50 text-slate-200 hover:bg-slate-800 transition-all min-w-50 justify-between"
+							>
+								<span className="text-sm font-medium">{getSelectedLabel()}</span>
+								<ChevronDown
+									className={`w-4 h-4 transition-transform ${showStatusDropdown ? "rotate-180" : ""}`}
+								/>
+							</button>
+							{showStatusDropdown && (
+								<div className="absolute top-full mt-2 w-full bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-50 overflow-hidden">
+									<button
+										onClick={() => {
+											setStatusFilter([]);
+											// setShowStatusDropdown(false); // Optional: keep open for multiple selection
+										}}
+										className={`w-full px-4 py-2.5 text-left text-sm transition-colors hover:bg-slate-700 flex items-center justify-between ${
+											statusFilter.length === 0 ? "text-primary font-bold" : "text-slate-300"
+										}`}
+									>
+										<span>Todos los estados</span>
+										{statusFilter.length === 0 && <CheckCircle className="w-4 h-4" />}
+									</button>
+									{statusOptions.map((option) => {
+										const isSelected = statusFilter.includes(option.value);
+										return (
+											<button
+												key={option.value}
+												onClick={() => toggleStatusInFilter(option.value)}
+												className="w-full px-4 py-2.5 text-left text-sm transition-colors hover:bg-slate-700 flex items-center justify-between"
+											>
+												<span
+													className={
+														isSelected ? `text-${option.color}-500` : "text-slate-300"
+													}
+												>
+													{option.label}
+												</span>
+												{isSelected && (
+													<svg
+														className={`w-4 h-4 text-${option.color}-500`}
+														fill="currentColor"
+														viewBox="0 0 20 20"
+													>
+														<path
+															fillRule="evenodd"
+															d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+															clipRule="evenodd"
+														/>
+													</svg>
+												)}
+											</button>
+										);
+									})}
+								</div>
+							)}
+						</div>
 
             {/* New Service Button */}
             <button

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { getLocationLogs } from "@/app/actions/logs";
 import { ChevronLeft, ChevronRight, ChevronDown, X, FileText } from "lucide-react";
 import { format } from "date-fns";
@@ -40,6 +40,8 @@ export default function LogsManager({
 	const [endDate, setEndDate] = useState("");
 	const [locationFilter, setLocationFilter] = useState("");
 	const [showFilters, setShowFilters] = useState(false);
+	const [showLocationDropdown, setShowLocationDropdown] = useState(false);
+	const locationDropdownRef = useRef<HTMLDivElement>(null);
 	const limit = 20;
 
 	const fetchLogs = useCallback(async () => {
@@ -70,6 +72,17 @@ export default function LogsManager({
 	useEffect(() => {
 		fetchLogs();
 	}, [fetchLogs]);
+
+	// Close dropdown when clicking outside
+	useEffect(() => {
+		const handleClickOutside = (event: MouseEvent) => {
+			if (locationDropdownRef.current && !locationDropdownRef.current.contains(event.target as Node)) {
+				setShowLocationDropdown(false);
+			}
+		};
+		document.addEventListener("mousedown", handleClickOutside);
+		return () => document.removeEventListener("mousedown", handleClickOutside);
+	}, []);
 
 	const totalPages = Math.max(1, Math.ceil(total / limit));
 
@@ -153,35 +166,51 @@ export default function LogsManager({
 								<label htmlFor="locationFilter" className="block text-sm font-medium text-slate-300 mb-2">
 									Sede
 								</label>
-								<div className="relative">
-									<select
-										id="locationFilter"
-										value={locationFilter}
-										onChange={(e) => setLocationFilter(e.target.value)}
-										className="w-full bg-surface border-slate-700 text-white rounded-lg pl-4 pr-10 py-2.5 input-focus-glow transition-all appearance-none"
+								<div className="relative" ref={locationDropdownRef}>
+									<button
+										onClick={() => setShowLocationDropdown(!showLocationDropdown)}
+										className="w-full flex items-center gap-2 px-4 py-2.5 rounded-lg bg-slate-800/50 border border-slate-700/50 text-slate-200 hover:bg-slate-800 transition-all justify-between"
 									>
-										<option value="">Todas las sedes</option>
-										{locations.map((loc) => (
-											<option key={loc.id} value={loc.id}>
-												{loc.name}
-											</option>
-										))}
-									</select>
-									<div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400">
-										<svg
-											className="w-5 h-5"
-											fill="none"
-											stroke="currentColor"
-											viewBox="0 0 24 24"
-										>
-											<path
-												strokeLinecap="round"
-												strokeLinejoin="round"
-												strokeWidth={2}
-												d="M19 9l-7 7-7-7"
-											/>
-										</svg>
-									</div>
+										<span className="text-sm font-medium">
+											{locations.find((l) => l.id === locationFilter)?.name || "Todas las sedes"}
+										</span>
+										<ChevronDown
+											className={`w-4 h-4 transition-transform ${showLocationDropdown ? "rotate-180" : ""}`}
+										/>
+									</button>
+									{showLocationDropdown && (
+										<div className="absolute top-full mt-2 w-full bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-50 overflow-hidden">
+											<button
+												onClick={() => {
+													setLocationFilter("");
+													setShowLocationDropdown(false);
+												}}
+												className={`w-full px-4 py-2.5 text-left text-sm transition-colors ${
+													locationFilter === ""
+														? "bg-primary text-white"
+														: "text-slate-300 hover:bg-slate-700"
+												}`}
+											>
+												Todas las sedes
+											</button>
+											{locations.map((loc) => (
+												<button
+													key={loc.id}
+													onClick={() => {
+														setLocationFilter(loc.id);
+														setShowLocationDropdown(false);
+													}}
+													className={`w-full px-4 py-2.5 text-left text-sm transition-colors ${
+														locationFilter === loc.id
+															? "bg-primary text-white"
+															: "text-slate-300 hover:bg-slate-700"
+													}`}
+												>
+													{loc.name}
+												</button>
+											))}
+										</div>
+									)}
 								</div>
 							</div>
 							<div className="flex items-end">
@@ -226,7 +255,7 @@ export default function LogsManager({
 							{logs.map((log) => (
 								<tr
 									key={log.id}
-									className="hover:bg-white/[0.03] transition-colors group"
+									className="hover:bg-white/3 transition-colors group"
 								>
 									<td className="px-6 py-4">
 										<span className="text-primary font-semibold text-sm">

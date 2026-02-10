@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { X, Save } from "lucide-react";
+import { X, Save, ChevronDown, CheckCircle2 } from "lucide-react";
 import { ConfirmationDialog } from "@/components/ui/confirmationDialog";
 import { Service } from "@/lib/types";
 import { Alert } from "@/components/ui/alert";
@@ -89,6 +89,20 @@ export function ServiceModal({
 	const [showConfirm, setShowConfirm] = useState(false);
 	const [pendingData, setPendingData] = useState<ServiceFormData | null>(null);
 
+	const [showLocationDropdown, setShowLocationDropdown] = useState(false);
+	const locationDropdownRef = useRef<HTMLDivElement>(null);
+
+	// Close dropdown when clicking outside
+	useEffect(() => {
+		const handleClickOutside = (event: MouseEvent) => {
+			if (locationDropdownRef.current && !locationDropdownRef.current.contains(event.target as Node)) {
+				setShowLocationDropdown(false);
+			}
+		};
+		document.addEventListener("mousedown", handleClickOutside);
+		return () => document.removeEventListener("mousedown", handleClickOutside);
+	}, []);
+
 	const confirmDescription = useMemo(() => {
 		if (!pendingData) return "";
 		const isCompleted = pendingData.status === "completed";
@@ -145,7 +159,7 @@ export function ServiceModal({
 			form.reset(resetValues);
 		} else {
 			form.reset({
-			entryDate: new Date().toISOString().split("T")[0],
+				entryDate: new Date().toISOString().split("T")[0],
 				invoiceNumber: "",
 				sku: "",
 				clientName: "",
@@ -160,6 +174,7 @@ export function ServiceModal({
 				notes: "",
 			});
 		}
+		setShowLocationDropdown(false);
 	}, [ServiceToEdit, isOpen, LOCATIONS, form]);
 
 	const performSubmit = async (data: ServiceFormData) => {
@@ -357,34 +372,48 @@ export function ServiceModal({
 									>
 										Sede <span className="text-red-500">*</span>
 									</label>
-									<div className="relative">
-										<select
-											id="locationId"
-											{...form.register("locationId")}
-											className="w-full bg-surface border-slate-700 text-white rounded-lg pl-4 pr-10 py-2.5 input-focus-glow transition-all appearance-none"
+									<div className="relative" ref={locationDropdownRef}>
+										<button
+											type="button"
+											onClick={() => setShowLocationDropdown(!showLocationDropdown)}
+											className="w-full bg-surface border border-slate-700 text-white rounded-lg px-4 py-2.5 input-focus-glow transition-all flex items-center justify-between"
 										>
-											<option value="">Seleccione Sede</option>
-											{LOCATIONS.map((loc) => (
-												<option key={loc.id} value={loc.id}>
-													{loc.name}
-												</option>
-											))}
-										</select>
-										<div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400">
-											<svg
-												className="w-5 h-5"
-												fill="none"
-												stroke="currentColor"
-												viewBox="0 0 24 24"
-											>
-												<path
-													strokeLinecap="round"
-													strokeLinejoin="round"
-													strokeWidth={2}
-													d="M19 9l-7 7-7-7"
-												/>
-											</svg>
-										</div>
+											<span className="truncate">
+												{LOCATIONS.find((l) => l.id === form.watch("locationId"))?.name ||
+													"Seleccione Sede"}
+											</span>
+											<ChevronDown
+												className={`w-4 h-4 text-slate-400 transition-transform ${showLocationDropdown ? "rotate-180" : ""}`}
+											/>
+										</button>
+
+										{showLocationDropdown && (
+											<div className="absolute top-full mt-2 w-full bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-50 overflow-hidden max-h-60 overflow-y-auto custom-scrollbar">
+												{LOCATIONS.map((loc) => (
+													<button
+														key={loc.id}
+														type="button"
+														onClick={() => {
+															form.setValue("locationId", loc.id, {
+																shouldValidate: true,
+																shouldDirty: true,
+															});
+															setShowLocationDropdown(false);
+														}}
+														className={`w-full px-4 py-2.5 text-left text-sm transition-colors flex items-center justify-between ${
+															form.watch("locationId") === loc.id
+																? "bg-primary text-white"
+																: "text-slate-300 hover:bg-slate-700"
+														}`}
+													>
+														<span>{loc.name}</span>
+														{form.watch("locationId") === loc.id && (
+															<CheckCircle2 className="w-4 h-4" />
+														)}
+													</button>
+												))}
+											</div>
+										)}
 									</div>
 									{form.formState.errors.locationId && (
 										<span className="text-red-500 text-xs mt-1 ml-1">
