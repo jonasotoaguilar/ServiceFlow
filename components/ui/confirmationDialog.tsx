@@ -57,7 +57,7 @@ export function ConfirmationDialog({
             variant="ghost"
             onClick={onClose}
             disabled={isLoading}
-            className="text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
+            className="text-zinc-500 hover:text-white hover:bg-white/10 dark:text-zinc-400 dark:hover:text-white"
           >
             {cancelText}
           </Button>
