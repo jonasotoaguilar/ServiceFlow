@@ -28,13 +28,10 @@ export async function createSessionClient() {
 	const session = cookieStore.get(SESSION_COOKIE);
 
 	if (!session || !session.value) {
-		// Esto es normal si el usuario no está logueado, usar warn solo para debug intenso
-		// console.warn("[Appwrite Debug] No session cookie found. Available cookies:", cookieStore.getAll().map(c => c.name));
 		throw new Error("No session");
 	}
 
 	client.setSession(session.value);
-	console.log("[Appwrite Debug] Session set on client");
 
 	return {
 		get account() {
