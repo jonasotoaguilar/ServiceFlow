@@ -1,0 +1,10 @@
+allowBuilds:
+  esbuild: true
+  sharp: true
+  unrs-resolver: true
+
+overrides:
+  handlebars: "4.7.9"
+  lodash: "4.18.1"
+  postcss: ">=8.5.10"
+  undici: "7.28.0"

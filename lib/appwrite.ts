@@ -54,7 +54,7 @@ export { Query, ID };
 
 // Configuration for Database and Collections
 // Adjust these IDs as needed or load from env if you prefer dynamic naming
-export const DB_ID = "Service-system-db";
+export const DB_ID = "serviceflow-db";
 export const COLLECTIONS = {
 	Services: "Services",
 	LOCATIONS: "locations",

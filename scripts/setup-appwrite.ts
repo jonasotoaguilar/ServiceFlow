@@ -17,7 +17,7 @@ const client = new Client()
 
 const databases = new Databases(client);
 
-const DB_ID = "Service-system-db";
+const DB_ID = "serviceflow-db";
 const COLLECTIONS = {
 	Services: "Services",
 	LOCATIONS: "locations",
