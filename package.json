@@ -15,7 +15,8 @@
     "version": "standard-version --dry-run",
     "test": "vitest",
     "test:run": "vitest run",
-    "coverage": "vitest run --coverage"
+    "coverage": "vitest run --coverage",
+    "appwrite:migrate-permissions": "npx tsx scripts/migrate-appwrite-permissions.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

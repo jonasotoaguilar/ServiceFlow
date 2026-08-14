@@ -1,4 +1,6 @@
-import type { Databases, Models } from "node-appwrite";
+import { fileURLToPath } from "node:url";
+import { Client, Databases, Models } from "node-appwrite";
+import { assertDevTarget, parseArgs } from "./dev-target-guard";
 
 const DB_ID = "serviceflow-db";
 
@@ -129,4 +131,85 @@ export async function processCollections(
   }
 
   return results;
+}
+
+export async function main() {
+  process.loadEnvFile();
+
+  const { dryRun, confirmed } = parseArgs();
+
+  const endpoint = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT;
+  const projectId = process.env.NEXT_PUBLIC_APPWRITE_PROJECT;
+  const apiKey = process.env.APPWRITE_API_KEY;
+
+  if (!endpoint || !projectId || !apiKey) {
+    console.error("Missing required Appwrite environment variables.");
+    if (!endpoint) console.error("  - NEXT_PUBLIC_APPWRITE_ENDPOINT");
+    if (!projectId) console.error("  - NEXT_PUBLIC_APPWRITE_PROJECT");
+    if (!apiKey) console.error("  - APPWRITE_API_KEY");
+    process.exit(1);
+  }
+
+  // Fail-closed identity check on every invocation, dry-run included.
+  assertDevTarget(endpoint, projectId);
+
+  // Mutation requires --apply AND --yes; a bare --apply must abort.
+  if (!dryRun && !confirmed) {
+    console.error("Refusing to apply: --apply requires --yes.");
+    process.exit(1);
+  }
+
+  const client = new Client()
+    .setEndpoint(endpoint)
+    .setProject(projectId)
+    .setKey(apiKey);
+
+  const databases = new Databases(client);
+
+  try {
+    await databases.get(DB_ID);
+  } catch {
+    console.error(
+      `Database ${DB_ID} not found. Have you run setup-appwrite first?`,
+    );
+    process.exit(1);
+  }
+
+  console.log(
+    `\n${dryRun ? "\uD83D\uDD0D DRY RUN" : "\uD83D\uDE80 APPLY"} \u2014 Appwrite Permission Migration\n`,
+  );
+
+  const results = await processCollections(databases, dryRun);
+
+  const applied = results.filter((r) => r.status === "applied").length;
+  const skipped = results.filter((r) => r.status === "skipped").length;
+  const failed = results.filter((r) => r.status === "failed").length;
+
+  console.log(`\nSummary: ${applied} applied, ${skipped} skipped, ${failed} failed.`);
+
+  if (failed > 0) {
+    console.error(
+      "Some collections failed to update. See above for details.",
+    );
+    process.exit(1);
+  }
+
+  if (dryRun) {
+    console.log(
+      "\nNo changes applied. Re-run with --apply to execute.",
+    );
+  } else {
+    console.log("\nMigration complete.");
+  }
+}
+
+const isMain =
+  process.argv[1] !== undefined &&
+  fileURLToPath(import.meta.url) === process.argv[1];
+
+if (isMain) {
+  main().catch((err: unknown) => {
+    console.error(err instanceof Error ? err.message : String(err));
+    process.exit(1);
+  });
 }

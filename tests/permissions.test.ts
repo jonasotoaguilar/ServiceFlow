@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { Models } from "node-appwrite";
 
 const { mockClientCtor, mockDatabasesCtor } = vi.hoisted(() => ({
@@ -14,6 +14,7 @@ vi.mock("node-appwrite", () => ({
 import {
   buildMigrationPlan,
   processCollections,
+  main,
 } from "../scripts/migrate-appwrite-permissions";
 
 function col(
@@ -259,5 +260,106 @@ describe("processCollections", () => {
     expect(results).toHaveLength(2);
     expect(results.every((r) => r.status === "failed")).toBe(true);
     expect(results.map((r) => r.id).sort()).toEqual(["location-logs", "locations"]);
+  });
+});
+
+describe("main() fail-closed gates", () => {
+  beforeEach(() => {
+    vi.spyOn(process, "loadEnvFile").mockImplementation(() => {});
+    process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT = "http://localhost/v1";
+    process.env.NEXT_PUBLIC_APPWRITE_PROJECT = "dev-project";
+    process.env.APPWRITE_DEV_PROJECT_IDS = "dev-project";
+    process.env.APPWRITE_API_KEY = "dev-admin-key";
+    mockClientCtor.mockReset();
+    mockDatabasesCtor.mockReset();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    delete process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT;
+    delete process.env.NEXT_PUBLIC_APPWRITE_PROJECT;
+    delete process.env.APPWRITE_DEV_PROJECT_IDS;
+    delete process.env.APPWRITE_API_KEY;
+  });
+
+  it("aborts before any DB access when --apply is not confirmed with --yes", async () => {
+    const exitSpy = vi
+      .spyOn(process, "exit")
+      .mockImplementation(() => {
+        throw new Error("EXIT");
+      });
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(process, "argv", "get").mockReturnValue([
+      "node",
+      "script.ts",
+      "--apply",
+    ]);
+
+    await expect(main()).rejects.toThrow("EXIT");
+    expect(exitSpy).toHaveBeenCalledWith(1);
+    expect(errorSpy.mock.calls.flat().join(" ")).toContain("--yes");
+    expect(mockClientCtor).not.toHaveBeenCalled();
+    expect(mockDatabasesCtor).not.toHaveBeenCalled();
+  });
+
+  it("rejects a non-dev endpoint even on dry-run, before any DB access", async () => {
+    process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT =
+      "https://cloud.appwrite.io/v1";
+
+    await expect(main()).rejects.toThrow(/not on the development allowlist/);
+    expect(mockClientCtor).not.toHaveBeenCalled();
+    expect(mockDatabasesCtor).not.toHaveBeenCalled();
+  });
+
+  it("prints the plan before mutating, and applies empty permissions only when confirmed", async () => {
+    const events: string[] = [];
+    const logSpy = vi.spyOn(console, "log").mockImplementation(
+      (...args: unknown[]) => {
+        const text = args.map(String).join(" ");
+        if (text.includes("Collection:")) events.push("plan");
+      },
+    );
+    const updateCollection = vi.fn().mockImplementation(() => {
+      events.push("update");
+      return Promise.resolve();
+    });
+    const getCollection = vi.fn().mockImplementation(
+      async (_dbId: string, colId: string) =>
+        col({ $id: colId, name: colId, $permissions: ['read("any")'] }),
+    );
+    const dbMock = {
+      get: vi.fn().mockResolvedValue({ $id: "serviceflow-db" }),
+      getCollection,
+      updateCollection,
+    };
+    const chainableClient = {
+      setEndpoint: vi.fn().mockReturnThis(),
+      setProject: vi.fn().mockReturnThis(),
+      setKey: vi.fn().mockReturnThis(),
+    };
+    mockClientCtor.mockImplementation(function () {
+      return chainableClient;
+    });
+    mockDatabasesCtor.mockImplementation(function () {
+      return dbMock;
+    });
+    vi.spyOn(process, "argv", "get").mockReturnValue([
+      "node",
+      "script.ts",
+      "--apply",
+      "--yes",
+    ]);
+
+    await main();
+
+    expect(updateCollection).toHaveBeenCalledTimes(3);
+    for (const call of updateCollection.mock.calls) {
+      expect(call[3]).toEqual([]);
+    }
+    expect(events.indexOf("plan")).toBeGreaterThan(-1);
+    expect(events.indexOf("update")).toBeGreaterThan(
+      events.indexOf("plan"),
+    );
+    expect(logSpy.mock.calls.flat().join(" ")).toContain("APPLY");
   });
 });

@@ -1,4 +1,4 @@
-import { Client, Databases, Permission, Role } from "node-appwrite";
+import { Client, Databases } from "node-appwrite";
 import "dotenv/config";
 
 const endpoint = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT;
@@ -134,12 +134,7 @@ async function createCollection(
 		collectionExists = true;
 	} catch (e) {
 		console.log(`Creating collection ${name}...`);
-		await databases.createCollection(DB_ID, id, name, [
-			Permission.read(Role.any()),
-			Permission.write(Role.any()),
-			Permission.update(Role.any()),
-			Permission.delete(Role.any()),
-		]);
+		await databases.createCollection(DB_ID, id, name, []);
 	}
 
 	// Always attempt to create Attributes
