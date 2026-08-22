@@ -75,15 +75,15 @@ main
 
 ### 1.1 Env URL — RED → GREEN → TRIANGULATE
 
-- [ ] RED: add `tests/env-pocketbase.test.ts` asserting `getPocketBaseUrl` from `lib/env.ts` throws when `POCKETBASE_URL` is missing/empty/non-absolute/`ftp:`; valid `http://127.0.0.1:8090` returns; process env is not read for any `POCKETBASE_ADMIN_*`, `NEXT_PUBLIC_APPWRITE_*`, or `APPWRITE_API_KEY`. `pnpm exec vitest run tests/env-pocketbase.test.ts` fails (module missing). <!-- sdd-owner: implementation -->
-- [ ] GREEN: add `lib/env.ts` with Zod `PocketBaseEnvSchema` and `getPocketBaseUrl()`. Fail closed; no default host. Focused test passes. <!-- sdd-owner: implementation -->
-- [ ] TRIANGULATE: cover `https://` absolute URL success and whitespace-only failure. REFACTOR only if tests stay green. <!-- sdd-owner: implementation -->
+- [x] RED: add `tests/env-pocketbase.test.ts` asserting `getPocketBaseUrl` from `lib/env.ts` throws when `POCKETBASE_URL` is missing/empty/non-absolute/`ftp:`; valid `http://127.0.0.1:8090` returns; process env is not read for any `POCKETBASE_ADMIN_*`, `NEXT_PUBLIC_APPWRITE_*`, or `APPWRITE_API_KEY`. `pnpm exec vitest run tests/env-pocketbase.test.ts` fails (module missing). <!-- sdd-owner: implementation -->
+- [x] GREEN: add `lib/env.ts` with Zod `PocketBaseEnvSchema` and `getPocketBaseUrl()`. Fail closed; no default host. Focused test passes. <!-- sdd-owner: implementation -->
+- [x] TRIANGULATE: cover `https://` absolute URL success and whitespace-only failure. REFACTOR only if tests stay green. <!-- sdd-owner: implementation -->
 
 ### 1.2 Schema artifact — RED → GREEN → TRIANGULATE
 
-- [ ] RED: add `tests/schema-artifact.test.ts` that parses `pocketbase/v1.collections.json` and requires collections `users`, `services`, `locations`, `location_logs`; `locations.address` optional; `location_logs.userId` required; tenant rule string `userId = @request.auth.id` on all CRUD for the three business collections; `users` create public (`""`) and list/delete locked (`null`); no seed/business rows. Focused test fails (file missing). <!-- sdd-owner: implementation -->
-- [ ] GREEN: add hand-authored `pocketbase/v1.collections.json` matching design schema tables (text FKs, not relation fields; indexes listed in design). Focused test passes. <!-- sdd-owner: implementation -->
-- [ ] TRIANGULATE: assert required service/location/log field names and that the artifact creates no records. REFACTOR JSON only while tests stay green. <!-- sdd-owner: implementation -->
+- [x] RED: add `tests/schema-artifact.test.ts` that parses `pocketbase/v1.collections.json` and requires collections `users`, `services`, `locations`, `location_logs`; `locations.address` optional; `location_logs.userId` required; tenant rule string `userId = @request.auth.id` on all CRUD for the three business collections; `users` create public (`""`) and list/delete locked (`null`); no seed/business rows. Focused test fails (file missing). <!-- sdd-owner: implementation -->
+- [x] GREEN: add hand-authored `pocketbase/v1.collections.json` matching design schema tables (text FKs, not relation fields; indexes listed in design). Focused test passes. <!-- sdd-owner: implementation -->
+- [x] TRIANGULATE: assert required service/location/log field names and that the artifact creates no records. REFACTOR JSON only while tests stay green. <!-- sdd-owner: implementation -->
 
 ---
 
