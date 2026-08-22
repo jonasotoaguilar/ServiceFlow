@@ -264,7 +264,7 @@ main
 Group after implementation. Create no PRs and collect no secret values in the tasks phase. Bounded review stays opt-in per repo review mode; start or reuse it only when that mode is enabled.
 
 - [ ] After each integrated child PR (1–10), start or reuse bounded review for that slice only. <!-- sdd-owner: parent -->
-- [ ] At apply start: create draft/no-merge tracker PR from `feat/migrate-appwrite-to-pocketbase` → `main`, then open child PRs in order with the bases in the chain table. Do not open PR 10 until acceptance. <!-- sdd-owner: parent -->
+- [x] At apply start: create draft/no-merge tracker PR from `feat/migrate-appwrite-to-pocketbase` → `main`, then open child PRs in order with the bases in the chain table. Do not open PR 10 until acceptance. <!-- sdd-owner: parent -->
 - [ ] Operator (local, out of band): apply `pocketbase/v1.collections.json` via existing Admin UI import or hand transcription. Verify design checklist (four collections, optional `address`, required log `userId`, zero business rows, tenant rules, public user create, guest list denied). Do not flip production URL. Record only “local artifact applied: yes/no”. <!-- sdd-owner: parent -->
 - [ ] Operator (production, after WU9 and local smoke): apply the same artifact to the **existing Dokploy-managed PocketBase**. Verify the same checklist. Record target identity only (Dokploy PocketBase, not a URL secret). `POCKETBASE_URL` flip is a **separate** later step. <!-- sdd-owner: parent -->
 - [ ] Operator: confirm production ServiceFlow env **presence** of `POCKETBASE_URL` (set / not set) and absence of Appwrite keys and any `POCKETBASE_ADMIN_*` names. Never read or store the URL or other secret values in tickets, PRs, or memory. <!-- sdd-owner: parent -->
