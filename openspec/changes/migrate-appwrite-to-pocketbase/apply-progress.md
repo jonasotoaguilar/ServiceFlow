@@ -87,3 +87,48 @@
 - Validation: `gentle-ai sdd-status migrate-appwrite-to-pocketbase` → no taskArtifactErrors, total 70 checked 14, apply ready, no source files changed, provider diff `<=400` (docs-only)
 - Secrets/network: none — no POCKETBASE_URL/admin values, no live PB/Appwrite contacted, no token logged; no native attempt opened
 - Next: commit docs/chore, push, open non-draft planning child PR targeting exact `…-01b-filter-client` (`bc304e73`), link issue #18 without closing, exactly one `type:feat`
+
+## 2026-08-22 — WU2a auth core (02a-auth-core) — strict TDD
+
+- Branch: `feat/migrate-appwrite-to-pocketbase-02a-auth-core` at base `bc304e7` (planning 02-auth-split-plan)
+- Scope: WU2a only — `lib/pocketbase.ts` cookie helpers + `lib/auth.ts` getAuthUser + `tests/auth-session.test.ts`; no `app/actions/auth.ts`, proxy, login/register, storage, Appwrite code
+- TDD RED: `pnpm exec vitest run tests/auth-session.test.ts` — FAIL 8/15 (missing helpers, Appwrite path); passed 7/15 unauthenticated null checks
+- TDD GREEN/TRIANGULATE: extend `lib/pocketbase.ts` with `PB_AUTH_COOKIE`/`LEGACY_SESSION_COOKIE` constants, `getExpFromToken`, `saveAuthCookie`, `clearAuthCookie`, `clearLegacySessionCookie` (all `await cookies()`, httpOnly lax path / secure production, expires from JWT exp); rewrite `lib/auth.ts` onto `createPocketBaseClient` with `authStore.isValid` gate, no network, no Appwrite; compact helper tests
+- Verification: `pnpm exec vitest run tests/auth-session.test.ts tests/env-pocketbase.test.ts tests/pocketbase-client.test.ts` — 3 passed 31 passed; `pnpm test:run` — 6 passed 46 passed; `pnpm exec tsc --noEmit` — pass; `pnpm run lint` — pass (1 pre-existing warning)
+- TDD Cycle Evidence:
+  | Task | RED | GREEN | TRIANGULATE | REFACTOR |
+  |------|-----|-------|-------------|----------|
+  | 3.1 RED | tests/auth-session.test.ts 8 failed | — | — | — |
+  | 3.1 GREEN | — | lib/pocketbase helpers + lib/auth rewrite, 15 passed | — | shared constants |
+  | 3.1 TRIANGULATE | — | — | expired/malformed/no-exp/production secure/invalid store/shared names verified | compact test while green |
+- Tasks: WU2a 3/3 complete — RED/GREEN/TRIANGULATE; WU2b/2c deferred, parent unchanged
+- Files: `lib/pocketbase.ts` (+68 lines helpers/constants), `lib/auth.ts` (rewrite to PocketBase, -13+11), `tests/auth-session.test.ts` (15 cases), `openspec/changes/migrate-appwrite-to-pocketbase/tasks.md`, `apply-progress.md`
+- Provider add+delete (staged): ~165 across 5 files — target ≤400 (≤300 forecast)
+- Rollback: revert staged `lib/pocketbase.ts`, `lib/auth.ts`, `tests/auth-session.test.ts`, `tasks.md`, `apply-progress.md`
+- Secrets/network: none — no POCKETBASE_URL/admin, no live PB/Appwrite, no token/cookie logged
+- Workload / PR boundary: single work-unit; base planning `…-02-auth-split-plan`, no commit/push/PR
+
+## 2026-08-22 — WU2a gate FAIL — server validation missing (planning-only correction)
+
+- FAIL: `getAuthUser` trusted expiry-only `isValid` + raw cookie, no `authRefresh`; forged future-exp/tampered victim id/invalid sig would authenticate; no 401/unreachable fail-closed; Appwrite admin amplification not documented; prior WU2a evidence superseded, no new native attempt yet.
+- Remediation (planning-only): `pocketbase-access` requires server `authRefresh` before identity (forged→unauth, failure→fail closed, no Appwrite query); `auth-session` `getAuthUser` MUST `authRefresh` before `id` (valid refreshed record only, forged→`null`/401); `design` ADR-1→`authRefresh` per request, RSC verify/Action-Route persist, no cache, threat adds Appwrite row; `tasks` reset 3 WU2a [x]→[ ] with forged/401/unreachable RED/GREEN/TRIANGULATE. Next re-apply strict TDD, staged 5-file preserved but must rework; provider ≤400; no commit/push/PR.
+
+## 2026-08-22 — WU2a remediation — server-validated authRefresh (RED→GREEN)
+
+- Branch: `feat/migrate-appwrite-to-pocketbase-02a-auth-core` at base `bc304e7` (planning 02-auth-split-plan); remediation request `wu2a-security-acquire-20260822-0205-01`, proceed token not logged
+- Scope: WU2a only — `lib/auth.ts` server validation + `tests/auth-session.test.ts` forged/401/unreachable + `lib/pocketbase.ts` RecordModel typing; no `app/actions`, proxy/pages, storage, Appwrite code, packages/lockfile, or docs
+- TDD RED: extended `tests/auth-session.test.ts` with 6 server-validated cases (future-exp forged/tampered victim id → null when `pb.collection("users").authRefresh()` 401, unreachable → null, valid refresh returns server record id not raw cookie id, authRefresh MUST be called before return, expired avoids network, no cache) → `pnpm exec vitest run tests/auth-session.test.ts` 6 failed/12 passed against isValid-only impl (forged returned victim id, unreachable returned raw id, authRefresh never called, source missing authRefresh) — demonstrates RED
+- TDD GREEN: minimally updated `lib/auth.ts` to `await pb.collection("users").authRefresh()` after `isValid` and before reading record; on throw or invalid refreshed store `pb.authStore.clear()` and return null; use only refreshed `RecordModel` record; no logging; no cookie mutation from RSC; replaced `as any` with `RecordModel` in `lib/pocketbase.ts` (`import PocketBase, { type RecordModel }`)
+- TDD TRIANGULATE: forged future-exp/tampered record → null via 401, tampered raw id replaced by server record, unreachable/401 fail-closed with clear, expired local token avoids network (authRefresh not called), second call no cache (2× authRefresh), missing/malformed/session-only still null without Appwrite query
+- Verification: `pnpm exec vitest run tests/auth-session.test.ts` 18/18 GREEN; `pnpm exec vitest run tests/auth-session.test.ts tests/env-pocketbase.test.ts tests/pocketbase-client.test.ts` 3 passed 34 passed; `pnpm test:run` 6 passed 49 passed; `pnpm exec tsc --noEmit` pass; `pnpm run lint` pass (0 errors, 1 pre-existing warning)
+- TDD Cycle Evidence:
+  | Task | RED | GREEN | TRIANGULATE | REFACTOR |
+  |------|-----|-------|-------------|----------|
+  | 3.1 RED (server-validated) | 6 failed/12 passed — forged future-exp/tampered id not rejected, unreachable not null, authRefresh not called, valid refresh returned raw id, no-cache not invoked, source missing authRefresh | — | — | — |
+  | 3.1 GREEN | — | `await pb.collection("users").authRefresh()` after isValid, clear on error/invalid, return refreshed RecordModel, 18/18 | — | RecordModel typing, no logging, no cookie write |
+  | 3.1 TRIANGULATE | — | — | forged 401→null/clear, tampered replaced by server id, unreachable→null/clear, expired avoids network, missing/malformed/session null without Appwrite, second call 2× | no cache, minimal diff |
+- Tasks: WU2a 3/3 re-completed — RED/GREEN/TRIANGULATE checked; WU2b/2c deferred, parent unchanged
+- Files: `lib/auth.ts` (authRefresh + RecordModel, clear on fail), `lib/pocketbase.ts` (RecordModel import), `tests/auth-session.test.ts` (18 cases: 6 new server-validated + 6 cookie helpers + 6 base), `openspec/changes/migrate-appwrite-to-pocketbase/tasks.md`, `apply-progress.md` — staged 5/8 allowed files (design/specs already staged, unchanged)
+- Provider: total PR diff vs planning base `bc304e7` ~260 add+del across 8 files (lib/auth + lib/pocketbase + tests/auth-session + tasks + progress + design + 2 specs) ≤400; remediation delta ~95 add+del (lib/auth 20, lib/pocketbase 2, tests/auth-session ~65, tasks 3, progress 5) ≤400, no size exception, no commit/push/PR
+- Secrets/network: none — no token logged (proceed token not persisted), no POCKETBASE_URL/admin values, no live PB/Appwrite contacted, no cookie/token values in logs, `as any` removed
+- Workload / PR boundary: single work-unit 02a-auth-core; base planning `…-02-auth-split-plan`, remediation verified

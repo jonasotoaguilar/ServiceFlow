@@ -63,6 +63,22 @@ Each incoming server request that talks to PocketBase MUST use a request-scoped 
 - THEN the client MUST remain unauthenticated
 - AND the system MUST NOT throw an identity that another user could inherit
 
+### Requirement: Server validation before returning identity
+
+`authStore.isValid` (expiry-only) is insufficient to trust identity. Before returning user identity from `pb_auth`, the system MUST validate the token/record against the PocketBase server (canonical `authRefresh` or equivalent). A forged cookie with future `exp` or tampered record (e.g., victim `id`) or invalid signature MUST yield unauthenticated (`null`/401) and MUST NOT run any Appwrite admin query. Server failure or unreachable PocketBase MUST fail closed (unauthenticated, generic error, no identity).
+
+#### Scenario: Forged cookie is rejected
+
+- GIVEN a `pb_auth` cookie with future `exp` but forged payload/tampered `id` or invalid signature
+- WHEN the server validates via `authRefresh` (or equivalent)
+- THEN the request MUST be unauthenticated and MUST NOT return the forged identity
+
+#### Scenario: Server validation failure fails closed
+
+- GIVEN `authRefresh` (or equivalent) fails or PocketBase is unreachable
+- WHEN identity is resolved
+- THEN the request MUST be unauthenticated and MUST NOT fall back to raw cookie or Appwrite admin lookup
+
 ### Requirement: pb_auth cookie security
 
 When the system writes a session cookie after a successful PocketBase authentication, the cookie name MUST be `pb_auth`. The cookie MUST be `httpOnly`, MUST use `sameSite=lax`, MUST set `path=/`, and MUST set `secure` when the process is running in production. The cookie lifetime MUST NOT exceed the PocketBase auth token expiry. The cookie value MUST NOT be written to application logs.

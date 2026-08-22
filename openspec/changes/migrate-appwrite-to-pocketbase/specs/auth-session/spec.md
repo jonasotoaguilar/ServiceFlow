@@ -97,13 +97,19 @@ Logout MUST clear the `pb_auth` cookie and MUST redirect the user to `/login`. L
 
 ### Requirement: getAuthUser
 
-`getAuthUser` MUST resolve the current user only through the request-scoped PocketBase client defined by `pocketbase-access`. When `pb_auth` represents a valid PocketBase user, it MUST return `{ id, email, name }` using the PocketBase user id. When no valid session exists, it MUST return `null` and MUST NOT throw to callers. A leftover `session` cookie MUST NOT make `getAuthUser` return a user.
+`getAuthUser` MUST resolve the current user only through the request-scoped PocketBase client defined by `pocketbase-access` and MUST server-validate via canonical `authRefresh` (or equivalent) before returning `id`. Expiry-only `authStore.isValid` or raw cookie record is not authority; `authRefresh` success MUST provide the refreshed `{ id, email, name }`. Forged victim `id`/invalid signature MUST yield `null` (routes return `401` where applicable). Failure/unreachable MUST fail closed (`null`/generic, no identity). It MUST NOT use raw-cookie identity and MUST NOT run any Appwrite admin query. A leftover `session` cookie MUST NOT make `getAuthUser` return a user.
 
-#### Scenario: Valid session returns the PocketBase user
+#### Scenario: Valid session returns the refreshed PocketBase user
 
-- GIVEN a valid `pb_auth` cookie for a PocketBase user
+- GIVEN a valid `pb_auth` cookie whose `authRefresh` succeeds
 - WHEN `getAuthUser` runs
-- THEN it MUST return that user's PocketBase `id`, email, and name
+- THEN it MUST return the refreshed record's PocketBase `id`, email, and name
+
+#### Scenario: Forged victim id or invalid signature returns null
+
+- GIVEN a `pb_auth` cookie with forged payload/victim `id` or invalid signature (even with future `exp`)
+- WHEN `getAuthUser` runs
+- THEN it MUST return `null` and MUST NOT return the forged identity
 
 #### Scenario: Missing session returns null
 
@@ -116,6 +122,12 @@ Logout MUST clear the `pb_auth` cookie and MUST redirect the user to `/login`. L
 - GIVEN only a `session` cookie is present
 - WHEN `getAuthUser` runs
 - THEN it MUST return `null`
+
+#### Scenario: Unreachable/failed validation fails closed
+
+- GIVEN `authRefresh` fails or PocketBase is unreachable
+- WHEN `getAuthUser` runs
+- THEN it MUST return `null` and MUST NOT fall back to raw cookie or Appwrite
 
 ### Requirement: Unauthenticated gates
 
