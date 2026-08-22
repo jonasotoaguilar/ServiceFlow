@@ -32,7 +32,7 @@ Nonblocking spec-gate comments are closed here, not deferred to tasks:
 | `app/actions/locations.ts`, `logs.ts` | Admin `databases` + ad-hoc name checks | Same actions, PocketBase + Zod location schemas |
 | `app/api/services/route.ts` | `crypto.randomUUID()` on create | No client/server id; PocketBase assigns `id` |
 | `scripts/setup-appwrite.ts` | Canonical Appwrite schema; `Role.any()` | Not used. Schema artifact replaces it |
-| root `proxy.ts` (not `app/proxy.ts`) | Unauthenticated rewrite of `/api/proxy` to Appwrite | Replaced in WU 2 by a cookie-janitor `proxy` that only expires leftover `session` on app/API requests. Matcher excludes `_next/static`, `_next/image`, `favicon.ico`, and image extensions. Deleted in WU 10 with the leftover-session path |
+| root `proxy.ts` (not `app/proxy.ts`) | Unauthenticated rewrite of `/api/proxy` to Appwrite | Replaced in WU 2c (pre-split from old WU2 forecast 574–737) by a cookie-janitor `proxy` that only expires leftover `session` on app/API requests. Matcher excludes `_next/static`, `_next/image`, `favicon.ico`, and image extensions. Deleted in WU 10 with the leftover-session path. Old WU2 was corrected to 574–737 and split into 2a/2b/2c before acquire with no size exception |
 
 `lib/types.ts` stays. `id` remains a string; values become PocketBase 15-character ids.
 
@@ -294,7 +294,7 @@ Logout: `await cookies()` to delete `pb_auth` and `session`, then `redirect("/lo
 
 Cookie helpers (`saveAuthCookie`, `clearAuthCookie`, `clearLegacySessionCookie`) MUST `await cookies()` and run only from Server Actions and Route Handlers. Next.js Server Components can `await cookies()` to read but cannot legally `set` / `delete` (Next 15+/16). `pocketbase-access` still requires every response that saw `session` to delete it, including `GET /dashboard`.
 
-Therefore WU 2 **replaces** the current Appwrite rewrite at **root** `proxy.ts` (never `app/proxy.ts`; Next.js 16 auto-loads the repo-root proxy entrypoint) with a cookie janitor. The janitor's only job: if the request has a `session` cookie, expire it (`Max-Age=0`, `path=/`) on the `NextResponse` and return `NextResponse.next()`. It MUST NOT rewrite or proxy to Appwrite, MUST NOT read `pb_auth`, MUST NOT authenticate, and MUST NOT forward or rewrite arbitrary paths. It uses the proxy request/response cookie API, not `await cookies()` from `next/headers`.
+Therefore WU 2c (slice of pre-split 574–737 WU2) **replaces** the current Appwrite rewrite at **root** `proxy.ts` (never `app/proxy.ts`; Next.js 16 auto-loads the repo-root proxy entrypoint) with a cookie janitor. The janitor's only job: if the request has a `session` cookie, expire it (`Max-Age=0`, `path=/`) on the `NextResponse` and return `NextResponse.next()`. It MUST NOT rewrite or proxy to Appwrite, MUST NOT read `pb_auth`, MUST NOT authenticate, and MUST NOT forward or rewrite arbitrary paths. It uses the proxy request/response cookie API, not `await cookies()` from `next/headers`. Old WU2 was forecast 574–737 provider lines via source-driven preflight before any acquire and was pre-split into 2a/2b/2c to preserve auto-chain/400 without size exception.
 
 Safe Next.js 16 matcher — broad enough for app pages and `/api/*`, excluding static/image/favicon assets:
 
@@ -560,22 +560,24 @@ Mock strategy: `vi.mock("pocketbase")` or inject a `PocketBaseLike` with `collec
 
 No E2E, no coverage provider, no live rule integration test. Operator checklist covers live rules.
 
-## Review-safe work units (≤400 changed lines) — 11 child PRs
+## Review-safe work units (≤400 changed lines) — 13 implementation PRs + 1 planning node
 
-Provider review budgets count `additions + deletions` of all files including `pnpm-lock.yaml`, `tasks.md`, and `apply-progress.md`. No `size:exception`. `01b` owns the `pocketbase` dependency, `pnpm-lock.yaml`, and `pnpm-workspace.yaml`.
+Provider review budgets count `additions + deletions` of all files including `pnpm-lock.yaml`, `tasks.md`, and `apply-progress.md`. No `size:exception`. `01b` owns the `pocketbase` dependency, `pnpm-lock.yaml`, and `pnpm-workspace.yaml`. Old WU2 (`…-02-auth-janitor`) was forecast 574–737 provider lines via source-driven preflight before any acquire and was therefore pre-split into 2a/2b/2c before acquire with headroom. Planning-only `feat/migrate-appwrite-to-pocketbase-02-auth-split-plan` (chain node before 02a, docs-only) is not an implementation WU and not a size exception.
 
 | WU | Scope | Approx. lines | Gate |
 | --- | --- | --- | --- |
 | 1a | `lib/env.ts`, `pocketbase/v1.collections.json`, tests `env-pocketbase` + `schema-artifact` | ~140 | Appwrite still compiled; no UI wiring |
 | 1b | `pocketbase` dep, `lib/pocketbase.ts`, `lib/pocketbase-filter.ts`, tests `pocketbase-filter` + `pocketbase-client`, `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml` | ~271 | Owns pocketbase dependency/lockfile/workspace; provider budget counts all files |
-| 2 | Auth rewrite, server Zod, empty-start notice, cookie helpers that `await cookies()`, replace root Appwrite `proxy.ts` (not `app/proxy.ts`) with session-only janitor + safe matcher, auth tests | 300–380 | Local register/login/logout against empty PB |
+| 2a | `lib/pocketbase.ts` cookie helpers + `lib/auth.ts` `getAuthUser`, RED/GREEN/TRIANGULATE tests in `tests/auth-session.test.ts` (cookie helpers + getAuthUser) — base planning branch | <=300 | `pb_auth` helpers + `getAuthUser` from hydrated `authStore`, no network |
+| 2b | `app/actions/auth.ts` login/register/logout + error mapping/Zod ordering, RED/GREEN/TRIANGULATE tests — base 02a | <=380 | Server Zod before PB; deterministic errors; `passwordConfirm` + `authWithPassword` |
+| 2c | Root `proxy.ts` janitor + login/register empty-start banner (`app/login/page.tsx`, `app/register/page.tsx`) + verification — base 02b | <=250 | Janitor expires `session` only; Spanish notice; `auth-session` verification green |
 | 3 | `getLocations` read + locations page still gated | 150–220 | First slice: notice → empty location list |
 | 4 | `getServices` + GET `/api/services` adapter | 220–320 | Envelope + LIKE search tests |
 | 5 | create/update/delete services, drop UUID, status dates | 250–350 | CRUD + completed guard |
 | 6 | Location mutations, logs, movement, delete guard | 280–380 | History rules |
 | 7 | Docs/env: `.env.example` contains only `POCKETBASE_URL=http://127.0.0.1:8090` for PocketBase runtime (no secrets, no `POCKETBASE_ADMIN_*`, no `NEXT_PUBLIC_APPWRITE_*`, no `APPWRITE_API_KEY`); `README.md` removes Appwrite setup, `scripts/setup-appwrite.ts`, and API-key instructions; `docs/CODEBASE-GUIDE.md` is the only codebase-guide path | 200–350 | PocketBase-only setup text |
 | 8 | `PRD.md`, `ARCHITECTURE.md` | 250–380 | Accurate contracts; no Appwrite-as-live |
-| 9 | Delete `check_or.ts` and `lint_output.txt` | <30 | Hygiene only; Appwrite rewrite already gone from root `proxy.ts` in WU 2 |
+| 9 | Delete `check_or.ts` and `lint_output.txt` | <30 | Hygiene only; Appwrite rewrite already gone from root `proxy.ts` in WU 2c |
 | 10 | After acceptance: remove `lib/appwrite.ts`, setup script, `appwrite` / `node-appwrite`, Appwrite env docs, and the root session-janitor `proxy.ts` | deletions | Rollback image already proven |
 
 Do not merge WU 10 with product work. Do not touch CI, Husky, Dependabot, `CODEOWNERS`, root `SECURITY.md`, or `DESIGN.md`.
@@ -620,7 +622,7 @@ Residual risk: operator applies wrong rules. Mitigation: artifact tests + verifi
 
 ## Rollout
 
-1. Land WU 1a, 1b, 2, 3 and prove locally: register → notice → login → empty locations. Production image unchanged.
+1. Land WU 1a, 1b, 2a, 2b, 2c, 3 and prove locally: register → notice → login → empty locations. Production image unchanged (old WU2 574–737 pre-split before acquire).
 2. Land WU 4–6. Keep Appwrite files unused on this branch.
 3. Land WU 7–9 docs/hygiene.
 4. Operator applies `v1.collections.json` on Dokploy PocketBase and checks the verification list.
@@ -635,13 +637,13 @@ Residual risk: operator applies wrong rules. Mitigation: artifact tests + verifi
 | `pocketbase-access`: validated URL, no admin env | ADR-2, `lib/env.ts` |
 | `pocketbase-access`: per-request `authStore`, `pb_auth` only | ADR-1 |
 | `pocketbase-access`: cookie flags and no logging | Auth/cookies |
-| `pocketbase-access`: ignore + clear `session` | Auth/cookies, root session-janitor `proxy.ts` (not `app/proxy.ts`), WU 2 |
+| `pocketbase-access`: ignore + clear `session` | Auth/cookies, root session-janitor `proxy.ts` (not `app/proxy.ts`), WU 2a–2c (2c janitor; old WU2 574–737 pre-split) |
 | `pocketbase-access`: unreachable fails closed | Data path errors; no anonymous session |
 | `pocketbase-schema`: versioned artifact, app does not apply | ADR-3, schema section |
 | `pocketbase-schema`: no in-repo PB infra | ADR-3, non-goals |
 | `pocketbase-schema`: empty start, no import, native ids | ADR-7, native ids |
 | `pocketbase-schema`: users/locations/services/location_logs fields and rules | Schema tables (normative rules) |
-| `auth-session`: public register, fresh accounts, login/logout, `getAuthUser` | Auth flows, WU 2 |
+| `auth-session`: public register, fresh accounts, login/logout, `getAuthUser` | Auth flows, WU 2a (getAuthUser) + 2b (login/register/logout) + 2c (janitor/notice) — old WU2 574–737 pre-split |
 | `auth-session`: gates, notice, deterministic errors | Gates unchanged; notice copy; error table |
 | `services-lifecycle`: tenant CRUD, Zod boundary, no UUID, status/dates, envelope, bound LIKE | ADR-5, ADR-8, existing `ServiceSchema` table, WU 4–5 |
 | `locations-history`: address, normalize, active, delete guard, logs, listing | ADR-4, ADR-6, WU 3 + 6 |

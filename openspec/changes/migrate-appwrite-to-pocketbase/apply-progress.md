@@ -72,3 +72,18 @@
 - Secrets/network: none — no POCKETBASE_URL/admin values collected, no live PB/Appwrite contacted, no token logged, pocketbase types match installed 0.28.0 (PocketBase ctor + authStore.save)
 - Verification: strict TDD RED→GREEN→TRIANGULATE followed; Appwrite path still compiles via tsc; no auth/actions/UI/proxy/docs edits
 - Workload / PR boundary: 01b staged as single work-unit; PR base is `…-01a-env-schema` (`1420503c`), provider budget ≤400, no commit/push/PR
+
+## 2026-08-22 — Planning-only chain correction: pre-split oversized WU2 (02-auth-split-plan)
+
+- Branch: `feat/migrate-appwrite-to-pocketbase-02-auth-split-plan` from exact base `bc304e73e459273af53bfbedfdc79414f3cb067c` (`…-01b-filter-client`, PR #21 OPEN, before any WU2 acquire)
+- Trigger: source-driven preflight forecast for old WU2 (`…-02-auth-janitor`) corrected to **574–737 provider lines** (additions + deletions, all files including pnpm-lock.yaml/tasks.md/apply-progress.md); auto-chain/400 would overflow — user selected auto-chain/400 and no size exception
+- Action: planning-only docs correction **before any acquire** — no auth code/tests, no acquire/settle, no merge, no size exception. Split old WU2 into three implementation slices to guarantee headroom:
+  - **WU2a / `…-02a-auth-core`**: cookie helpers + `getAuthUser` + its RED/GREEN/TRIANGULATE tests; base planning branch; forecast `<=300` provider lines
+  - **WU2b / `…-02b-auth-actions`**: login/register/logout + error mapping/Zod ordering + tests; base 02a; forecast `<=380` provider lines
+  - **WU2c / `…-02c-janitor-notice`**: root `proxy.ts` janitor + login/register empty-start banner + verification; base 02b; forecast `<=250` provider lines
+- Reassignment: preserved all **70 checkboxes** and `sdd-owner` markers; parent tracker `At apply start...` stays checked; 13 implementation + 1 parent = **14 checked**, 56 pending unchanged; no new task marked complete. Reassigned existing 11 WU2 tasks among 2a (3)/2b (3)/2c (5) without adding/removing behavior
+- Chain update: Review Workload Forecast, chain diagram/table, dependencies, later PR numbering/bases (WU3 base now `…-02c`, etc.), tracker terminal PR reference (now PR 13 `…-10-appwrite-removal`), provider-budget policy, and Review-safe work units table updated; planning PR included as chain node before 02a, not as implementation task nor size exception; `01b` still owns `pocketbase` dep/lockfile/workspace
+- Design notes: `design.md` Review-safe work units (now 13+1), Current seams (WU 2c), Auth cookies (WU 2c), Rollout (1. Land 1a,1b,2a,2b,2c,3...), Traceability (WU 2a–2c) updated with corrected 574–737 forecast
+- Validation: `gentle-ai sdd-status migrate-appwrite-to-pocketbase` → no taskArtifactErrors, total 70 checked 14, apply ready, no source files changed, provider diff `<=400` (docs-only)
+- Secrets/network: none — no POCKETBASE_URL/admin values, no live PB/Appwrite contacted, no token logged; no native attempt opened
+- Next: commit docs/chore, push, open non-draft planning child PR targeting exact `…-01b-filter-client` (`bc304e73`), link issue #18 without closing, exactly one `type:feat`
