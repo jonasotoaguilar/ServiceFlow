@@ -93,19 +93,19 @@ main
 
 ### 2.1 Filter builder — RED → GREEN → TRIANGULATE
 
-- [ ] RED: add `tests/pocketbase-filter.test.ts` for `serviceListBinding`, `locationListBinding`, `logListBinding` in `lib/pocketbase-filter.ts`. Search containing `||` / quotes must not change the template; raw string lives in params; status tokens allowlisted to `pending|ready|completed|cancelled`; `applyBinding` is the only `pb.filter` call site. Focused test fails. <!-- sdd-owner: implementation -->
-- [ ] GREEN: implement `lib/pocketbase-filter.ts` with compile-time constant templates and `{:uid}`, `{:search}`, `{:stN}`, `{:locationId}`, `{:lid}` params. Focused test passes. <!-- sdd-owner: implementation -->
-- [ ] TRIANGULATE: compose search + status + location; only-active location binding; log from/to `locationId` and date bounds. REFACTOR duplication without interpolating search. <!-- sdd-owner: implementation -->
+- [x] RED: add `tests/pocketbase-filter.test.ts` for `serviceListBinding`, `locationListBinding`, `logListBinding` in `lib/pocketbase-filter.ts`. Search containing `||` / quotes must not change the template; raw string lives in params; status tokens allowlisted to `pending|ready|completed|cancelled`; `applyBinding` is the only `pb.filter` call site. Focused test fails. <!-- sdd-owner: implementation -->
+- [x] GREEN: implement `lib/pocketbase-filter.ts` with compile-time constant templates and `{:uid}`, `{:search}`, `{:stN}`, `{:locationId}`, `{:lid}` params. Focused test passes. <!-- sdd-owner: implementation -->
+- [x] TRIANGULATE: compose search + status + location; only-active location binding; log from/to `locationId` and date bounds. REFACTOR duplication without interpolating search. <!-- sdd-owner: implementation -->
 
 ### 2.2 Request client — RED → GREEN → TRIANGULATE
 
-- [ ] RED: add `tests/pocketbase-client.test.ts` for `createPocketBaseClient` in `lib/pocketbase.ts`: new instance per call; `await cookies()` (never sync); hydrates only `pb_auth` via `authStore.save(token, record)` after JSON parse; malformed/`session`-only → unauthenticated and no throw; constructor uses `getPocketBaseUrl()`. Mock cookies + PocketBase ctor. Focused test fails. <!-- sdd-owner: implementation -->
-- [ ] GREEN: `pnpm add pocketbase` and implement `createPocketBaseClient()`. No module-scope client. No `loadFromCookie` on the full Cookie header. No admin login. Focused test passes. <!-- sdd-owner: implementation -->
-- [ ] TRIANGULATE: both cookies present → identity from `pb_auth` only; missing URL still fails closed without treating the caller as authenticated. REFACTOR helpers without a singleton. <!-- sdd-owner: implementation -->
+- [x] RED: add `tests/pocketbase-client.test.ts` for `createPocketBaseClient` in `lib/pocketbase.ts`: new instance per call; `await cookies()` (never sync); hydrates only `pb_auth` via `authStore.save(token, record)` after JSON parse; malformed/`session`-only → unauthenticated and no throw; constructor uses `getPocketBaseUrl()`. Mock cookies + PocketBase ctor. Focused test fails. <!-- sdd-owner: implementation -->
+- [x] GREEN: `pnpm add pocketbase` and implement `createPocketBaseClient()`. No module-scope client. No `loadFromCookie` on the full Cookie header. No admin login. Focused test passes. <!-- sdd-owner: implementation -->
+- [x] TRIANGULATE: both cookies present → identity from `pb_auth` only; missing URL still fails closed without treating the caller as authenticated. REFACTOR helpers without a singleton. <!-- sdd-owner: implementation -->
 
 ### 2.3 WU1 verification
 
-- [ ] Run `pnpm exec vitest run tests/env-pocketbase.test.ts tests/schema-artifact.test.ts tests/pocketbase-filter.test.ts tests/pocketbase-client.test.ts tests/schemas.test.ts`, then `pnpm test:run`, `pnpm exec tsc --noEmit`, `pnpm run lint`. Appwrite path still compiles. Runtime harness: N/A (no UI wiring). <!-- sdd-owner: implementation -->
+- [x] Run `pnpm exec vitest run tests/env-pocketbase.test.ts tests/schema-artifact.test.ts tests/pocketbase-filter.test.ts tests/pocketbase-client.test.ts tests/schemas.test.ts`, then `pnpm test:run`, `pnpm exec tsc --noEmit`, `pnpm run lint`. Appwrite path still compiles. Runtime harness: N/A (no UI wiring). <!-- sdd-owner: implementation -->
 
 ---
 

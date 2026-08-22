@@ -42,3 +42,33 @@
 - Secrets/network: none — no POCKETBASE_URL/admin values collected, no live PocketBase/Appwrite contacted, no token logged
 - Verification: Appwrite path still compiles; pocketbase dep absent verified via `git diff -- package.json`
 - Workload / PR boundary: 01a staged as single work-unit; PR base is tracker `feat/migrate-appwrite-to-pocketbase`, future 01b bases on 01a
+
+## 2026-08-22 — WU1b filter+request client (01b-filter-client) — strict TDD
+
+- Branch: `feat/migrate-appwrite-to-pocketbase-01b-filter-client` at base `1420503c` (WU1a clean)
+- Scope: WU1b only — `lib/pocketbase-filter.ts` + `lib/pocketbase.ts` + filter/client tests + `pocketbase@0.28.0` + `pnpm-lock.yaml` + `pnpm-workspace.yaml`; no auth/actions/UI/proxy/docs/Appwrite/schema/env edits beyond inherited WU1a
+- TDD RED:
+  - `pnpm exec vitest run tests/pocketbase-filter.test.ts tests/pocketbase-client.test.ts` — FAIL 2 suites (Failed to resolve import `../lib/pocketbase-filter` / `../lib/pocketbase`), 0 tests — missing modules as expected
+  - Applied `/tmp/serviceflow-wu1b-tests.patch` first only
+- TDD GREEN/TRIANGULATE:
+  - Applied `/tmp/serviceflow-wu1b-code.patch` second; `pnpm install --frozen-lockfile` (pocketbase 0.28.0, postcss 8.5.26) via `pnpm-workspace.yaml` allowBuilds (esbuild/sharp/unrs-resolver true); no unrelated dep regen
+  - `pnpm exec vitest run tests/pocketbase-filter.test.ts tests/pocketbase-client.test.ts` — 2 passed, 13 passed (6 filter: injection chars remain params, status allowlist, composed search+status+location, onlyActive, date bounds, sole pb.filter site; 7 client: fresh PB instance, await cookies, pb_auth only, both-cookie precedence, malformed/missing URL fail-closed, no loadFromCookie)
+  - `pnpm exec vitest run tests/env-pocketbase.test.ts tests/schema-artifact.test.ts tests/pocketbase-filter.test.ts tests/pocketbase-client.test.ts tests/schemas.test.ts` — 5 passed, 31 passed (9 env, 7 artifact, 6 filter, 7 client, 2 schemas)
+  - `pnpm test:run` — 5 passed, 31 passed; `pnpm exec tsc --noEmit` — pass; `pnpm run lint` — pass (1 pre-existing react-hooks warning)
+- TDD Cycle Evidence:
+  | Task | RED | GREEN | TRIANGULATE | REFACTOR |
+  |------|-----|-------|-------------|----------|
+  | 2.1 Filter builder RED | tests/pocketbase-filter.test.ts FAIL missing module | — | — | — |
+  | 2.1 Filter builder GREEN | — | lib/pocketbase-filter.ts impl, 6 tests pass | — | — |
+  | 2.1 Filter builder TRIANGULATE | — | — | compose+onlyActive+date bounds verified, sole pb.filter site | no interpolation, duplication kept minimal |
+  | 2.2 Request client RED | tests/pocketbase-client.test.ts FAIL missing module | — | — | — |
+  | 2.2 Request client GREEN | — | lib/pocketbase.ts + pocketbase dep, 7 tests pass | — | no singleton, no loadFromCookie |
+  | 2.2 Request client TRIANGULATE | — | — | both-cookie→pb_auth only, missing URL fail-closed, malformed no throw | — |
+  | 2.3 Verification | — | — | 31 tests + tsc + lint green, Appwrite compiles | — |
+- Tasks: WU1b 7/7 implementation checkboxes complete — 2.1 RED/GREEN/TRIANGULATE, 2.2 RED/GREEN/TRIANGULATE, 2.3 verification; later/parent tasks unchanged
+- Files: `lib/pocketbase-filter.ts` (bound templates {:uid}/{:search}/{:stN}/{:locationId}/{:lid}, ALLOWED_STATUSES, applyBinding sole pb.filter), `lib/pocketbase.ts` (per-request new PocketBase(getPocketBaseUrl()), await cookies(), pb_auth JSON parse + authStore.save, no session/loadFromCookie/admin), `tests/pocketbase-filter.test.ts`, `tests/pocketbase-client.test.ts`, `package.json` (+pocketbase 0.28.0), `pnpm-lock.yaml`, `pnpm-workspace.yaml`
+- Provider-counted add+delete line total (staged): 315 (278 additions + 37 deletions) across 9 files — target ≤400 — 01b owns pocketbase dep/lockfile/workspace
+- Rollback: revert staged `lib/pocketbase-filter.ts`, `lib/pocketbase.ts`, `tests/pocketbase-filter.test.ts`, `tests/pocketbase-client.test.ts`, `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, `openspec/changes/migrate-appwrite-to-pocketbase/tasks.md`, `openspec/changes/migrate-appwrite-to-pocketbase/apply-progress.md` — no unrelated work touched
+- Secrets/network: none — no POCKETBASE_URL/admin values collected, no live PB/Appwrite contacted, no token logged, pocketbase types match installed 0.28.0 (PocketBase ctor + authStore.save)
+- Verification: strict TDD RED→GREEN→TRIANGULATE followed; Appwrite path still compiles via tsc; no auth/actions/UI/proxy/docs edits
+- Workload / PR boundary: 01b staged as single work-unit; PR base is `…-01a-env-schema` (`1420503c`), provider budget ≤400, no commit/push/PR
