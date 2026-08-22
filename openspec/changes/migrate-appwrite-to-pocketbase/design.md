@@ -560,11 +560,14 @@ Mock strategy: `vi.mock("pocketbase")` or inject a `PocketBaseLike` with `collec
 
 No E2E, no coverage provider, no live rule integration test. Operator checklist covers live rules.
 
-## Review-safe work units (≤400 changed lines)
+## Review-safe work units (≤400 changed lines) — 11 child PRs
+
+Provider review budgets count `additions + deletions` of all files including `pnpm-lock.yaml`, `tasks.md`, and `apply-progress.md`. No `size:exception`. `01b` owns the `pocketbase` dependency, `pnpm-lock.yaml`, and `pnpm-workspace.yaml`.
 
 | WU | Scope | Approx. lines | Gate |
 | --- | --- | --- | --- |
-| 1 | `pocketbase` dep, artifact, `lib/env.ts`, `lib/pocketbase.ts`, `lib/pocketbase-filter.ts`, env/client/filter/artifact tests | 300–380 | Appwrite still compiled; no UI wiring |
+| 1a | `lib/env.ts`, `pocketbase/v1.collections.json`, tests `env-pocketbase` + `schema-artifact` | ~140 | Appwrite still compiled; no UI wiring |
+| 1b | `pocketbase` dep, `lib/pocketbase.ts`, `lib/pocketbase-filter.ts`, tests `pocketbase-filter` + `pocketbase-client`, `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml` | ~271 | Owns pocketbase dependency/lockfile/workspace; provider budget counts all files |
 | 2 | Auth rewrite, server Zod, empty-start notice, cookie helpers that `await cookies()`, replace root Appwrite `proxy.ts` (not `app/proxy.ts`) with session-only janitor + safe matcher, auth tests | 300–380 | Local register/login/logout against empty PB |
 | 3 | `getLocations` read + locations page still gated | 150–220 | First slice: notice → empty location list |
 | 4 | `getServices` + GET `/api/services` adapter | 220–320 | Envelope + LIKE search tests |
@@ -617,7 +620,7 @@ Residual risk: operator applies wrong rules. Mitigation: artifact tests + verifi
 
 ## Rollout
 
-1. Land WU 1–3 and prove locally: register → notice → login → empty locations. Production image unchanged.
+1. Land WU 1a, 1b, 2, 3 and prove locally: register → notice → login → empty locations. Production image unchanged.
 2. Land WU 4–6. Keep Appwrite files unused on this branch.
 3. Land WU 7–9 docs/hygiene.
 4. Operator applies `v1.collections.json` on Dokploy PocketBase and checks the verification list.
