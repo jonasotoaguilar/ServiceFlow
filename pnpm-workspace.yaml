@@ -1,0 +1,20 @@
+# pnpm secure configuration — gated by pnpm@11.1.1
+strictDepBuilds: true
+
+allowBuilds:
+  esbuild: true
+  sharp: true
+
+minimumReleaseAge: 20160
+minimumReleaseAgeExclude:
+  - "@types/*"
+  - "typescript"
+  - "@biomejs/biome"
+  - "@biomejs/*"
+
+blockExoticSubdeps: true
+
+trustPolicy: no-downgrade
+trustPolicyExclude:
+  - "@types/*"
+trustPolicyIgnoreAfter: 20160
