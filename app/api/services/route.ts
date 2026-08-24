@@ -9,11 +9,6 @@ import {
 import { Service } from "@/lib/types";
 import { ServiceSchema } from "@/lib/schemas";
 
-// Simple UUID generator fallback
-function generateId() {
-	return crypto.randomUUID();
-}
-
 export async function GET(request: Request) {
 	const user = await getAuthUser();
 
@@ -68,29 +63,30 @@ export async function POST(request: Request) {
 			body.cancellationDate = new Date().toISOString();
 		}
 
-		const newService: Service = {
-			id: generateId(),
-			userId: user.id, // Assign to current user
-			invoiceNumber: body.invoiceNumber,
-			clientName: body.clientName,
-			rut: body.rut,
-			email: body.email || undefined,
-			contact: body.contact,
-			product: body.product,
-			failureDescription: body.failureDescription,
-			sku: body.sku,
-			locationId: body.locationId,
-			entryDate: body.entryDate || new Date().toISOString(),
-			deliveryDate: body.deliveryDate || undefined,
-			readyDate: body.readyDate || undefined,
-			cancellationDate: body.cancellationDate || undefined,
-			status: body.status || "pending",
-			repairCost: body.repairCost,
-			notes: body.notes || "",
+		const { id: _ignoredId, userId: _ignoredUserId, ...rest } = body as any;
+
+		const serviceToSave: Omit<Service, "id"> = {
+			userId: user.id,
+			invoiceNumber: rest.invoiceNumber,
+			clientName: rest.clientName,
+			rut: rest.rut,
+			email: rest.email || undefined,
+			contact: rest.contact,
+			product: rest.product,
+			failureDescription: rest.failureDescription,
+			sku: rest.sku,
+			locationId: rest.locationId,
+			entryDate: rest.entryDate || new Date().toISOString(),
+			deliveryDate: rest.deliveryDate || undefined,
+			readyDate: rest.readyDate || undefined,
+			cancellationDate: rest.cancellationDate || undefined,
+			status: rest.status || "pending",
+			repairCost: rest.repairCost,
+			notes: rest.notes || "",
 		};
 
-		await saveService(newService);
-		return NextResponse.json(newService, { status: 201 });
+		const created = await saveService(serviceToSave);
+		return NextResponse.json(created, { status: 201 });
 	} catch (e) {
 		console.error(e);
 		return NextResponse.json(
@@ -128,7 +124,6 @@ export async function PUT(request: Request) {
 			return NextResponse.json({ error: "Missing ID" }, { status: 400 });
 		}
 
-		// Pass userId to ensure ownership
 		await updateService(body as Service, user.id);
 		return NextResponse.json(body, { status: 200 });
 	} catch (e) {

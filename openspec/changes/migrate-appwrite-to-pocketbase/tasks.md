@@ -202,19 +202,19 @@ main
 
 ### 8.1 saveService signature + POST — RED → GREEN → TRIANGULATE
 
-- [ ] RED: extend `tests/services-lifecycle.test.ts`: `saveService(service: Omit<Service, "id">): Promise<Service>` in `lib/storage.ts` omits `id`; PocketBase assigns id; `userId` from `getAuthUser().id` not client; default `status=pending` and `entryDate=now` after Zod; `cancelled` without `cancellationDate` sets now; POST uses `ServiceSchema.safeParse` and on failure `400 { error: "Validation failed" }` with no write; unauthenticated POST `401 { error: "Unauthorized" }`. Focused test fails. <!-- sdd-owner: implementation -->
-- [ ] GREEN: change `saveService`, delete `generateId` / `crypto.randomUUID()` from `app/api/services/route.ts`, return `201` with the created record. Collection optionality must not relax HTTP Zod. Focused test passes. <!-- sdd-owner: implementation -->
-- [ ] TRIANGULATE: invalid `status` / missing `clientName` → 400 and no PB `create`. REFACTOR date defaults into one helper. <!-- sdd-owner: implementation -->
+- [x] RED: extend `tests/services-lifecycle.test.ts`: `saveService(service: Omit<Service, "id">): Promise<Service>` in `lib/storage.ts` omits `id`; PocketBase assigns id; `userId` from `getAuthUser().id` not client; default `status=pending` and `entryDate=now` after Zod; `cancelled` without `cancellationDate` sets now; POST uses `ServiceSchema.safeParse` and on failure `400 { error: "Validation failed" }` with no write; unauthenticated POST `401 { error: "Unauthorized" }`. Focused test fails. <!-- sdd-owner: implementation -->
+- [x] GREEN: change `saveService`, delete `generateId` / `crypto.randomUUID()` from `app/api/services/route.ts`, return `201` with the created record. Collection optionality must not relax HTTP Zod. Focused test passes. <!-- sdd-owner: implementation -->
+- [x] TRIANGULATE: invalid `status` / missing `clientName` → 400 and no PB `create`. REFACTOR date defaults into one helper. <!-- sdd-owner: implementation -->
 
 ### 8.2 update + delete — RED → GREEN → TRIANGULATE
 
-- [ ] RED: stored `completed` is immutable (no PB `update`); ownership failure when stored `userId` ≠ current user; PUT/DELETE without id → `400`; unauthenticated → `401 { error: "Unauthorized" }`; unexpected errors generic (no PB text); delete matching `location_logs` by `ServiceId` **first**, abort if any log delete fails, then delete service. Focused test fails. <!-- sdd-owner: implementation -->
-- [ ] GREEN: rewrite `updateService` / `deleteService` and PUT/DELETE in `app/api/services/route.ts`. Do not write movement logs yet. Focused test passes. <!-- sdd-owner: implementation -->
-- [ ] TRIANGULATE: peer cannot update/delete; completed owner update fails without mutation. REFACTOR ownership helper. <!-- sdd-owner: implementation -->
+- [x] RED: stored `completed` is immutable (no PB `update`); ownership failure when stored `userId` ≠ current user; PUT/DELETE without id → `400`; unauthenticated → `401 { error: "Unauthorized" }`; unexpected errors generic (no PB text); delete matching `location_logs` by `ServiceId` **first**, abort if any log delete fails, then delete service. Focused test fails. <!-- sdd-owner: implementation -->
+- [x] GREEN: rewrite `updateService` / `deleteService` and PUT/DELETE in `app/api/services/route.ts`. Do not write movement logs yet. Focused test passes. <!-- sdd-owner: implementation -->
+- [x] TRIANGULATE: peer cannot update/delete; completed owner update fails without mutation. REFACTOR ownership helper. <!-- sdd-owner: implementation -->
 
 ### 8.3 WU5 verification
 
-- [ ] Run `pnpm exec vitest run tests/services-lifecycle.test.ts tests/schemas.test.ts`, then `pnpm test:run`, `pnpm exec tsc --noEmit`, `pnpm run lint`. Confirm `tests/schemas.test.ts` still green. <!-- sdd-owner: implementation -->
+- [x] Run `pnpm exec vitest run tests/services-lifecycle.test.ts tests/schemas.test.ts`, then `pnpm test:run`, `pnpm exec tsc --noEmit`, `pnpm run lint`. Confirm `tests/schemas.test.ts` still green. <!-- sdd-owner: implementation -->
 
 ---
 

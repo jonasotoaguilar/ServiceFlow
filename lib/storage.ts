@@ -1,4 +1,3 @@
-import { databases, COLLECTIONS, DB_ID, Query, ID } from "@/lib/appwrite";
 import { Service, ServiceStatus } from "./types";
 import { createPocketBaseClient } from "@/lib/pocketbase";
 import { serviceListBinding, applyBinding } from "@/lib/pocketbase-filter";
@@ -76,139 +75,100 @@ export async function getServices(params?: {
 	}
 }
 
-export async function saveService(Service: Service): Promise<void> {
-	try {
-		await databases.createDocument(DB_ID, COLLECTIONS.Services, Service.id, {
-			userId: Service.userId,
-			invoiceNumber: Service.invoiceNumber,
-			clientName: Service.clientName,
-			rut: Service.rut,
-			contact: Service.contact,
-			email: Service.email,
-			product: Service.product,
-			failureDescription: Service.failureDescription,
-			sku: Service.sku,
-			locationId: Service.locationId,
-			entryDate: new Date(Service.entryDate).toISOString(), // ensure ISO format
-			deliveryDate: Service.deliveryDate
-				? new Date(Service.deliveryDate).toISOString()
+export async function saveService(service: Omit<Service, "id">): Promise<Service> {
+	const pb = await createPocketBaseClient();
+	const now = new Date().toISOString();
+	const payload: Record<string, unknown> = {
+		userId: service.userId,
+		invoiceNumber: service.invoiceNumber,
+		clientName: service.clientName,
+		rut: service.rut,
+		contact: service.contact,
+		email: service.email,
+		product: service.product,
+		failureDescription: service.failureDescription,
+		sku: service.sku,
+		locationId: service.locationId,
+		entryDate: service.entryDate ? new Date(service.entryDate).toISOString() : now,
+		deliveryDate: service.deliveryDate ? new Date(service.deliveryDate).toISOString() : null,
+		readyDate: service.readyDate ? new Date(service.readyDate).toISOString() : null,
+		cancellationDate: service.cancellationDate
+			? new Date(service.cancellationDate).toISOString()
+			: service.status === "cancelled"
+				? now
 				: null,
-			readyDate: Service.readyDate
-				? new Date(Service.readyDate).toISOString()
-				: null,
-			cancellationDate: Service.cancellationDate
-				? new Date(Service.cancellationDate).toISOString()
-				: null,
-			status: Service.status,
-			repairCost: Service.repairCost,
-			notes: Service.notes,
-		});
-	} catch (error) {
-		console.error("Error saving Service:", error);
-		throw error;
-	}
+		status: service.status ?? "pending",
+		repairCost: service.repairCost,
+		notes: service.notes ?? "",
+	};
+	const record = (await pb.collection("services").create(payload)) as any;
+	return {
+		...record,
+		id: record.id,
+		entryDate: record.entryDate,
+		deliveryDate: record.deliveryDate || undefined,
+		readyDate: record.readyDate || undefined,
+		cancellationDate: record.cancellationDate || undefined,
+		status: record.status as ServiceStatus,
+	} as Service;
 }
 
-export async function updateService(
-	updatedService: Service,
-	userId?: string,
-): Promise<void> {
-	// 1. Get current to check ownership and diff
-	const current = await databases.getDocument(
-		DB_ID,
-		COLLECTIONS.Services,
-		updatedService.id,
-	);
-
+export async function updateService(updatedService: Service, userId?: string): Promise<void> {
+	const pb = await createPocketBaseClient();
+	let current: any;
+	try {
+		current = await pb.collection("services").getOne(updatedService.id);
+	} catch {
+		throw new Error("No Service found or access denied");
+	}
 	if (userId && current.userId !== userId) {
 		throw new Error("No Service found or access denied");
 	}
-
 	if (current.status === "completed") {
 		throw new Error("Cannot modify a completed Service");
 	}
-
-	// 2. Update Service
-	await databases.updateDocument(
-		DB_ID,
-		COLLECTIONS.Services,
-		updatedService.id,
-		{
-			invoiceNumber: updatedService.invoiceNumber,
-			clientName: updatedService.clientName,
-			rut: updatedService.rut,
-			contact: updatedService.contact,
-			email: updatedService.email,
-			product: updatedService.product,
-			failureDescription: updatedService.failureDescription,
-			sku: updatedService.sku,
-			locationId: updatedService.locationId,
-			entryDate: new Date(updatedService.entryDate).toISOString(),
-			deliveryDate: updatedService.deliveryDate
-				? new Date(updatedService.deliveryDate).toISOString()
-				: null,
-			readyDate: updatedService.readyDate
-				? new Date(updatedService.readyDate).toISOString()
-				: null,
-			cancellationDate: updatedService.cancellationDate
-				? new Date(updatedService.cancellationDate).toISOString()
-				: null,
-			status: updatedService.status,
-			repairCost: updatedService.repairCost,
-			notes: updatedService.notes,
-		},
-	);
-
-	// 3. Create Log if Location changed
-	if (current.locationId !== updatedService.locationId) {
-		if (
-			updatedService.status === "completed" &&
-			current.status !== "completed"
-		) {
-			// Skip logic as per original
-		} else {
-			await databases.createDocument(
-				DB_ID,
-				COLLECTIONS.LOCATION_LOGS,
-				ID.unique(),
-				{
-					userId: current.userId, // use owner ID
-					ServiceId: updatedService.id,
-					fromLocationId: current.locationId,
-					toLocationId: updatedService.locationId,
-					changedAt: new Date().toISOString(),
-				},
-			);
-		}
-	}
+	const now = new Date().toISOString();
+	const payload: Record<string, unknown> = {
+		invoiceNumber: updatedService.invoiceNumber,
+		clientName: updatedService.clientName,
+		rut: updatedService.rut,
+		contact: updatedService.contact,
+		email: updatedService.email,
+		product: updatedService.product,
+		failureDescription: updatedService.failureDescription,
+		sku: updatedService.sku,
+		locationId: updatedService.locationId,
+		entryDate: updatedService.entryDate ? new Date(updatedService.entryDate).toISOString() : current.entryDate,
+		deliveryDate: updatedService.deliveryDate ? new Date(updatedService.deliveryDate).toISOString() : null,
+		readyDate: updatedService.readyDate ? new Date(updatedService.readyDate).toISOString() : null,
+		cancellationDate: updatedService.cancellationDate
+			? new Date(updatedService.cancellationDate).toISOString()
+			: updatedService.status === "cancelled" && !current.cancellationDate
+				? now
+				: current.cancellationDate ?? null,
+		status: updatedService.status,
+		repairCost: updatedService.repairCost,
+		notes: updatedService.notes,
+	};
+	await pb.collection("services").update(updatedService.id, payload);
 }
 
 export async function deleteService(id: string, userId?: string): Promise<void> {
-	const current = await databases.getDocument(DB_ID, COLLECTIONS.Services, id);
-
+	const pb = await createPocketBaseClient();
+	let current: any;
+	try {
+		current = await pb.collection("services").getOne(id);
+	} catch {
+		throw new Error("No Service found or access denied");
+	}
 	if (userId && current.userId !== userId) {
 		throw new Error("No Service found or access denied");
 	}
-
-	// 1. Fetch all related location logs
-	try {
-		const logs = await databases.listDocuments(DB_ID, COLLECTIONS.LOCATION_LOGS, [
-			Query.equal("ServiceId", id),
-			Query.limit(100), // Assuming reasonable amount of logs
-		]);
-
-		// 2. Delete each log
-		const deleteLogsPromises = logs.documents.map((log) =>
-			databases.deleteDocument(DB_ID, COLLECTIONS.LOCATION_LOGS, log.$id),
-		);
-
-		await Promise.all(deleteLogsPromises);
-	} catch (error) {
-		console.error("Error deleting related logs:", error);
-		// We continue to delete the Service even if logs deletion fails,
-		// but ideally we'd want this to be atomic.
+	const filter = applyBinding(pb, { filter: "ServiceId = {:sid}", params: { sid: id } });
+	const logsRes = await pb.collection("location_logs").getList(1, 100, { filter });
+	const items = (logsRes.items as Array<{ id: string }>) ?? [];
+	for (const log of items) {
+		await pb.collection("location_logs").delete(log.id);
 	}
-
-	// 3. Delete the Service itself
-	await databases.deleteDocument(DB_ID, COLLECTIONS.Services, id);
+	await pb.collection("services").delete(id);
 }
