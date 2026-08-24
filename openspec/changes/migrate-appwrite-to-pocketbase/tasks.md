@@ -165,13 +165,13 @@ main
 
 ### 6.1 getLocations — RED → GREEN → TRIANGULATE
 
-- [ ] RED: add list/tenant cases to `tests/locations-history.test.ts` for `getLocations` in `app/actions/locations.ts`: unauthenticated → `{ error: "No autenticado" }` and no PB write/list; bound `userId = {:uid}`; peer rows excluded unless the filter is wrong; `onlyActive=true` omits inactive; map PocketBase `id` (not `$id`). Focused test fails. <!-- sdd-owner: implementation -->
-- [ ] GREEN: rewrite **only** `getLocations` onto `createPocketBaseClient` + `locationListBinding` / `applyBinding`. Keep `app/locations/page.tsx` `getAuthUser` → `redirect("/login")` gate. Leave create/update/toggle/delete on Appwrite until WU6 if needed to compile; prefer extracting read without widening writes. Focused test passes. <!-- sdd-owner: implementation -->
-- [ ] TRIANGULATE: `getLocations(false)` includes inactive; empty list is a success with `data: []`. REFACTOR mapping helper. <!-- sdd-owner: implementation -->
+- [x] RED: add list/tenant cases to `tests/locations-history.test.ts` for `getLocations` in `app/actions/locations.ts`: unauthenticated → `{ error: "No autenticado" }` and no PB write/list; bound `userId = {:uid}`; peer rows excluded unless the filter is wrong; `onlyActive=true` omits inactive; map PocketBase `id` (not `$id`). Focused test fails. <!-- sdd-owner: implementation -->
+- [x] GREEN: rewrite **only** `getLocations` onto `createPocketBaseClient` + `locationListBinding` / `applyBinding`. Keep `app/locations/page.tsx` `getAuthUser` → `redirect("/login")` gate. Leave create/update/toggle/delete on Appwrite until WU6 if needed to compile; prefer extracting read without widening writes. Focused test passes. <!-- sdd-owner: implementation -->
+- [x] TRIANGULATE: `getLocations(false)` includes inactive; empty list is a success with `data: []`. REFACTOR mapping helper. <!-- sdd-owner: implementation -->
 
 ### 6.2 WU3 verification
 
-- [ ] Run `pnpm exec vitest run tests/locations-history.test.ts tests/auth-session.test.ts`, then `pnpm test:run`, `pnpm exec tsc --noEmit`, `pnpm run lint`, `pnpm run build`. Runtime: notice → login → empty locations (local PB only if already applied). <!-- sdd-owner: implementation -->
+- [x] Run `pnpm exec vitest run tests/locations-history.test.ts tests/auth-session.test.ts`, then `pnpm test:run`, `pnpm exec tsc --noEmit`, `pnpm run lint`, `pnpm run build`. Runtime: notice → login → empty locations (local PB only if already applied). <!-- sdd-owner: implementation -->
 
 ---
 
