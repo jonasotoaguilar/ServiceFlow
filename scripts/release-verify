@@ -1,0 +1,102 @@
+#!/bin/sh
+set -eu
+
+# release-verify — READ-ONLY externally, fail-closed, no image/release mutation
+# Verifies GH release (exact JSON via jq) and all four GHCR tags via deterministic
+# raw-manifest equality (sha256sum of --raw bytes). For private GHCR, authenticates
+# via ephemeral $RUNNER_TEMP/release-material (700/600) using GH_TOKEN and wipes
+# via trap. Requires future verify job packages:read; no PAT/PUBLISH_TOKEN fallback.
+
+fail() {
+  printf '::error::%s\n' "$1" >&2
+  exit 1
+}
+
+[ -n "${RELEASE_TAG:-}" ] || fail "RELEASE_TAG is required"
+[ -n "${RELEASE_COMMIT:-}" ] || fail "RELEASE_COMMIT is required"
+[ -n "${RELEASE_REPOSITORY:-}" ] || fail "RELEASE_REPOSITORY is required"
+[ -n "${GH_TOKEN:-}" ] || fail "GH_TOKEN is required"
+[ -n "${RUNNER_TEMP:-}" ] || fail "RUNNER_TEMP is required"
+
+case "$RELEASE_TAG" in *-* ) fail "prerelease tag rejected: $RELEASE_TAG" ;; esac
+printf '%s' "$RELEASE_TAG" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$' || fail "RELEASE_TAG must be vX.Y.Z"
+
+command -v gh >/dev/null 2>&1 || fail "gh is required"
+command -v docker >/dev/null 2>&1 || fail "docker is required"
+command -v jq >/dev/null 2>&1 || fail "jq is required"
+command -v sha256sum >/dev/null 2>&1 || fail "sha256sum is required"
+docker buildx version >/dev/null 2>&1 || fail "docker buildx is required"
+
+# Validate RELEASE_REPOSITORY before deriving
+LC_ALL=C printf '%s' "$RELEASE_REPOSITORY" | LC_ALL=C grep -Eq '^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$' || fail "RELEASE_REPOSITORY must be owner/repo: $RELEASE_REPOSITORY"
+
+# Fail if material already exists at start
+if [ -e "$RUNNER_TEMP/release-material" ]; then
+  fail "release-material already exists: $RUNNER_TEMP/release-material"
+fi
+
+# Ephemeral material for authenticated GHCR read (private registry)
+material_dir="$RUNNER_TEMP/release-material"
+mkdir -p "$material_dir"
+chmod 700 "$material_dir"
+cred_file="$material_dir/ghcr-token"
+cleanup() {
+  rm -rf -- "$material_dir"
+}
+trap cleanup EXIT INT TERM HUP QUIT PIPE
+
+printf '%s' "$GH_TOKEN" > "$cred_file"
+chmod 600 "$cred_file"
+[ -s "$cred_file" ] || fail "credential materialization failed"
+
+image="ghcr.io/$(LC_ALL=C printf '%s' "$RELEASE_REPOSITORY" | LC_ALL=C tr '[:upper:]' '[:lower:]')"
+case "$image" in ghcr.io/*/* ) ;; * ) fail "derived image invalid: $image" ;; esac
+version="${RELEASE_TAG#v}"
+major="$(printf '%s' "$version" | cut -d. -f1)"
+minor="$(printf '%s' "$version" | cut -d. -f2)"
+mm="$major.$minor"
+m="$major"
+
+# Authenticate to GHCR without logging token (read-only, packages:read)
+owner="$(LC_ALL=C printf '%s' "$RELEASE_REPOSITORY" | cut -d/ -f1 | LC_ALL=C tr '[:upper:]' '[:lower:]')"
+cat "$cred_file" | docker login ghcr.io -u "$owner" --password-stdin >/dev/null 2>&1 || fail "docker login ghcr.io failed"
+
+# Verify GH release via exact jq parsing
+if ! view_json="$(gh release view "$RELEASE_TAG" --json tagName,targetCommitish,isDraft,isPrerelease,body 2>&1)"; then
+  fail "gh release view failed for $RELEASE_TAG: $view_json"
+fi
+printf '%s' "$view_json" | jq -e --arg tag "$RELEASE_TAG" '.tagName == $tag' >/dev/null || fail "GH release tagName != $RELEASE_TAG: $view_json"
+printf '%s' "$view_json" | jq -e --arg commit "$RELEASE_COMMIT" '.targetCommitish == $commit' >/dev/null || fail "GH release targetCommitish != $RELEASE_COMMIT: $view_json"
+printf '%s' "$view_json" | jq -e '.isDraft == false' >/dev/null || fail "GH release isDraft must be false: $view_json"
+printf '%s' "$view_json" | jq -e '.isPrerelease == false' >/dev/null || fail "GH release isPrerelease must be false: $view_json"
+body="$(printf '%s' "$view_json" | jq -er '.body')" || fail "GH release body missing or not string: $view_json"
+[ -n "$body" ] || fail "GH release body is empty: $view_json"
+printf '%s' "$body" | grep -qF '## What changed' || fail "GH release body missing ## What changed: $view_json"
+
+# Verify all four GHCR tags via deterministic raw-manifest equality
+tags="$RELEASE_TAG $mm $m latest"
+hashes=""
+for t in $tags; do
+  ref="$image:$t"
+  # sanitize tag for filename (LC_ALL=C, safe chars)
+  safe_t="$(LC_ALL=C printf '%s' "$t" | LC_ALL=C tr -c 'A-Za-z0-9._-' '_' )"
+  raw_file="$material_dir/raw-$safe_t.json"
+  if ! docker buildx imagetools inspect "$ref" --raw > "$raw_file" 2>&1; then
+    fail "GHCR tag missing or not inspectable: $ref"
+  fi
+  [ -s "$raw_file" ] || fail "GHCR manifest empty: $ref"
+  if ! h="$(sha256sum "$raw_file" 2>/dev/null | awk '{print $1}')"; then
+    fail "sha256sum failed for $ref"
+  fi
+  [ -n "$h" ] || fail "hash empty for $ref"
+  printf '%s' "$h" | LC_ALL=C grep -Eq '^[0-9a-f]{64}$' || fail "invalid hash for $ref: $h"
+  printf 'tag %s hash %s\n' "$ref" "$h"
+  hashes="$hashes $h"
+done
+
+first="$(printf '%s' "$hashes" | awk '{print $1}')"
+for h in $hashes; do
+  [ "$h" = "$first" ] || fail "GHCR tags content hashes differ: $hashes"
+done
+
+printf 'verify ok: %s (%s) hashes %s\n' "$RELEASE_TAG" "$RELEASE_COMMIT" "$first"
