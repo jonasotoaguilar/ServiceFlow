@@ -295,10 +295,10 @@ main
 
 **Depends on:** WU6d. **Specs:** `project-contracts` (env, README, CODEBASE-GUIDE). **Do not** delete Appwrite code.
 
-- [ ] Set `.env.example` PocketBase runtime to only `POCKETBASE_URL=http://127.0.0.1:8090`. No secrets. No `POCKETBASE_ADMIN_*`. No `NEXT_PUBLIC_APPWRITE_*` or `APPWRITE_API_KEY` as active config. <!-- sdd-owner: implementation -->
-- [ ] Rewrite `README.md`: PocketBase is the live auth/data backend; local already-running instance at `127.0.0.1:8090`; explicit artifact apply; public self-registration; `pb_auth` httpOnly; tenant `userId` + schema rules; empty start; native 15-char ids; `{ data, total, page, limit }`; LIKE search; optional `address`. Remove Appwrite setup, `scripts/setup-appwrite.ts`, and API-key instructions. No container/Dokploy runbook. Appwrite only as historical rollback. <!-- sdd-owner: implementation -->
-- [ ] Add or rewrite `docs/CODEBASE-GUIDE.md` **only** (never a root `CODEBASE-GUIDE`): point at `lib/pocketbase.ts`, `lib/pocketbase-filter.ts`, `lib/env.ts`, `pocketbase/v1.collections.json`, `lib/auth.ts`, `lib/storage.ts`, `lib/schemas.ts`. MUST NOT present `lib/appwrite.ts` / `node-appwrite` as current instructions. MUST NOT document the old unauthenticated Appwrite rewrite as live. <!-- sdd-owner: implementation -->
-- [ ] Verify with ripgrep that in-scope docs contain no live Appwrite setup/API-key/`/api/proxy` rewrite claims. `pnpm test:run` still passes (docs-only). Runtime harness: N/A. <!-- sdd-owner: implementation -->
+- [x] Set `.env.example` PocketBase runtime to only `POCKETBASE_URL=http://127.0.0.1:8090`. No secrets. No `POCKETBASE_ADMIN_*`. No `NEXT_PUBLIC_APPWRITE_*` or `APPWRITE_API_KEY` as active config. <!-- sdd-owner: implementation -->
+- [x] Rewrite `README.md`: PocketBase is the live auth/data backend; local already-running instance at `127.0.0.1:8090`; explicit artifact apply; public self-registration; `pb_auth` httpOnly; tenant `userId` + schema rules; empty start; native 15-char ids; `{ data, total, page, limit }`; LIKE search; optional `address`. Remove Appwrite setup, `scripts/setup-appwrite.ts`, and API-key instructions. No container/Dokploy runbook. Appwrite only as historical rollback. <!-- sdd-owner: implementation -->
+- [x] Add or rewrite `docs/CODEBASE-GUIDE.md` **only** (never a root `CODEBASE-GUIDE`): point at `lib/pocketbase.ts`, `lib/pocketbase-filter.ts`, `lib/env.ts`, `pocketbase/v1.collections.json`, `lib/auth.ts`, `lib/storage.ts`, `lib/schemas.ts`. MUST NOT present `lib/appwrite.ts` / `node-appwrite` as current instructions. MUST NOT document the old unauthenticated Appwrite rewrite as live. <!-- sdd-owner: implementation -->
+- [x] Verify with ripgrep that in-scope docs contain no live Appwrite setup/API-key/`/api/proxy` rewrite claims. `pnpm test:run` still passes (docs-only). Runtime harness: N/A. <!-- sdd-owner: implementation -->
 
 ---
 
