@@ -269,13 +269,13 @@ main
 
 ### 11.1 Movement logs — RED → GREEN → TRIANGULATE
 
-- [ ] RED: add compact movement cases in `tests/locations-history.test.ts` or `tests/services-lifecycle.test.ts`: `updateService` in `lib/storage.ts` creates `location_logs` with denormalized `userId`, `ServiceId`, `fromLocationId`, `toLocationId`, `changedAt=now` when `locationId` changes and the write is **not** the transition into `completed`; skip log when completing; no log when location unchanged. Focused test fails. <!-- sdd-owner: implementation -->
-- [ ] GREEN: implement log create in the service update path only (ADR-6: update service, then create log; no invented rollback). Do not rewrite `getLocationLogs`. Focused test passes. <!-- sdd-owner: implementation -->
-- [ ] TRIANGULATE: completing+location change skips log; unchanged location writes no log; non-complete location change writes one log. REFACTOR helper while green. <!-- sdd-owner: implementation -->
+- [x] RED: add compact movement cases in `tests/locations-history.test.ts` or `tests/services-lifecycle.test.ts`: `updateService` in `lib/storage.ts` creates `location_logs` with denormalized `userId`, `ServiceId`, `fromLocationId`, `toLocationId`, `changedAt=now` when `locationId` changes and the write is **not** the transition into `completed`; skip log when completing; no log when location unchanged. Focused test fails. <!-- sdd-owner: implementation -->
+- [x] GREEN: implement log create in the service update path only (ADR-6: update service, then create log; no invented rollback). Do not rewrite `getLocationLogs`. Focused test passes. <!-- sdd-owner: implementation -->
+- [x] TRIANGULATE: completing+location change skips log; unchanged location writes no log; non-complete location change writes one log. REFACTOR helper while green. <!-- sdd-owner: implementation -->
 
 ### 11.2 WU6c verification
 
-- [ ] Run `pnpm exec vitest run tests/locations-history.test.ts tests/services-lifecycle.test.ts`, then `pnpm test:run`, `pnpm exec tsc --noEmit`, `pnpm run lint`. Runtime harness: N/A (mocked update path). <!-- sdd-owner: implementation -->
+- [x] Run `pnpm exec vitest run tests/locations-history.test.ts tests/services-lifecycle.test.ts`, then `pnpm test:run`, `pnpm exec tsc --noEmit`, `pnpm run lint`. Runtime harness: N/A (mocked update path). <!-- sdd-owner: implementation -->
 
 ## 12. WU6d / PR 12 — History read envelope
 
