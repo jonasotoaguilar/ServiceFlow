@@ -255,13 +255,13 @@ main
 
 ### 10.1 Location writes — RED → GREEN → TRIANGULATE
 
-- [ ] RED: add compact write cases to `tests/locations-history.test.ts` for create/update/toggle/delete in `app/actions/locations.ts`: create `isActive=true`, server `userId`, optional address; `normalizeString` duplicate against **this user only**; update may keep own name; peer mutate fails; unauthenticated mutate writes nothing; delete blocked when any service `locationId` or log `fromLocationId`/`toLocationId` references it, same Spanish history-guard error; unused location deletes. Focused test fails. <!-- sdd-owner: implementation -->
-- [ ] GREEN: rewrite remaining location actions onto PocketBase + Zod. Native ids (omit `id` on create). Focused test passes. <!-- sdd-owner: implementation -->
-- [ ] TRIANGULATE: accent-insensitive duplicate (`Ñuñoa`); same name allowed for another tenant; toggle does not delete history. REFACTOR duplicate check. <!-- sdd-owner: implementation -->
+- [x] RED: add compact write cases to `tests/locations-history.test.ts` for create/update/toggle/delete in `app/actions/locations.ts`: create `isActive=true`, server `userId`, optional address; `normalizeString` duplicate against **this user only**; update may keep own name; peer mutate fails; unauthenticated mutate writes nothing; delete blocked when any service `locationId` or log `fromLocationId`/`toLocationId` references it, same Spanish history-guard error; unused location deletes. Focused test fails. <!-- sdd-owner: implementation -->
+- [x] GREEN: rewrite remaining location actions onto PocketBase + Zod. Native ids (omit `id` on create). Focused test passes. <!-- sdd-owner: implementation -->
+- [x] TRIANGULATE: accent-insensitive duplicate (`Ñuñoa`); same name allowed for another tenant; toggle does not delete history. REFACTOR duplicate check. <!-- sdd-owner: implementation -->
 
 ### 10.2 WU6b verification
 
-- [ ] Run `pnpm exec vitest run tests/locations-history.test.ts tests/schemas.test.ts`, then `pnpm test:run`, `pnpm exec tsc --noEmit`, `pnpm run lint`. Runtime harness: N/A unless local PB already applied (location create only). <!-- sdd-owner: implementation -->
+- [x] Run `pnpm exec vitest run tests/locations-history.test.ts tests/schemas.test.ts`, then `pnpm test:run`, `pnpm exec tsc --noEmit`, `pnpm run lint`. Runtime harness: N/A unless local PB already applied (location create only). <!-- sdd-owner: implementation -->
 
 ## 11. WU6c / PR 11 — Movement-log create on service update
 
