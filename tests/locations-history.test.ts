@@ -268,3 +268,126 @@ describe("locations write WU6b — create/update/toggle/delete", () => {
     expect(await t("loc1", false)).toEqual(expect.objectContaining({ success: true })); expect(mockLocationsUpdate).toHaveBeenCalledWith("loc1", expect.objectContaining({ isActive: false })); expect(mockLocationsDelete).not.toHaveBeenCalled();
   });
 });
+
+describe("history read WU6d — getLocationLogs PocketBase tenant-bound envelope", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockGetAuthUser.mockReset();
+    mockLocationsGetList.mockReset();
+    mockLocationsGetOne.mockReset();
+    mockLocationsCreate.mockReset();
+    mockLocationsUpdate.mockReset();
+    mockLocationsDelete.mockReset();
+    mockServicesGetList.mockReset();
+    mockLogsGetList.mockReset();
+    mockFilter.mockClear();
+    mockCollection.mockClear();
+    mockCreatePocketBaseClient.mockClear();
+    mockGetAuthUser.mockResolvedValue({ id: "u-owner-1", email: "owner@test.com", name: "Owner" });
+    mockLogsGetList.mockResolvedValue({ items: [], totalItems: 0 });
+  });
+
+  it("unauthenticated → { error: 'No autenticado' } without data and no PB call", async () => {
+    mockGetAuthUser.mockResolvedValue(null);
+    const { getLocationLogs } = await import("@/app/actions/logs");
+    const res = await getLocationLogs({ page: 1, limit: 20 });
+    expect(res).toEqual({ error: "No autenticado" });
+    expect(res).not.toHaveProperty("data");
+    expect(mockCreatePocketBaseClient).not.toHaveBeenCalled();
+    expect(mockCollection).not.toHaveBeenCalled();
+    expect(mockLogsGetList).not.toHaveBeenCalled();
+    expect(mockFilter).not.toHaveBeenCalled();
+  });
+
+  it("authenticated envelope binds userId = {:uid}, sort -changedAt, pagination, peer isolation, total", async () => {
+    mockGetAuthUser.mockResolvedValue({ id: "u-owner-1", email: "owner@test.com", name: "Owner" });
+    const now = new Date().toISOString();
+    mockLogsGetList.mockResolvedValue({ items: [{ id: "pb15log00000001", userId: "u-owner-1", ServiceId: "svc1", fromLocationId: "locA", toLocationId: "locB", changedAt: now }], totalItems: 1 });
+    const { getLocationLogs } = await import("@/app/actions/logs");
+    const res = await getLocationLogs({ page: 2, limit: 5 });
+    expect(res).toEqual(expect.objectContaining({ data: expect.any(Array), total: 1, page: 2, limit: 5 }));
+    expect((res.data as Array<Record<string, unknown>>)[0].id).toBe("pb15log00000001");
+    expect(mockCreatePocketBaseClient).toHaveBeenCalledTimes(1);
+    expect(mockCollection).toHaveBeenCalledWith("location_logs");
+    expect(mockFilter).toHaveBeenCalled();
+    const [template, params] = mockFilter.mock.calls.find(([t]) => (t as string).includes("userId")) as [string, Record<string, unknown>];
+    expect(template).toContain("userId = {:uid}");
+    expect(params.uid).toBe("u-owner-1");
+    expect(template).not.toContain("u-owner-1");
+    expect(mockLogsGetList).toHaveBeenCalledWith(2, 5, expect.objectContaining({ sort: "-changedAt", filter: expect.any(String) }));
+    vi.clearAllMocks();
+    mockGetAuthUser.mockResolvedValue({ id: "user-B", email: "b@b.com", name: "B" });
+    mockLogsGetList.mockResolvedValue({ items: [], totalItems: 0 });
+    mockFilter.mockClear();
+    mockCollection.mockClear();
+    mockCreatePocketBaseClient.mockClear();
+    const { getLocationLogs: getB } = await import("@/app/actions/logs");
+    await getB({ page: 1, limit: 20 });
+    const [templateB, paramsB] = mockFilter.mock.calls.find(([t]) => (t as string).includes("userId")) as [string, Record<string, unknown>];
+    expect(templateB).toBe(template);
+    expect(paramsB.uid).toBe("user-B");
+    expect(paramsB.uid).not.toBe(params.uid);
+  });
+
+  it("from-or-to locationId filter, date bounds, empty list, id mapping (id not $id)", async () => {
+    mockGetAuthUser.mockResolvedValue({ id: "u-owner-1", email: "owner@test.com", name: "Owner" });
+    mockLogsGetList.mockResolvedValue({
+      items: [
+        { id: "log1", $id: "should-not-use", userId: "u-owner-1", ServiceId: "svc1", fromLocationId: "locX", toLocationId: "locY", changedAt: "2024-06-01T00:00:00.000Z" },
+        { id: "log2", userId: "u-owner-1", ServiceId: "svc2", fromLocationId: "locY", toLocationId: "locZ", changedAt: "2024-06-02T00:00:00.000Z" },
+      ],
+      totalItems: 2,
+    });
+    const { getLocationLogs } = await import("@/app/actions/logs");
+    const res = await getLocationLogs({ locationId: "locY", startDate: "2024-01-01", endDate: "2024-12-31" });
+    expect(res.data).toHaveLength(2);
+    expect((res.data as Array<{ id: string }>)[0].id).toBe("log1");
+    expect((res.data as Array<Record<string, unknown>>)[0].id).not.toBe("should-not-use");
+    const [fullTemplate, fullParams] = mockFilter.mock.calls.find(([t]) => (t as string).includes("userId")) as [string, Record<string, unknown>];
+    expect(fullTemplate).toContain("userId = {:uid}");
+    expect(fullTemplate).toContain("fromLocationId = {:lid} || toLocationId = {:lid}");
+    expect(fullTemplate).toContain("changedAt >= {:startDate}");
+    expect(fullTemplate).toContain("changedAt <= {:endDate}");
+    expect(fullParams.uid).toBe("u-owner-1");
+    expect(fullParams.lid).toBe("locY");
+    expect(fullParams.startDate).toBe("2024-01-01");
+    expect(fullParams.endDate).toBe("2024-12-31");
+    expect(fullTemplate).not.toContain("locY");
+    expect(fullTemplate).not.toContain("u-owner-1");
+    mockLogsGetList.mockResolvedValue({ items: [], totalItems: 0 });
+    const empty = await getLocationLogs({ page: 1, limit: 20 });
+    expect(empty).toEqual({ data: [], total: 0, page: 1, limit: 20 });
+    expect(empty).not.toHaveProperty("error");
+    mockLogsGetList.mockResolvedValue({ items: [{ id: "pb15log00000002", userId: "u-owner-1", ServiceId: "svc1", fromLocationId: "locA", toLocationId: "locB", changedAt: new Date().toISOString() }], totalItems: 1 });
+    const withDefaults = await getLocationLogs({});
+    expect(withDefaults.page).toBe(1);
+    expect(withDefaults.limit).toBe(20);
+  });
+
+  it("source uses PB logListBinding/applyBinding, no Appwrite, keeps page gates, generic error on throw", async () => {
+    const src = fs.readFileSync(path.join(process.cwd(), "app/actions/logs.ts"), "utf8");
+    expect(src).toContain("createPocketBaseClient");
+    expect(src).toContain("logListBinding");
+    expect(src).toContain("applyBinding");
+    expect(src).toContain('collection("location_logs")');
+    expect(src).toContain("getList");
+    expect(src).toContain("getAuthUser");
+    expect(src).toContain("No autenticado");
+    expect(src).not.toContain("databases.");
+    expect(src).not.toContain("COLLECTIONS.");
+    expect(src).not.toContain("Query.equal");
+    expect(src).not.toContain("DB_ID");
+    const logsPage = fs.readFileSync(path.join(process.cwd(), "app/locationLogs/page.tsx"), "utf8");
+    expect(logsPage).toContain("getAuthUser");
+    expect(logsPage).toContain('redirect("/login")');
+    const dashPage = fs.readFileSync(path.join(process.cwd(), "app/dashboard/page.tsx"), "utf8");
+    expect(dashPage).toContain("getAuthUser");
+    expect(dashPage).toContain('redirect("/login")');
+    mockGetAuthUser.mockResolvedValue({ id: "u-owner-1", email: "owner@test.com", name: "Owner" });
+    mockLogsGetList.mockRejectedValueOnce(new Error("PocketBase secret should not leak"));
+    const { getLocationLogs } = await import("@/app/actions/logs");
+    const err = await getLocationLogs({ page: 1, limit: 20 });
+    expect(err).toEqual({ error: "Error al cargar historial de movimientos" });
+    expect(JSON.stringify(err)).not.toContain("PocketBase");
+  });
+});
