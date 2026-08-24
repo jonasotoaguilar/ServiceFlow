@@ -277,4 +277,22 @@
 - Files: `lib/storage.ts` (rewrite save/update/delete to PB, 80+120=200), `app/api/services/route.ts` (remove generateId, POST/PUT/DELETE PB, 22+27=49), `tests/services-lifecycle.test.ts` (WU5 6 tests: native ids/ownership/completed/400/401/500/delete-order, 104+1=105), `openspec/changes/migrate-appwrite-to-pocketbase/tasks.md` (7 checkboxes WU5, 7+7=14), `openspec/changes/migrate-appwrite-to-pocketbase/apply-progress.md` (this entry, 31+0=31, 31 lines)
 - Provider add+delete (vs `8b30293`, all tracked files incl. SDD): 399 (244 additions + 155 deletions) across 5 files — `lib/storage.ts` 80+120=200, `app/api/services/route.ts` 22+27=49, `tests/services-lifecycle.test.ts` 104+1=105, `openspec/changes/migrate-appwrite-to-pocketbase/tasks.md` 7+7=14, `openspec/changes/migrate-appwrite-to-pocketbase/apply-progress.md` 31+0=31 — product route+storage+tests 354 (206+148), SDD tasks+progress 45 (38+7), apply-progress 31 lines, tasks 7+7 — forecast 250–350 exceeded but hard 400 not exceeded, no size:exception — within budget; measured via `git diff HEAD --numstat` authoritative (244+155=399)
 - Secrets/network: none — no POCKETBASE_URL/admin values, no live PB/Appwrite contacted, no token/cookie/secret logged, no console.log of pb_auth; POCKETBASE_URL only as documented `http://127.0.0.1:8090` for local when applicable but not in this slice
-- Workload / PR boundary: single work-unit 05-services-write; base `8b30293` (PR #28 `…-04-services-read`); chain feature-branch-chain; tracker `feat/migrate-appwrite-to-pocketbase`; this slice ends at PocketBase `save/update/deleteService` + POST/PUT/DELETE `ServiceSchema`/`401`/`400`/`500` + delete-logs-first; next is WU6 `…-06-locations-write`
+- Workload / PR boundary: single work-unit 05-services-write; base `8b30293` (PR #28 `…-04-services-read`); chain feature-branch-chain; tracker `feat/migrate-appwrite-to-pocketbase`; this slice ends at PocketBase `save/update/deleteService` + POST/PUT/DELETE `ServiceSchema`/`401`/`400`/`500` + delete-logs-first; next was monolithic WU6 (later rejected)
+
+## 2026-08-24 — Planning-only WU6 split after maintainer-authorized native reset
+
+- Branch: unpublished gh-stack top `feat/migrate-appwrite-to-pocketbase-06-locations-write` at exact base `beb946b0c438e4af319aed83baff00412f114ab8` (WU5 `…-05-services-write`). This branch becomes a planning-only split node, not an implementation WU.
+- Rejected monolith: native WU6 attempt produced 864 provider lines (577 additions + 287 deletions) across six source/test files — over the 400-line review hard limit. No `size:exception`.
+- Failed evidence revision: `sha256:e4c18db874459a13ba0a1929af5d930b1dd3403b6c1d20ec75062a4eace42a97`.
+- Maintainer reset revision: `sha256:affb46d542b99ed5fdcdf03b5d0cceb94b406d93cd134a9889044c5b971ad0c1` (exact `granted` reset; prior attempts preserved; fresh budget open, `next_action: begin`).
+- Candidate preserved: GREEN over-budget source/test changes remain unstaged in `app/actions/locations.ts`, `app/actions/logs.ts`, `lib/schemas.ts`, `lib/storage.ts`, `tests/locations-history.test.ts`, `tests/schemas.test.ts`. Not edited, reset, staged, discarded, or reformatted by this planning correction.
+- Tasks claimed: none. All WU6 implementation checkboxes stay unchecked. WU1–WU5 checkboxes and unrelated pending tasks stay as recorded (42 complete before this split).
+- Approved four-slice plan (feature-branch-chain, auto-chain, no size exception; conservative headroom, not 392-at-the-edge):
+  - **WU6a / `…-06a-location-schemas`**: `lib/schemas.ts` LocationCreate/Update + compact schema tests; base this planning node; forecast 80–160
+  - **WU6b / `…-06b-location-crud`**: PocketBase location create/update/toggle/delete + duplicate/ownership/delete guards in `app/actions/locations.ts` + compact write tests; base 06a; forecast 180–280
+  - **WU6c / `…-06c-movement-log`**: movement-log create inside `updateService` only (`lib/storage.ts`) + compact movement tests; base 06b; forecast 80–160
+  - **WU6d / `…-06d-history-read`**: PocketBase `getLocationLogs` envelope/sort/filter (`app/actions/logs.ts`) + compact history tests; base 06c; forecast 160–280
+- Downstream: WU7 base becomes `…-06d-history-read`. Terminal child ordinal becomes PR 16 (`…-10-appwrite-removal`). Combined 9.3 split adds RED/GREEN/TRIANGULATE/verification checkboxes; plan total becomes 77, completed 42/77.
+- Later apply may reuse the preserved GREEN candidate per slice, but each child MUST keep TDD evidence lineage and slice-specific compact tests. Do not land the 864-line monolith.
+- Secrets/network: none. No acquire, tests, build, commit, push, PR, or `gh stack` add/submit/sync/merge in this planning correction.
+- Next: publish this planning node, then begin WU6a from it.
