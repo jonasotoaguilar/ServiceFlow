@@ -306,9 +306,9 @@ main
 
 **Depends on:** WU7. **Specs:** `project-contracts` (PRD + ARCHITECTURE). Keep this PR to those two files so it stays ≤400 lines.
 
-- [ ] Add/replace root `PRD.md` with PocketBase product behavior: tenant-scoped services/locations/history, public registration, temporary empty-start notice, no Appwrite import, LIKE search, optional address, pagination envelope. <!-- sdd-owner: implementation -->
-- [ ] Add/replace root `ARCHITECTURE.md`: only data/auth backend is PocketBase; Next.js uses `POCKETBASE_URL` + user session; request-scoped client; schema apply explicit/out of band; no hosting in this repo; no dual-write or `session` compatibility. <!-- sdd-owner: implementation -->
-- [ ] Grep both files: Appwrite mentions are historical/rollback only; no live proxy rewrite; governance files not edited. `pnpm test:run`. Runtime harness: N/A. <!-- sdd-owner: implementation -->
+- [x] Add/replace root `PRD.md` with PocketBase product behavior: tenant-scoped services/locations/history, public registration, temporary empty-start notice, no Appwrite import, LIKE search, optional address, pagination envelope. <!-- sdd-owner: implementation -->
+- [x] Add/replace root `ARCHITECTURE.md`: only data/auth backend is PocketBase; Next.js uses `POCKETBASE_URL` + user session; request-scoped client; schema apply explicit/out of band; no hosting in this repo; no dual-write or `session` compatibility. <!-- sdd-owner: implementation -->
+- [x] Grep both files: Appwrite mentions are historical/rollback only; no live proxy rewrite; governance files not edited. `pnpm test:run`. Runtime harness: N/A. <!-- sdd-owner: implementation -->
 
 ---
 
