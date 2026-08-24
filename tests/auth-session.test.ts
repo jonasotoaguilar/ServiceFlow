@@ -283,3 +283,125 @@ describe("auth actions WU2b",()=>{
   });
 });
 
+describe("proxy janitor WU2c", () => {
+  const banner = "Este entorno PocketBase comienza vacío. Los tickets y sedes anteriores de Appwrite no aparecerán.";
+  it("root proxy.ts exists as janitor: exports proxy, never app/proxy.ts", () => {
+    const proxyPath = path.join(process.cwd(), "proxy.ts");
+    const appProxyPath = path.join(process.cwd(), "app/proxy.ts");
+    expect(fs.existsSync(proxyPath)).toBe(true);
+    expect(fs.existsSync(appProxyPath)).toBe(false);
+    const src = fs.readFileSync(proxyPath, "utf8");
+    expect(src).toContain("export function proxy");
+    expect(src).not.toContain("app/proxy.ts");
+  });
+  it("janitor does not rewrite to Appwrite and does not read pb_auth or authenticate", () => {
+    const src = fs.readFileSync(path.join(process.cwd(), "proxy.ts"), "utf8");
+    expect(src).not.toContain("NEXT_PUBLIC_APPWRITE_ENDPOINT");
+    expect(src).not.toContain("NEXT_PUBLIC_APPWRITE");
+    expect(src.toLowerCase()).not.toContain("appwrite");
+    expect(src).not.toContain("rewrite");
+    expect(src).not.toContain("pb_auth");
+    expect(src).not.toContain("authStore");
+    expect(src).not.toContain("createPocketBaseClient");
+    expect(src).not.toContain("authRefresh");
+  });
+  it("janitor expires session with Max-Age=0 path=/ and uses NextResponse.next", () => {
+    const src = fs.readFileSync(path.join(process.cwd(), "proxy.ts"), "utf8");
+    expect(src).toContain("NextResponse.next");
+    expect(src).toContain("session");
+    // Max-Age=0 via maxAge:0 or Max-Age
+    expect(src).toMatch(/maxAge\s*:\s*0|Max-Age.*0/i);
+    expect(src).toMatch(/path:\s*["']\/["']/);
+    // cookie API via request.cookies and response.cookies
+    expect(src).toMatch(/request\.cookies/);
+    expect(src).toMatch(/cookies\.(set|delete)/);
+  });
+  it("matcher excludes _next/static, _next/image, favicon.ico and image extensions", () => {
+    const src = fs.readFileSync(path.join(process.cwd(), "proxy.ts"), "utf8");
+    expect(src).toContain("_next/static");
+    expect(src).toContain("_next/image");
+    expect(src).toContain("favicon.ico");
+    expect(src).toMatch(/svg.*png.*jpg.*jpeg.*gif.*webp/i);
+    expect(src).not.toContain('"/api/proxy/:path*"');
+    expect(src).not.toContain("'/api/proxy/:path*'");
+  });
+  it("janitor uses NextResponse cookie API not next/headers await cookies", () => {
+    const src = fs.readFileSync(path.join(process.cwd(), "proxy.ts"), "utf8");
+    expect(src).not.toContain("from \"next/headers\"");
+    expect(src).not.toContain("await cookies()");
+  });
+  it("runtime triangulation: with session present expires Max-Age=0 path=/", async () => {
+    const { proxy } = await import("../proxy");
+    const { NextResponse } = await import("next/server");
+    const mockSet = vi.fn();
+    const mockResp = { cookies: { set: mockSet } } as unknown as ReturnType<typeof NextResponse.next>;
+    const spy = vi.spyOn(NextResponse, "next").mockReturnValue(mockResp);
+    const req = { cookies: { has: (n: string) => n === "session", get: () => undefined } } as unknown as import("next/server").NextRequest;
+    const res = proxy(req);
+    expect(spy).toHaveBeenCalled();
+    expect(mockSet).toHaveBeenCalledWith("session", "", expect.objectContaining({ maxAge: 0, path: "/" }));
+    expect(res).toBe(mockResp);
+    spy.mockRestore();
+  });
+  it("runtime triangulation: without session just NextResponse.next, no set", async () => {
+    const { proxy } = await import("../proxy");
+    const { NextResponse } = await import("next/server");
+    const mockSet = vi.fn();
+    const mockResp = { cookies: { set: mockSet } } as unknown as ReturnType<typeof NextResponse.next>;
+    const spy = vi.spyOn(NextResponse, "next").mockReturnValue(mockResp);
+    const req = { cookies: { has: () => false, get: () => undefined } } as unknown as import("next/server").NextRequest;
+    const res = proxy(req);
+    expect(spy).toHaveBeenCalled();
+    expect(mockSet).not.toHaveBeenCalled();
+    expect(res).toBe(mockResp);
+    spy.mockRestore();
+  });
+  it("runtime triangulation: with both session and pb_auth present still only clears session", async () => {
+    const { proxy } = await import("../proxy");
+    const { NextResponse } = await import("next/server");
+    const mockSet = vi.fn();
+    const mockResp = { cookies: { set: mockSet } } as unknown as ReturnType<typeof NextResponse.next>;
+    const spy = vi.spyOn(NextResponse, "next").mockReturnValue(mockResp);
+    const req = {
+      cookies: {
+        has: (n: string) => n === "session" || n === "pb_auth",
+        get: (n: string) => (n === "session" ? { value: "legacy" } : n === "pb_auth" ? { value: "valid" } : undefined),
+      },
+    } as unknown as import("next/server").NextRequest;
+    const res = proxy(req);
+    expect(mockSet).toHaveBeenCalledTimes(1);
+    expect(mockSet).toHaveBeenCalledWith("session", "", expect.objectContaining({ maxAge: 0, path: "/" }));
+    expect(mockSet).not.toHaveBeenCalledWith("pb_auth", expect.anything(), expect.anything());
+    expect(res).toBe(mockResp);
+    spy.mockRestore();
+  });
+});
+
+describe("empty-start notice WU2c", () => {
+  const banner = "Este entorno PocketBase comienza vacío. Los tickets y sedes anteriores de Appwrite no aparecerán.";
+  it("/login renders exact banner and exposes no import/reset/restore wizard", () => {
+    const src = fs.readFileSync(path.join(process.cwd(), "app/login/page.tsx"), "utf8");
+    expect(src).toContain(banner);
+    expect(src.toLowerCase()).not.toMatch(/importar datos|reset.*datos|restaurar datos/);
+    expect(src).not.toMatch(/wizard|migration.*wizard/i);
+  });
+  it("/register renders same exact banner and no wizard controls", () => {
+    const src = fs.readFileSync(path.join(process.cwd(), "app/register/page.tsx"), "utf8");
+    expect(src).toContain(banner);
+    expect(src.toLowerCase()).not.toMatch(/importar datos|reset.*datos|restaurar datos/);
+    expect(src).not.toMatch(/wizard|migration.*wizard/i);
+  });
+  it("notice is static communication only — no import/reset/restore controls on either page", () => {
+    const loginSrc = fs.readFileSync(path.join(process.cwd(), "app/login/page.tsx"), "utf8");
+    const regSrc = fs.readFileSync(path.join(process.cwd(), "app/register/page.tsx"), "utf8");
+    for (const s of [loginSrc, regSrc]) {
+      expect(s).toContain(banner);
+      // Ensure no wizard UI controls — check for UI phrases, not JS import keyword
+      const lower = s.toLowerCase();
+      expect(lower).not.toMatch(/wizard|migration.*wizard/);
+      expect(lower).not.toMatch(/restaurar|restablecer|recuperar datos/);
+      expect(lower).not.toMatch(/importar datos|reset.*datos/);
+    }
+  });
+});
+
