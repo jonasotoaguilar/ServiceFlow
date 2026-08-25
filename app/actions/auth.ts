@@ -1,77 +1,76 @@
 "use server";
 
-import { Client, Account, ID } from "node-appwrite";
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { SESSION_COOKIE } from "@/lib/appwrite";
-
-function createPublicClient() {
-	const client = new Client()
-		.setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT!)
-		.setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT!)
-		.setKey(process.env.APPWRITE_API_KEY!);
-	return {
-		get account() {
-			return new Account(client);
-		},
-	};
-}
+import { createPocketBaseClient, saveAuthCookie, clearAuthCookie, clearLegacySessionCookie } from "@/lib/pocketbase";
+import { loginSchema, registerSchema } from "@/lib/schemas";
 
 export async function login(formData: FormData) {
-	const email = formData.get("email") as string;
-	const password = formData.get("password") as string;
-
-	const { account } = createPublicClient();
-
-	try {
-		const session = await account.createEmailPasswordSession(email, password);
-
-		(await cookies()).set(SESSION_COOKIE, session.secret, {
-			path: "/",
-			httpOnly: true,
-			sameSite: "lax",
-			secure: process.env.NODE_ENV === "production",
-			expires: new Date(session.expire),
-		});
-	} catch (e: any) {
-		console.error("Login error:", e);
-		return { error: "Credenciales inválidas" };
-	}
-
-	return { success: true };
+  const email = (formData.get("email") as string | null)?.toString() ?? "";
+  const password = (formData.get("password") as string | null)?.toString() ?? "";
+  const parsed = loginSchema.safeParse({ email, password });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
+  }
+  try {
+    const pb = await createPocketBaseClient();
+    await pb.collection("users").authWithPassword(parsed.data.email, parsed.data.password);
+    await saveAuthCookie(pb.authStore.token, pb.authStore.record);
+    await clearLegacySessionCookie();
+    return { success: true };
+  } catch (e: unknown) {
+    const err = e as { status?: number; response?: { status?: number; data?: unknown }; message?: string; data?: unknown };
+    const status = err?.status ?? err?.response?.status;
+    if (status === 400 || status === 401) {
+      return { error: "Credenciales inválidas" };
+    }
+    if (typeof err?.message === "string" && err.message.toLowerCase().includes("failed to authenticate")) {
+      return { error: "Credenciales inválidas" };
+    }
+    return { error: "Error al iniciar sesión" };
+  }
 }
 
 export async function register(formData: FormData) {
-	const email = formData.get("email") as string;
-	const password = formData.get("password") as string;
-	const name = formData.get("name") as string;
-
-	const { account } = createPublicClient();
-
-	try {
-		await account.create(ID.unique(), email, password, name);
-
-
-		// Auto login after signup
-		const session = await account.createEmailPasswordSession(email, password);
-
-		(await cookies()).set(SESSION_COOKIE, session.secret, {
-			path: "/",
-			httpOnly: true,
-			sameSite: "lax",
-			secure: process.env.NODE_ENV === "production",
-			expires: new Date(session.expire),
-		});
-
-		return { success: true };
-	} catch (e: any) {
-		console.error("Signup error:", e);
-		return { error: e.message || "Error al registrarse" };
-	}
+  const name = (formData.get("name") as string | null)?.toString() ?? "";
+  const email = (formData.get("email") as string | null)?.toString() ?? "";
+  const password = (formData.get("password") as string | null)?.toString() ?? "";
+  const parsed = registerSchema.safeParse({ name, email, password });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
+  }
+  let pb: Awaited<ReturnType<typeof createPocketBaseClient>>;
+  try {
+    pb = await createPocketBaseClient();
+    await pb.collection("users").create({
+      email: parsed.data.email,
+      password: parsed.data.password,
+      passwordConfirm: parsed.data.password,
+      name: parsed.data.name,
+    });
+  } catch (e: unknown) {
+    const err = e as { status?: number; response?: { data?: { email?: unknown }; status?: number }; data?: { email?: unknown }; message?: string };
+    const status = err?.status ?? err?.response?.status;
+    const hasEmailError = Boolean((err as unknown as { data?: { email?: unknown } })?.data?.email) || Boolean(err?.response?.data?.email);
+    if (status === 400 || hasEmailError) {
+      return { error: "No se pudo crear la cuenta. El correo puede estar en uso." };
+    }
+    if (typeof err?.message === "string" && err.message.toLowerCase().includes("already")) {
+      return { error: "No se pudo crear la cuenta. El correo puede estar en uso." };
+    }
+    return { error: "Error al registrarse" };
+  }
+  try {
+    await pb.collection("users").authWithPassword(parsed.data.email, parsed.data.password);
+    await saveAuthCookie(pb.authStore.token, pb.authStore.record);
+    await clearLegacySessionCookie();
+    return { success: true };
+  } catch {
+    return { error: "Error al registrarse" };
+  }
 }
 
 export async function logout() {
-	const cookieStore = await cookies();
-	cookieStore.delete(SESSION_COOKIE);
-	redirect("/login");
+  await clearAuthCookie();
+  await clearLegacySessionCookie();
+  redirect("/login");
 }

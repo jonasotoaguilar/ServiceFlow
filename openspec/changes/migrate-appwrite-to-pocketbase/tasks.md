@@ -133,9 +133,9 @@ main
 
 ### 4.1 Login / register / logout — RED → GREEN → TRIANGULATE
 
-- [ ] RED: extend `tests/auth-session.test.ts` so `login` / `register` / `logout` in `app/actions/auth.ts` call `loginSchema` / `registerSchema` from `lib/schemas.ts` **before** any PocketBase mock; invalid input does not call `authWithPassword` / `collection("users").create`; bad credentials → `Credenciales inválidas` for unknown email and wrong password; duplicate register → `No se pudo crear la cuenta. El correo puede estar en uso.`; transport → generic `Error al iniciar sesión` / `Error al registrarse` with no PB text; success writes `pb_auth` and deletes `session`; register uses `passwordConfirm: password` then `authWithPassword`; logout deletes `pb_auth` + `session` and `redirect("/login")`. Focused test fails. <!-- sdd-owner: implementation -->
-- [ ] GREEN: rewrite `app/actions/auth.ts` (delete `createPublicClient` / `node-appwrite`). Result shape stays `{ success: true } | { error: string }`. Focused test passes. <!-- sdd-owner: implementation -->
-- [ ] TRIANGULATE: Appwrite-only credentials with no PB user → same invalid-credentials result; Zod failures distinguishable from credential failures. REFACTOR error mapper. <!-- sdd-owner: implementation -->
+- [x] RED: extend `tests/auth-session.test.ts` so `login` / `register` / `logout` in `app/actions/auth.ts` call `loginSchema` / `registerSchema` from `lib/schemas.ts` **before** any PocketBase mock; invalid input does not call `authWithPassword` / `collection("users").create`; bad credentials → `Credenciales inválidas` for unknown email and wrong password; duplicate register → `No se pudo crear la cuenta. El correo puede estar en uso.`; transport → generic `Error al iniciar sesión` / `Error al registrarse` with no PB text; success writes `pb_auth` and deletes `session`; register uses `passwordConfirm: password` then `authWithPassword`; logout deletes `pb_auth` + `session` and `redirect("/login")`. Focused test fails. <!-- sdd-owner: implementation -->
+- [x] GREEN: rewrite `app/actions/auth.ts` (delete `createPublicClient` / `node-appwrite`). Result shape stays `{ success: true } | { error: string }`. Focused test passes. <!-- sdd-owner: implementation -->
+- [x] TRIANGULATE: Appwrite-only credentials with no PB user → same invalid-credentials result; Zod failures distinguishable from credential failures. REFACTOR error mapper. <!-- sdd-owner: implementation -->
 
 ---
 

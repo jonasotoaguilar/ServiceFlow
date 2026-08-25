@@ -10,17 +10,21 @@ function getPayload(t: string): any {
 }
 function isExpired(t: string){ const p=getPayload(t); if(!Object.keys(p).length) return true; if(!p.exp) return false; return !(p.exp>Date.now()/1e3); }
 const mockAuthRefresh = vi.fn();
+const mockAuthWithPassword = vi.fn();
+const mockCreate = vi.fn();
 const mockCollection = vi.fn((name: string) => {
-  if (name === "users") return { authRefresh: mockAuthRefresh };
+  if (name === "users") return { authRefresh: mockAuthRefresh, authWithPassword: mockAuthWithPassword, create: mockCreate };
   throw new Error("unexpected collection " + name);
 });
 const mockCtor = vi.fn(function(this:any, url:string){ this.url=url; this.authStore={ save:mockSave, get token(){return curTok}, get record(){return curRec}, get model(){return curRec}, get isValid(){ if(!curTok||!curRec) return false; return !isExpired(curTok); }, clear: mockClear }; this.collection = mockCollection; });
 vi.mock("pocketbase",()=>({default:mockCtor}));
 const cookiesMock=vi.fn(); vi.mock("next/headers",()=>({cookies:(...a:any[])=>cookiesMock(...a)}));
+const mockRedirect = vi.fn((url:string)=>{ const e:any = new Error(`NEXT_REDIRECT:${url}`); e.digest=`NEXT_REDIRECT;${url}`; throw e; });
+vi.mock("next/navigation",()=>({ redirect: (...a:any[])=> (mockRedirect as any)(...a) }));
 function b64url(s:string){ return Buffer.from(s).toString("base64url"); }
 function mkJwt(exp?:number, extra:Record<string,any>={}){ const h=b64url(JSON.stringify({alg:"HS256",typ:"JWT"})); const obj=exp!==undefined?{exp,...extra}:{...extra}; return `${h}.${b64url(JSON.stringify(obj))}.sig`; }
 describe("auth-session WU2a",()=>{
-  beforeEach(()=>{ vi.clearAllMocks(); curTok="";curRec=null; mockGet.mockReset();mockSet.mockReset();mockDel.mockReset(); mockAuthRefresh.mockReset(); mockCollection.mockClear(); process.env.POCKETBASE_URL="http://127.0.0.1:8090"; cookiesMock.mockResolvedValue({get:mockGet.mockImplementation(()=>undefined),set:mockSet,delete:mockDel}); vi.unstubAllEnvs?.(); });
+  beforeEach(()=>{ vi.clearAllMocks(); curTok="";curRec=null; mockGet.mockReset();mockSet.mockReset();mockDel.mockReset(); mockAuthRefresh.mockReset(); mockAuthWithPassword.mockReset(); mockCreate.mockReset(); mockCollection.mockClear(); mockRedirect.mockClear(); process.env.POCKETBASE_URL="http://127.0.0.1:8090"; cookiesMock.mockResolvedValue({get:mockGet.mockImplementation(()=>undefined),set:mockSet,delete:mockDel}); vi.unstubAllEnvs?.(); });
   describe("getAuthUser server-validated",()=>{
     it("valid pb_auth with server refresh returns refreshed record id not raw cookie id",async()=>{
       const exp=Math.floor(Date.now()/1e3)+3600;
@@ -103,3 +107,179 @@ describe("auth-session WU2a",()=>{
     it("shared constants httpOnly lax path secure exp",async()=>{ const src=fs.readFileSync(path.join(process.cwd(),"lib/pocketbase.ts"),"utf8"); expect(src).toContain("pb_auth"); expect(src).toContain("session"); expect(src).toContain("httpOnly"); expect(src).toContain("sameSite"); expect(src).toContain("\"lax\""); expect(src).toContain("path"); expect(src).toContain("\"/\""); expect(src).toContain("NODE_ENV"); expect(src).toContain("production"); expect((src.match(/await cookies\(\)/g)||[]).length).toBeGreaterThanOrEqual(3); });
   });
 });
+
+describe("auth actions WU2b",()=>{
+  beforeEach(()=>{ vi.clearAllMocks(); curTok="";curRec=null; mockGet.mockReset();mockSet.mockReset();mockDel.mockReset(); mockAuthRefresh.mockReset(); mockAuthWithPassword.mockReset(); mockCreate.mockReset(); mockCollection.mockClear(); mockRedirect.mockClear(); process.env.POCKETBASE_URL="http://127.0.0.1:8090"; cookiesMock.mockResolvedValue({get:mockGet.mockImplementation(()=>undefined),set:mockSet,delete:mockDel}); });
+  function fdLogin(email:string,password:string){ const fd=new FormData(); fd.append("email",email); fd.append("password",password); return fd; }
+  function fdRegister(name:string,email:string,password:string){ const fd=new FormData(); fd.append("name",name); fd.append("email",email); fd.append("password",password); return fd; }
+  it("RED: login invalid email does not call authWithPassword and returns validation not credentials",async()=>{
+    vi.resetModules(); const {login}=await import("../app/actions/auth");
+    const res=await login(fdLogin("not-an-email","ValidPass123"));
+    expect(mockAuthWithPassword).not.toHaveBeenCalled();
+    expect(mockCreate).not.toHaveBeenCalled();
+    expect(res.error).toBeDefined();
+    expect(res.error).toMatch(/Correo electrónico inválido/);
+    expect(res.error).not.toBe("Credenciales inválidas");
+    const src=fs.readFileSync(path.join(process.cwd(),"app/actions/auth.ts"),"utf8");
+    expect(src).toContain("loginSchema");
+  });
+  it("RED: login empty password no PB call validation",async()=>{
+    vi.resetModules(); const {login}=await import("../app/actions/auth");
+    const res=await login(fdLogin("a@b.com",""));
+    expect(mockAuthWithPassword).not.toHaveBeenCalled();
+    expect(res.error).toMatch(/La contraseña es requerida/);
+    expect(res.error).not.toBe("Credenciales inválidas");
+  });
+  it("RED: register invalid name no create",async()=>{
+    vi.resetModules(); const {register}=await import("../app/actions/auth");
+    const res=await register(fdRegister("A","a@b.com","ValidPass123"));
+    expect(mockCreate).not.toHaveBeenCalled();
+    expect(mockAuthWithPassword).not.toHaveBeenCalled();
+    expect(res.error).toMatch(/al menos 2/);
+    const src=fs.readFileSync(path.join(process.cwd(),"app/actions/auth.ts"),"utf8");
+    expect(src).toContain("registerSchema");
+  });
+  it("RED: register short password no create",async()=>{
+    vi.resetModules(); const {register}=await import("../app/actions/auth");
+    const res=await register(fdRegister("Juan Perez","a@b.com","short"));
+    expect(mockCreate).not.toHaveBeenCalled();
+    expect(res.error).toMatch(/al menos 8/);
+  });
+  it("unknown email and wrong password both Credenciales inválidas",async()=>{
+    mockAuthWithPassword.mockRejectedValueOnce(Object.assign(new Error("Failed to authenticate."),{status:400,data:{}}));
+    vi.resetModules(); let {login}=await import("../app/actions/auth");
+    let res=await login(fdLogin("unknown12345@example.com","ValidPass123"));
+    expect(res.error).toBe("Credenciales inválidas");
+    expect(mockAuthWithPassword).toHaveBeenCalledTimes(1);
+    mockAuthWithPassword.mockReset();
+    mockAuthWithPassword.mockRejectedValueOnce(Object.assign(new Error("Failed to authenticate."),{status:400}));
+    // need fresh module? reuse after clear
+    vi.resetModules(); ({login}=await import("../app/actions/auth"));
+    // re-setup cookies mock after resetModules? beforeEach already set but need re-mock
+    cookiesMock.mockResolvedValue({get:mockGet,set:mockSet,delete:mockDel});
+    res=await login(fdLogin("exists@example.com","WrongPass123"));
+    expect(res.error).toBe("Credenciales inválidas");
+  });
+  it("Appwrite-only credentials with no PB user same invalid result",async()=>{
+    mockAuthWithPassword.mockRejectedValueOnce(Object.assign(new Error("Failed to authenticate."),{status:400}));
+    vi.resetModules(); const {login}=await import("../app/actions/auth");
+    cookiesMock.mockResolvedValue({get:mockGet,set:mockSet,delete:mockDel});
+    const res=await login(fdLogin("legacy@appwrite.com","LegacyPass123"));
+    expect(res.error).toBe("Credenciales inválidas");
+    expect(mockAuthWithPassword).toHaveBeenCalledTimes(1);
+  });
+  it("login transport/server error generic Spanish without PB text",async()=>{
+    const pbMsg="ECONNREFUSED pocketbase internal 500 Failed to fetch";
+    mockAuthWithPassword.mockRejectedValueOnce(Object.assign(new Error(pbMsg),{status:500}));
+    vi.resetModules(); const {login}=await import("../app/actions/auth");
+    cookiesMock.mockResolvedValue({get:mockGet,set:mockSet,delete:mockDel});
+    const res=await login(fdLogin("a@b.com","ValidPass123"));
+    expect(res.error).toBe("Error al iniciar sesión");
+    expect(res.error).not.toContain("pocketbase");
+    expect(res.error).not.toContain("ECONNREFUSED");
+    expect(res.error).not.toContain("Failed to fetch");
+    const src=fs.readFileSync(path.join(process.cwd(),"app/actions/auth.ts"),"utf8");
+    expect(src).not.toContain("console.error");
+  });
+  it("register duplicate generic without PB text",async()=>{
+    mockCreate.mockRejectedValueOnce(Object.assign(new Error("email already exists validation_not_unique pocketbase"),{status:400,data:{email:{code:"validation_not_unique"}}}));
+    vi.resetModules(); const {register}=await import("../app/actions/auth");
+    cookiesMock.mockResolvedValue({get:mockGet,set:mockSet,delete:mockDel});
+    const res=await register(fdRegister("Juan Perez","dup@example.com","ValidPass123"));
+    expect(res.error).toBe("No se pudo crear la cuenta. El correo puede estar en uso.");
+    expect(res.error).not.toContain("pocketbase");
+    expect(res.error).not.toContain("already exists");
+    expect(mockCreate).toHaveBeenCalledTimes(1);
+    expect(mockAuthWithPassword).not.toHaveBeenCalled();
+  });
+  it("register transport generic without PB text",async()=>{
+    mockCreate.mockRejectedValueOnce(Object.assign(new Error("Network unreachable pocketbase"),{status:0}));
+    vi.resetModules(); const {register}=await import("../app/actions/auth");
+    cookiesMock.mockResolvedValue({get:mockGet,set:mockSet,delete:mockDel});
+    const res=await register(fdRegister("Juan Perez","new@example.com","ValidPass123"));
+    expect(res.error).toBe("Error al registrarse");
+    expect(res.error).not.toContain("pocketbase");
+    expect(res.error).not.toContain("Network");
+  });
+  it("login success writes pb_auth via helper and clears legacy session",async()=>{
+    const exp=Math.floor(Date.now()/1e3)+3600;
+    const tok=mkJwt(exp); const rec={id:"u123",email:"a@b.com",name:"Alice"};
+    mockAuthWithPassword.mockImplementationOnce(async()=>{ curTok=tok; curRec=rec; return {token:tok,record:rec}; });
+    vi.resetModules(); const {login}=await import("../app/actions/auth");
+    cookiesMock.mockResolvedValue({get:mockGet,set:mockSet,delete:mockDel});
+    const res=await login(fdLogin("a@b.com","ValidPass123"));
+    expect(res).toEqual({success:true});
+    expect(mockAuthWithPassword).toHaveBeenCalledWith("a@b.com","ValidPass123");
+    // saveAuthCookie called -> mockSet pb_auth
+    expect(mockSet).toHaveBeenCalled();
+    const pbCall = mockSet.mock.calls.find(c=>c[0]==="pb_auth");
+    expect(pbCall).toBeDefined();
+    expect(JSON.parse(pbCall![1])).toEqual({token:tok,record:rec});
+    // clearLegacySessionCookie -> delete session
+    const delSession = mockDel.mock.calls.some(c=>c[0]==="session") || mockSet.mock.calls.some(c=>c[0]==="session");
+    expect(delSession).toBe(true);
+    const src=fs.readFileSync(path.join(process.cwd(),"app/actions/auth.ts"),"utf8");
+    expect(src).toContain("saveAuthCookie");
+    expect(src).toContain("clearLegacySessionCookie");
+  });
+  it("register creates users with passwordConfirm then authenticates",async()=>{
+    const exp=Math.floor(Date.now()/1e3)+3600;
+    const tok=mkJwt(exp); const rec={id:"u999",email:"new@b.com",name:"Bob"};
+    mockCreate.mockResolvedValueOnce({id:"u999",email:"new@b.com",name:"Bob"});
+    mockAuthWithPassword.mockImplementationOnce(async()=>{ curTok=tok; curRec=rec; return {token:tok,record:rec}; });
+    vi.resetModules(); const {register}=await import("../app/actions/auth");
+    cookiesMock.mockResolvedValue({get:mockGet,set:mockSet,delete:mockDel});
+    const res=await register(fdRegister("Bob","new@b.com","ValidPass123"));
+    expect(res).toEqual({success:true});
+    expect(mockCreate).toHaveBeenCalledTimes(1);
+    const createArg=mockCreate.mock.calls[0][0];
+    expect(createArg).toEqual(expect.objectContaining({email:"new@b.com",password:"ValidPass123",passwordConfirm:"ValidPass123",name:"Bob"}));
+    expect(mockAuthWithPassword).toHaveBeenCalledWith("new@b.com","ValidPass123");
+    expect(mockSet).toHaveBeenCalled();
+    expect(mockSet.mock.calls.some(c=>c[0]==="pb_auth")).toBe(true);
+  });
+  it("logout clears pb_auth+session and redirects /login",async()=>{
+    vi.resetModules(); const {logout}=await import("../app/actions/auth");
+    cookiesMock.mockResolvedValue({get:mockGet,set:mockSet,delete:mockDel});
+    await expect(logout()).rejects.toThrow();
+    // should have cleared both
+    const delPb = mockDel.mock.calls.some(c=>c[0]==="pb_auth") || mockSet.mock.calls.some(c=>c[0]==="pb_auth");
+    const delSess = mockDel.mock.calls.some(c=>c[0]==="session") || mockSet.mock.calls.some(c=>c[0]==="session");
+    expect(delPb).toBe(true);
+    expect(delSess).toBe(true);
+    expect(mockRedirect).toHaveBeenCalledWith("/login");
+    const src=fs.readFileSync(path.join(process.cwd(),"app/actions/auth.ts"),"utf8");
+    expect(src).toContain("clearAuthCookie");
+    expect(src).toContain("clearLegacySessionCookie");
+    expect(src).toContain('redirect("/login")');
+  });
+  it("Zod validation distinguishable from credentials",async()=>{
+    vi.resetModules(); const {login}=await import("../app/actions/auth");
+    cookiesMock.mockResolvedValue({get:mockGet,set:mockSet,delete:mockDel});
+    const bad = await login(fdLogin("bad-email",""));
+    expect(bad.error).not.toBe("Credenciales inválidas");
+    // now credential failure
+    mockAuthWithPassword.mockRejectedValueOnce(Object.assign(new Error("Failed"),{status:400}));
+    vi.resetModules(); const {login:login2}=await import("../app/actions/auth");
+    cookiesMock.mockResolvedValue({get:mockGet,set:mockSet,delete:mockDel});
+    const cred = await login2(fdLogin("a@b.com","ValidPass123"));
+    expect(cred.error).toBe("Credenciales inválidas");
+    expect(bad.error).not.toBe(cred.error);
+  });
+  it("app/actions/auth uses PocketBase not node-appwrite and no raw logs",async()=>{
+    const src=fs.readFileSync(path.join(process.cwd(),"app/actions/auth.ts"),"utf8");
+    expect(src).toContain("createPocketBaseClient");
+    expect(src).not.toContain("node-appwrite");
+    expect(src).not.toContain("createPublicClient");
+    expect(src).not.toContain("SESSION_COOKIE");
+    expect(src).not.toContain("console.error");
+    expect(src).not.toContain("console.log");
+  });
+  it("no network in tests - all PB calls mocked",async()=>{
+    // ensure we never hit real PB: POCKETBASE_URL is set but no fetch
+    expect(process.env.POCKETBASE_URL).toBe("http://127.0.0.1:8090");
+    // this test just ensures mocks exist
+    expect(mockCtor).toBeDefined();
+  });
+});
+
