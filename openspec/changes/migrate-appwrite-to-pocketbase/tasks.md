@@ -145,17 +145,17 @@ main
 
 ### 5.1 Root cookie janitor — RED → GREEN
 
-- [ ] RED: add janitor cases in `tests/auth-session.test.ts` for root `proxy.ts` (`export function proxy`, never `app/proxy.ts`): if request has `session`, expire it (`Max-Age=0`, `path=/`) and `NextResponse.next()`; MUST NOT rewrite/proxy to Appwrite, read `pb_auth`, authenticate, or forward arbitrary paths. Matcher excludes `_next/static`, `_next/image`, `favicon.ico`, and image extensions. Focused test fails. <!-- sdd-owner: implementation -->
-- [ ] GREEN: replace Appwrite rewrite in root `proxy.ts` with the session-only janitor + design matcher. Login/register/logout still delete `session` as defense in depth. Focused test passes. <!-- sdd-owner: implementation -->
+- [x] RED: add janitor cases in `tests/auth-session.test.ts` for root `proxy.ts` (`export function proxy`, never `app/proxy.ts`): if request has `session`, expire it (`Max-Age=0`, `path=/`) and `NextResponse.next()`; MUST NOT rewrite/proxy to Appwrite, read `pb_auth`, authenticate, or forward arbitrary paths. Matcher excludes `_next/static`, `_next/image`, `favicon.ico`, and image extensions. Focused test fails. <!-- sdd-owner: implementation -->
+- [x] GREEN: replace Appwrite rewrite in root `proxy.ts` with the session-only janitor + design matcher. Login/register/logout still delete `session` as defense in depth. Focused test passes. <!-- sdd-owner: implementation -->
 
 ### 5.2 Empty-start notice
 
-- [ ] RED: extend `tests/auth-session.test.ts` (or a focused page test) so `/login` and `/register` render exactly: `Este entorno PocketBase comienza vacío. Los tickets y sedes anteriores de Appwrite no aparecerán.` and expose no import/reset/restore control. Focused test fails. <!-- sdd-owner: implementation -->
-- [ ] GREEN: add the static Spanish banner on `app/login/page.tsx` and `app/register/page.tsx` only. TRIANGULATE: notice is communication, not a wizard. <!-- sdd-owner: implementation -->
+- [x] RED: extend `tests/auth-session.test.ts` (or a focused page test) so `/login` and `/register` render exactly: `Este entorno PocketBase comienza vacío. Los tickets y sedes anteriores de Appwrite no aparecerán.` and expose no import/reset/restore control. Focused test fails. <!-- sdd-owner: implementation -->
+- [x] GREEN: add the static Spanish banner on `app/login/page.tsx` and `app/register/page.tsx` only. TRIANGULATE: notice is communication, not a wizard. <!-- sdd-owner: implementation -->
 
 ### 5.3 WU2c verification
 
-- [ ] Run `pnpm exec vitest run tests/auth-session.test.ts tests/env-pocketbase.test.ts tests/pocketbase-client.test.ts`, then `pnpm test:run`, `pnpm exec tsc --noEmit`, `pnpm run lint`. Runtime: if local PB at `http://127.0.0.1:8090` already has the artifact applied out of band, register → notice → login → logout; otherwise record N/A (operator apply is a parent task). Do not flip production `POCKETBASE_URL`. <!-- sdd-owner: implementation -->
+- [x] Run `pnpm exec vitest run tests/auth-session.test.ts tests/env-pocketbase.test.ts tests/pocketbase-client.test.ts`, then `pnpm test:run`, `pnpm exec tsc --noEmit`, `pnpm run lint`. Runtime: if local PB at `http://127.0.0.1:8090` already has the artifact applied out of band, register → notice → login → logout; otherwise record N/A (operator apply is a parent task). Do not flip production `POCKETBASE_URL`. <!-- sdd-owner: implementation -->
 
 ---
 
