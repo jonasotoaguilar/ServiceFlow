@@ -3,10 +3,8 @@ import { cookies } from "next/headers";
 import { getPocketBaseUrl } from "./env";
 
 export const PB_AUTH_COOKIE = "pb_auth";
-export const LEGACY_SESSION_COOKIE = "session";
 
 export const PB_AUTH_COOKIE_NAME = PB_AUTH_COOKIE;
-export const LEGACY_SESSION_COOKIE_NAME = LEGACY_SESSION_COOKIE;
 
 function getExpFromToken(token: string): number | undefined {
   try {
@@ -74,15 +72,5 @@ export async function clearAuthCookie(): Promise<void> {
     del.call(store, PB_AUTH_COOKIE);
   } else {
     store.set(PB_AUTH_COOKIE, "", { path: "/", maxAge: 0 } as unknown as Record<string, unknown>);
-  }
-}
-
-export async function clearLegacySessionCookie(): Promise<void> {
-  const store = await cookies();
-  const del = (store as unknown as { delete?: (name: string) => void }).delete;
-  if (typeof del === "function") {
-    del.call(store, LEGACY_SESSION_COOKIE);
-  } else {
-    store.set(LEGACY_SESSION_COOKIE, "", { path: "/", maxAge: 0 } as unknown as Record<string, unknown>);
   }
 }

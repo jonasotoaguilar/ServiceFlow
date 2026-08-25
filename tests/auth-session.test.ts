@@ -102,9 +102,9 @@ describe("auth-session WU2a",()=>{
     it("saveAuthCookie secure iff production",async()=>{ const tok=mkJwt(undefined,{sub:"123"}); const rec={id:"u1",email:"a@a.com",name:"A"}; const orig=process.env.NODE_ENV; (process.env as any).NODE_ENV="development"; cookiesMock.mockResolvedValue({get:mockGet,set:mockSet,delete:mockDel}); vi.resetModules(); let m=await import("../lib/pocketbase"); await m.saveAuthCookie(tok,rec); expect(mockSet.mock.calls[0][2].secure).toBe(false); vi.clearAllMocks(); (process.env as any).NODE_ENV="production"; cookiesMock.mockResolvedValue({get:mockGet,set:mockSet,delete:mockDel}); vi.resetModules(); m=await import("../lib/pocketbase"); await m.saveAuthCookie(tok,rec); expect(mockSet.mock.calls[0][2].secure).toBe(true); (process.env as any).NODE_ENV=orig; });
     it("saveAuthCookie expires parseable JWT else omit",async()=>{ const exp=Math.floor(Date.now()/1e3)+3600; const tok=mkJwt(exp); const rec={id:"u1",email:"a@a.com",name:"A"}; cookiesMock.mockResolvedValue({get:mockGet,set:mockSet,delete:mockDel}); vi.resetModules(); let m=await import("../lib/pocketbase"); await m.saveAuthCookie(tok,rec); expect(m).toBeDefined(); expect(mockSet.mock.calls[0][2].expires).toBeInstanceOf(Date); expect(Math.floor(mockSet.mock.calls[0][2].expires.getTime()/1e3)).toBe(exp); vi.clearAllMocks(); const tokNo=mkJwt(undefined,{foo:"bar"}); cookiesMock.mockResolvedValue({get:mockGet,set:mockSet,delete:mockDel}); vi.resetModules(); m=await import("../lib/pocketbase"); await m.saveAuthCookie(tokNo,rec); expect(mockSet.mock.calls[0][2].expires).toBeUndefined(); vi.clearAllMocks(); cookiesMock.mockResolvedValue({get:mockGet,set:mockSet,delete:mockDel}); vi.resetModules(); m=await import("../lib/pocketbase"); await m.saveAuthCookie("not.jwt.token",rec); expect(mockSet.mock.calls[0][2].expires).toBeUndefined(); });
     it("clearAuthCookie deletes pb_auth",async()=>{ cookiesMock.mockResolvedValue({get:mockGet,set:mockSet,delete:mockDel}); vi.resetModules(); const m=await import("../lib/pocketbase"); expect(typeof m.clearAuthCookie).toBe("function"); await m.clearAuthCookie(); expect(cookiesMock).toHaveBeenCalled(); const del=mockDel.mock.calls.length>0; const set=mockSet.mock.calls.some((c:any[])=>c[0]==="pb_auth"&&(c[2]?.maxAge===0||c[2]?.expires)); expect(del||set).toBe(true); });
-    it("clearLegacySessionCookie deletes session",async()=>{ cookiesMock.mockResolvedValue({get:mockGet,set:mockSet,delete:mockDel}); vi.resetModules(); const m=await import("../lib/pocketbase"); expect(typeof m.clearLegacySessionCookie).toBe("function"); await m.clearLegacySessionCookie(); expect(cookiesMock).toHaveBeenCalled(); const del=mockDel.mock.calls.some((c:any[])=>c[0]==="session"); const set=mockSet.mock.calls.some((c:any[])=>c[0]==="session"&&(c[2]?.maxAge===0||c[1]==="")); expect(del||set).toBe(true); });
+    it("clearLegacySessionCookie is removed after cutover",async()=>{ vi.resetModules(); const m=await import("../lib/pocketbase"); expect((m as any).clearLegacySessionCookie).toBeUndefined(); expect(fs.readFileSync(path.join(process.cwd(),"lib/pocketbase.ts"),"utf8")).not.toContain("clearLegacySessionCookie"); });
     it("no cookie values logged",async()=>{ const src=fs.readFileSync(path.join(process.cwd(),"lib/pocketbase.ts"),"utf8"); expect(src).not.toMatch(/console\.log.*pb_auth/); expect(src).not.toMatch(/console\.log.*token/); const aSrc=fs.readFileSync(path.join(process.cwd(),"lib/auth.ts"),"utf8"); expect(aSrc).not.toMatch(/console\.log.*pb_auth/); });
-    it("shared constants httpOnly lax path secure exp",async()=>{ const src=fs.readFileSync(path.join(process.cwd(),"lib/pocketbase.ts"),"utf8"); expect(src).toContain("pb_auth"); expect(src).toContain("session"); expect(src).toContain("httpOnly"); expect(src).toContain("sameSite"); expect(src).toContain("\"lax\""); expect(src).toContain("path"); expect(src).toContain("\"/\""); expect(src).toContain("NODE_ENV"); expect(src).toContain("production"); expect((src.match(/await cookies\(\)/g)||[]).length).toBeGreaterThanOrEqual(3); });
+    it("shared constants httpOnly lax path secure exp",async()=>{ const src=fs.readFileSync(path.join(process.cwd(),"lib/pocketbase.ts"),"utf8"); expect(src).toContain("pb_auth"); expect(src).not.toContain("LEGACY_SESSION"); expect(src).toContain("httpOnly"); expect(src).toContain("sameSite"); expect(src).toContain("\"lax\""); expect(src).toContain("path"); expect(src).toContain("\"/\""); expect(src).toContain("NODE_ENV"); expect(src).toContain("production"); expect((src.match(/await cookies\(\)/g)||[]).length).toBeGreaterThanOrEqual(3); });
   });
 });
 
@@ -201,7 +201,7 @@ describe("auth actions WU2b",()=>{
     expect(res.error).not.toContain("pocketbase");
     expect(res.error).not.toContain("Network");
   });
-  it("login success writes pb_auth via helper and clears legacy session",async()=>{
+  it("login success writes pb_auth via helper and no longer clears legacy session",async()=>{
     const exp=Math.floor(Date.now()/1e3)+3600;
     const tok=mkJwt(exp); const rec={id:"u123",email:"a@b.com",name:"Alice"};
     mockAuthWithPassword.mockImplementationOnce(async()=>{ curTok=tok; curRec=rec; return {token:tok,record:rec}; });
@@ -217,10 +217,10 @@ describe("auth actions WU2b",()=>{
     expect(JSON.parse(pbCall![1])).toEqual({token:tok,record:rec});
     // clearLegacySessionCookie -> delete session
     const delSession = mockDel.mock.calls.some(c=>c[0]==="session") || mockSet.mock.calls.some(c=>c[0]==="session");
-    expect(delSession).toBe(true);
+    expect(delSession).toBe(false);
     const src=fs.readFileSync(path.join(process.cwd(),"app/actions/auth.ts"),"utf8");
     expect(src).toContain("saveAuthCookie");
-    expect(src).toContain("clearLegacySessionCookie");
+    expect(src).not.toContain("clearLegacySessionCookie");
   });
   it("register creates users with passwordConfirm then authenticates",async()=>{
     const exp=Math.floor(Date.now()/1e3)+3600;
@@ -238,19 +238,18 @@ describe("auth actions WU2b",()=>{
     expect(mockSet).toHaveBeenCalled();
     expect(mockSet.mock.calls.some(c=>c[0]==="pb_auth")).toBe(true);
   });
-  it("logout clears pb_auth+session and redirects /login",async()=>{
+  it("logout clears pb_auth and redirects /login without legacy session",async()=>{
     vi.resetModules(); const {logout}=await import("../app/actions/auth");
     cookiesMock.mockResolvedValue({get:mockGet,set:mockSet,delete:mockDel});
     await expect(logout()).rejects.toThrow();
-    // should have cleared both
     const delPb = mockDel.mock.calls.some(c=>c[0]==="pb_auth") || mockSet.mock.calls.some(c=>c[0]==="pb_auth");
     const delSess = mockDel.mock.calls.some(c=>c[0]==="session") || mockSet.mock.calls.some(c=>c[0]==="session");
     expect(delPb).toBe(true);
-    expect(delSess).toBe(true);
+    expect(delSess).toBe(false);
     expect(mockRedirect).toHaveBeenCalledWith("/login");
     const src=fs.readFileSync(path.join(process.cwd(),"app/actions/auth.ts"),"utf8");
     expect(src).toContain("clearAuthCookie");
-    expect(src).toContain("clearLegacySessionCookie");
+    expect(src).not.toContain("clearLegacySessionCookie");
     expect(src).toContain('redirect("/login")');
   });
   it("Zod validation distinguishable from credentials",async()=>{
@@ -280,100 +279,6 @@ describe("auth actions WU2b",()=>{
     expect(process.env.POCKETBASE_URL).toBe("http://127.0.0.1:8090");
     // this test just ensures mocks exist
     expect(mockCtor).toBeDefined();
-  });
-});
-
-describe("proxy janitor WU2c", () => {
-  const banner = "Este entorno PocketBase comienza vacío. Los tickets y sedes anteriores de Appwrite no aparecerán.";
-  it("root proxy.ts exists as janitor: exports proxy, never app/proxy.ts", () => {
-    const proxyPath = path.join(process.cwd(), "proxy.ts");
-    const appProxyPath = path.join(process.cwd(), "app/proxy.ts");
-    expect(fs.existsSync(proxyPath)).toBe(true);
-    expect(fs.existsSync(appProxyPath)).toBe(false);
-    const src = fs.readFileSync(proxyPath, "utf8");
-    expect(src).toContain("export function proxy");
-    expect(src).not.toContain("app/proxy.ts");
-  });
-  it("janitor does not rewrite to Appwrite and does not read pb_auth or authenticate", () => {
-    const src = fs.readFileSync(path.join(process.cwd(), "proxy.ts"), "utf8");
-    expect(src).not.toContain("NEXT_PUBLIC_APPWRITE_ENDPOINT");
-    expect(src).not.toContain("NEXT_PUBLIC_APPWRITE");
-    expect(src.toLowerCase()).not.toContain("appwrite");
-    expect(src).not.toContain("rewrite");
-    expect(src).not.toContain("pb_auth");
-    expect(src).not.toContain("authStore");
-    expect(src).not.toContain("createPocketBaseClient");
-    expect(src).not.toContain("authRefresh");
-  });
-  it("janitor expires session with Max-Age=0 path=/ and uses NextResponse.next", () => {
-    const src = fs.readFileSync(path.join(process.cwd(), "proxy.ts"), "utf8");
-    expect(src).toContain("NextResponse.next");
-    expect(src).toContain("session");
-    // Max-Age=0 via maxAge:0 or Max-Age
-    expect(src).toMatch(/maxAge\s*:\s*0|Max-Age.*0/i);
-    expect(src).toMatch(/path:\s*["']\/["']/);
-    // cookie API via request.cookies and response.cookies
-    expect(src).toMatch(/request\.cookies/);
-    expect(src).toMatch(/cookies\.(set|delete)/);
-  });
-  it("matcher excludes _next/static, _next/image, favicon.ico and image extensions", () => {
-    const src = fs.readFileSync(path.join(process.cwd(), "proxy.ts"), "utf8");
-    expect(src).toContain("_next/static");
-    expect(src).toContain("_next/image");
-    expect(src).toContain("favicon.ico");
-    expect(src).toMatch(/svg.*png.*jpg.*jpeg.*gif.*webp/i);
-    expect(src).not.toContain('"/api/proxy/:path*"');
-    expect(src).not.toContain("'/api/proxy/:path*'");
-  });
-  it("janitor uses NextResponse cookie API not next/headers await cookies", () => {
-    const src = fs.readFileSync(path.join(process.cwd(), "proxy.ts"), "utf8");
-    expect(src).not.toContain("from \"next/headers\"");
-    expect(src).not.toContain("await cookies()");
-  });
-  it("runtime triangulation: with session present expires Max-Age=0 path=/", async () => {
-    const { proxy } = await import("../proxy");
-    const { NextResponse } = await import("next/server");
-    const mockSet = vi.fn();
-    const mockResp = { cookies: { set: mockSet } } as unknown as ReturnType<typeof NextResponse.next>;
-    const spy = vi.spyOn(NextResponse, "next").mockReturnValue(mockResp);
-    const req = { cookies: { has: (n: string) => n === "session", get: () => undefined } } as unknown as import("next/server").NextRequest;
-    const res = proxy(req);
-    expect(spy).toHaveBeenCalled();
-    expect(mockSet).toHaveBeenCalledWith("session", "", expect.objectContaining({ maxAge: 0, path: "/" }));
-    expect(res).toBe(mockResp);
-    spy.mockRestore();
-  });
-  it("runtime triangulation: without session just NextResponse.next, no set", async () => {
-    const { proxy } = await import("../proxy");
-    const { NextResponse } = await import("next/server");
-    const mockSet = vi.fn();
-    const mockResp = { cookies: { set: mockSet } } as unknown as ReturnType<typeof NextResponse.next>;
-    const spy = vi.spyOn(NextResponse, "next").mockReturnValue(mockResp);
-    const req = { cookies: { has: () => false, get: () => undefined } } as unknown as import("next/server").NextRequest;
-    const res = proxy(req);
-    expect(spy).toHaveBeenCalled();
-    expect(mockSet).not.toHaveBeenCalled();
-    expect(res).toBe(mockResp);
-    spy.mockRestore();
-  });
-  it("runtime triangulation: with both session and pb_auth present still only clears session", async () => {
-    const { proxy } = await import("../proxy");
-    const { NextResponse } = await import("next/server");
-    const mockSet = vi.fn();
-    const mockResp = { cookies: { set: mockSet } } as unknown as ReturnType<typeof NextResponse.next>;
-    const spy = vi.spyOn(NextResponse, "next").mockReturnValue(mockResp);
-    const req = {
-      cookies: {
-        has: (n: string) => n === "session" || n === "pb_auth",
-        get: (n: string) => (n === "session" ? { value: "legacy" } : n === "pb_auth" ? { value: "valid" } : undefined),
-      },
-    } as unknown as import("next/server").NextRequest;
-    const res = proxy(req);
-    expect(mockSet).toHaveBeenCalledTimes(1);
-    expect(mockSet).toHaveBeenCalledWith("session", "", expect.objectContaining({ maxAge: 0, path: "/" }));
-    expect(mockSet).not.toHaveBeenCalledWith("pb_auth", expect.anything(), expect.anything());
-    expect(res).toBe(mockResp);
-    spy.mockRestore();
   });
 });
 
