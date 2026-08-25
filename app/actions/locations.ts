@@ -4,6 +4,8 @@ import { databases, COLLECTIONS, DB_ID, Query, ID } from "@/lib/appwrite";
 import { revalidatePath } from "next/cache";
 import { getAuthUser } from "@/lib/auth";
 import { normalizeString } from "@/lib/utils";
+import { createPocketBaseClient } from "@/lib/pocketbase";
+import { locationListBinding, applyBinding } from "@/lib/pocketbase-filter";
 
 export async function getLocations(onlyActive = false) {
   const user = await getAuthUser();
@@ -13,83 +15,25 @@ export async function getLocations(onlyActive = false) {
   }
 
   try {
-    const queries = [
-      Query.equal("userId", user.id),
-      Query.orderDesc("createdAt"),
-    ];
+    const pb = await createPocketBaseClient();
+    const binding = locationListBinding({ userId: user.id, onlyActive });
+    const filter = applyBinding(pb, binding);
+    const result = await pb.collection("locations").getList(1, 50, {
+      filter,
+      sort: "-createdAt",
+    });
 
-    if (onlyActive) {
-      queries.push(Query.equal("isActive", true));
-    }
-
-    const locationsResult = await databases.listDocuments(
-      DB_ID,
-      COLLECTIONS.LOCATIONS,
-      queries
-    );
-
-    const locations = locationsResult.documents.map((doc: any) => ({
+    const locations = result.items.map((doc: any) => ({
       ...doc,
-      id: doc.$id,
+      id: doc.id,
     }));
 
-    // Enriquecer con conteos
-    const enrichedLocations = await Promise.all(
-      locations.map(async (loc) => {
-        const activePromise = databases.listDocuments(
-          DB_ID,
-          COLLECTIONS.Services,
-          [
-            Query.equal("userId", user.id),
-            Query.equal("locationId", loc.id),
-            Query.equal("status", ["pending", "ready"]),
-            Query.limit(1), // Get total only
-          ]
-        );
-
-        const completedPromise = databases.listDocuments(
-          DB_ID,
-          COLLECTIONS.Services,
-          [
-            Query.equal("userId", user.id),
-            Query.equal("locationId", loc.id),
-            Query.equal("status", "completed"),
-            Query.limit(1), // Get total only
-          ]
-        );
-
-        const logsPromise = databases.listDocuments(
-          DB_ID,
-          COLLECTIONS.LOCATION_LOGS,
-          [
-            Query.or([
-              Query.equal("fromLocationId", loc.id),
-              Query.equal("toLocationId", loc.id),
-            ]),
-            Query.limit(1), // Get total only
-          ]
-        );
-
-        const [activeRes, completedRes, logsRes] = await Promise.all([
-          activePromise,
-          completedPromise,
-          logsPromise,
-        ]);
-
-        const activeCount = activeRes.total;
-        const completedCount = completedRes.total;
-        const hasLogs = logsRes.total;
-
-        const hasHistory = activeCount > 0 || completedCount > 0 || hasLogs > 0;
-
-        return {
-          ...loc,
-          activeCount,
-          completedCount,
-          hasHistory,
-        };
-      })
-    );
+    const enrichedLocations = locations.map((loc: any) => ({
+      ...loc,
+      activeCount: typeof loc.activeCount === "number" ? loc.activeCount : 0,
+      completedCount: typeof loc.completedCount === "number" ? loc.completedCount : 0,
+      hasHistory: typeof loc.hasHistory === "boolean" ? loc.hasHistory : false,
+    }));
 
     return { data: enrichedLocations };
   } catch (error) {
