@@ -1,0 +1,87 @@
+#!/bin/sh
+set -eu
+
+# release-publish — WRITE-CAPABLE, fix-forward, no fallback, no auto-delete
+# Order: login -> build/push image (4 tags + OCI labels) -> gh release create --verify-tag
+# Partial-failure: if build/push fails, no release created (evidence in logs).
+# If push succeeds but release fails, image remains pushed (immutable); fix-forward
+# with next patch; never move tags or delete artifacts automatically.
+
+fail() {
+  printf '::error::%s\n' "$1" >&2
+  exit 1
+}
+
+[ -n "${RELEASE_TAG:-}" ] || fail "RELEASE_TAG is required"
+[ -n "${RELEASE_COMMIT:-}" ] || fail "RELEASE_COMMIT is required"
+[ -n "${RELEASE_REPOSITORY:-}" ] || fail "RELEASE_REPOSITORY is required"
+[ -n "${GH_TOKEN:-}" ] || fail "GH_TOKEN is required"
+[ -n "${RUNNER_TEMP:-}" ] || fail "RUNNER_TEMP is required"
+
+case "$RELEASE_TAG" in *-* ) fail "prerelease tag rejected: $RELEASE_TAG" ;; esac
+printf '%s' "$RELEASE_TAG" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$' || fail "RELEASE_TAG must be vX.Y.Z"
+
+# Validate RELEASE_REPOSITORY as exactly one safe owner/repo ASCII pair before deriving
+LC_ALL=C printf '%s' "$RELEASE_REPOSITORY" | LC_ALL=C grep -Eq '^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$' || fail "RELEASE_REPOSITORY must be owner/repo: $RELEASE_REPOSITORY"
+
+expected="${RELEASE_TAG#v}"
+command -v jq >/dev/null 2>&1 || fail "jq is required"
+pkg_version="$(jq -er '.version' package.json 2>/dev/null)" || fail "package.json version parse failed"
+[ "$pkg_version" = "$expected" ] || fail "package.json version $pkg_version != $expected"
+
+notes="docs/releases/$RELEASE_TAG.md"
+[ -s "$notes" ] || fail "notes missing: $notes"
+
+command -v docker >/dev/null 2>&1 || fail "docker is required"
+command -v gh >/dev/null 2>&1 || fail "gh is required"
+docker buildx version >/dev/null 2>&1 || fail "docker buildx is required (future workflow adds setup-buildx-action)"
+
+# Credential materialization under $RUNNER_TEMP/release-material (700/600, trap wipe)
+material_dir="$RUNNER_TEMP/release-material"
+mkdir -p "$material_dir"
+chmod 700 "$material_dir"
+cred_file="$material_dir/ghcr-token"
+cleanup() {
+  rm -rf -- "$material_dir"
+}
+trap cleanup EXIT INT TERM HUP QUIT PIPE
+
+printf '%s' "$GH_TOKEN" > "$cred_file"
+chmod 600 "$cred_file"
+[ -s "$cred_file" ] || fail "credential materialization failed"
+
+# Derive image (lowercase ghcr.io/$RELEASE_REPOSITORY)
+image="ghcr.io/$(LC_ALL=C printf '%s' "$RELEASE_REPOSITORY" | LC_ALL=C tr '[:upper:]' '[:lower:]')"
+case "$image" in ghcr.io/*/* ) ;; * ) fail "derived image invalid: $image" ;; esac
+
+version="${RELEASE_TAG#v}"
+major="$(printf '%s' "$version" | cut -d. -f1)"
+minor="$(printf '%s' "$version" | cut -d. -f2)"
+mm="$major.$minor"
+m="$major"
+
+# GHCR login without printing secret
+owner="$(LC_ALL=C printf '%s' "$RELEASE_REPOSITORY" | cut -d/ -f1 | LC_ALL=C tr '[:upper:]' '[:lower:]')"
+cat "$cred_file" | docker login ghcr.io -u "$owner" --password-stdin >/dev/null 2>&1 || fail "docker login ghcr.io failed"
+
+# Build and push one immutable multi-platform image/index
+# Platforms match deploy evidence intent; single Runner still produces manifest index.
+docker buildx build \
+  --platform linux/amd64,linux/arm64 \
+  -t "$image:$RELEASE_TAG" \
+  -t "$image:$mm" \
+  -t "$image:$m" \
+  -t "$image:latest" \
+  --label "org.opencontainers.image.revision=$RELEASE_COMMIT" \
+  --label "org.opencontainers.image.source=https://github.com/$RELEASE_REPOSITORY" \
+  --label "org.opencontainers.image.version=$RELEASE_TAG" \
+  --push . || fail "docker buildx build/push failed"
+
+# GitHub release via gh (exact tag/commit/title, --notes-file + --verify-tag only)
+gh release create "$RELEASE_TAG" \
+  --verify-tag \
+  --target "$RELEASE_COMMIT" \
+  --title "$RELEASE_TAG" \
+  --notes-file "$notes" || fail "gh release create failed"
+
+printf 'publish ok: %s -> %s (%s, %s, latest)\n' "$RELEASE_TAG" "$image" "$mm" "$m"

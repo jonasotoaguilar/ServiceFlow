@@ -1,0 +1,92 @@
+#!/bin/sh
+set -eu
+
+# release-preflight — READ-ONLY, fail-closed
+# Validates tag, commit binding, package version, and release notes.
+# No mutation, no secret materialization.
+
+fail() {
+  printf '::error::%s\n' "$1" >&2
+  exit 1
+}
+
+# 1. Required provider env (canonical workflow contract)
+[ -n "${RELEASE_TAG:-}" ] || fail "RELEASE_TAG is required"
+[ -n "${RELEASE_COMMIT:-}" ] || fail "RELEASE_COMMIT is required"
+[ -n "${RELEASE_REPOSITORY:-}" ] || fail "RELEASE_REPOSITORY is required"
+[ -n "${GH_TOKEN:-}" ] || fail "GH_TOKEN is required"
+
+# 2. Stable tag only vX.Y.Z, reject prerelease
+case "$RELEASE_TAG" in
+  *-* ) fail "prerelease tag rejected: $RELEASE_TAG" ;;
+esac
+printf '%s' "$RELEASE_TAG" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$' || fail "RELEASE_TAG must be stable vX.Y.Z: $RELEASE_TAG"
+
+# 3. HEAD/tag commit binding
+if ! current="$(git rev-parse HEAD 2>/dev/null)"; then
+  fail "git rev-parse HEAD failed"
+fi
+[ "$current" = "$RELEASE_COMMIT" ] || fail "HEAD $current != RELEASE_COMMIT $RELEASE_COMMIT"
+if ! tag_commit="$(git rev-parse "$RELEASE_TAG^{commit}" 2>/dev/null)"; then
+  fail "tag $RELEASE_TAG not found or not a commit"
+fi
+[ "$tag_commit" = "$RELEASE_COMMIT" ] || fail "tag $RELEASE_TAG ($tag_commit) != RELEASE_COMMIT $RELEASE_COMMIT"
+
+# 4. package.json version equals tag sans v (exact top-level .version via jq)
+command -v jq >/dev/null 2>&1 || fail "jq is required"
+[ -f package.json ] || fail "package.json missing"
+pkg_version="$(jq -er '.version' package.json 2>/dev/null)" || fail "package.json version parse failed"
+[ -n "$pkg_version" ] || fail "package.json version parse failed"
+expected="${RELEASE_TAG#v}"
+[ "$pkg_version" = "$expected" ] || fail "package.json version $pkg_version != tag version $expected"
+
+# 5. Exactly one nonempty docs/releases/<tag>.md
+notes_dir="docs/releases"
+[ -d "$notes_dir" ] || fail "missing $notes_dir directory"
+count=0
+found=""
+for f in "$notes_dir"/*.md; do
+  [ -e "$f" ] || continue
+  count=$((count + 1))
+  found="$f"
+done
+[ "$count" -eq 1 ] || fail "expected exactly one file in $notes_dir, found $count"
+expected_notes="$notes_dir/$RELEASE_TAG.md"
+[ "$found" = "$expected_notes" ] || fail "notes must be $expected_notes, found $found"
+[ -s "$expected_notes" ] || fail "release document is empty: $expected_notes"
+
+# 6. H1 begins "# <tag>"
+if ! H1="$(grep -m1 -E '^# ' "$expected_notes" 2>/dev/null)"; then
+  H1=""
+fi
+[ -n "$H1" ] || fail "notes H1 missing"
+case "$H1" in
+  "# $RELEASE_TAG"|"# $RELEASE_TAG "* ) ;;
+  * ) fail "notes H1 must begin '# $RELEASE_TAG', got: $H1" ;;
+esac
+
+# 7. Required sections
+grep -qE '^## What changed' "$expected_notes" || fail "missing ## What changed"
+grep -qE '^## (Upgrade|Install)' "$expected_notes" || fail "missing ## Upgrade or ## Install"
+
+# 8. Reject placeholders (canonical safe set)
+if grep -qE 'PLACEHOLDER|TODO|FIXME|TBD|Lorem ipsum|\{\{' "$expected_notes"; then
+  grep -nE 'PLACEHOLDER|TODO|FIXME|TBD|Lorem ipsum|\{\{' "$expected_notes" >&2
+  fail "notes contain PLACEHOLDER/TODO/FIXME/TBD/Lorem ipsum/{{"
+fi
+
+# 9. Reject any CHANGELOG/CHANGELOG.*
+for f in CHANGELOG* changelog*; do
+  [ -e "$f" ] || continue
+  fail "reject CHANGELOG artifact: $f"
+done
+
+# 10. Hooks exist and executable
+[ -x ./scripts/release-preflight ] || fail "scripts/release-preflight missing or not executable"
+[ -x ./scripts/release-publish ] || fail "scripts/release-publish missing or not executable"
+[ -x ./scripts/release-verify ] || fail "scripts/release-verify missing or not executable"
+
+# 11. Dockerfile exists
+[ -f Dockerfile ] || fail "Dockerfile missing"
+
+printf 'preflight ok: %s @ %s\n' "$RELEASE_TAG" "$RELEASE_COMMIT"
