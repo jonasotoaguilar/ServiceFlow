@@ -7,7 +7,7 @@
 | Estimated changed lines | 2400–3600 across 16 implementation PRs + 2 planning nodes (~80–300 each after WU6 split; WU9 <30; WU10 mostly deletions; planning nodes <150). Provider budgets count additions + deletions of all files including pnpm-lock.yaml, tasks.md, and apply-progress.md. |
 | 400-line budget risk | High (old WU6 rejected 864; split 6a–6d with headroom) |
 | Chained PRs recommended | Yes |
-| Suggested split | PR 1a → PR 1b → planning (02-auth-split-plan) → PR 2a → PR 2b → PR 2c → PR 3 → PR 4 → PR 5 → planning (06-locations-write) → PR 6a → PR 6b → PR 6c → PR 6d → PR 7 → PR 8 → PR 9 → PR 10 (acceptance-gated) |
+| Suggested split | PR 1a → PR 1b → planning (02-auth-split-plan) → PR 2a → PR 2b → PR 2c → PR 3 → PR 4 → PR 5 → planning (06-locations-write) → PR 6a → PR 6b → PR 6c → PR 6d → PR 7 → PR 8 → PR 9 → PR 10 (acceptance-gated) → PR 10c (WU10c English docs) |
 | Delivery strategy | auto-chain |
 | Chain strategy | feature-branch-chain |
 
@@ -47,6 +47,7 @@ main
                                                                                       └── …-09-hygiene  ← PR 15 base: 08
                                                                                            ├── …-10-appwrite-removal (WU10a PR49 draft 194) base: fix/migrate-appwrite-to-pocketbase-biome-check (PR48 @3b6711b)
                                                                                            └── …-10b-appwrite-deps (WU10b PR50 draft 370) base: …-10-appwrite-removal (PR49 @752e7c7) chain PR48→PR49→PR50
+                                                                                              └── …-10c-english-docs (WU10c PR51) base: …-10b-appwrite-deps (PR50 @03b05aa) chain PR48→PR49→PR50→PR51
 ```
 
 | Child | WU | Branch | Base | Starts at | Ends with | Provider budget | Rollback |
@@ -70,10 +71,11 @@ main
 | PR 15 | 9 | `…-09-hygiene` | `…-08` | Contracts done | `check_or.ts` + `lint_output.txt` gone | <30 | restore the two files |
 | PR 16a (49) | 10a | `…-10-appwrite-removal` | `fix/migrate-appwrite-to-pocketbase-biome-check` (PR48 @3b6711b) | draft, no prod gate | janitor/session/tests gone | 194 | revert janitor files |
 | PR 16b (50) | 10b | `…-10b-appwrite-deps` | `…-10-appwrite-removal` (PR49 @752e7c7) | draft, no prod gate chain PR48→PR49→PR50 | Appwrite client/setup/deps/lock gone + rg proof | 370 | revert Appwrite files |
+| PR 17 (51) | 10c | `…-10c-english-docs` | `…-10b-appwrite-deps` (PR50 @03b05aa) | PocketBase-final docs only | README English + ARCH/PRD/GUIDE PocketBase-only + `design/DESIGN.md` → `DESIGN.md` | <=80 | revert docs + `DESIGN.md` move |
 
-**Tracker integration:** child PR 1 targets the tracker. Later children target the immediate parent branch (including planning → 02a → 02b → 02c and planning `…-06-locations-write` → 06a → 06b → 06c → 06d). After a child is reviewed, integrate it into the tracker by merging that child into its base (or fast-forwarding the tracker through the stack). Keep tracker PR19 draft until terminal WU integrated; WU10a PR49 draft base fix/migrate-appwrite-to-pocketbase-biome-check (PR48) → WU10b PR50 draft base …-10-appwrite-removal (PR49) chain PR48→PR49→PR50; production gates not done. Merge tracker to `main` only after final WU10b is acceptance-gated (or after PR15 if acceptance deferred; then WU10b is follow-up on `main` still using this chain). Apply creates branches/PRs; this file does not. Planning PRs `…-02-auth-split-plan` and `…-06-locations-write` are intermediate docs-only chain nodes, not implementation WUs.
+**Tracker integration:** child PR 1 targets the tracker. Later children target the immediate parent branch (including planning → 02a → 02b → 02c and planning `…-06-locations-write` → 06a → 06b → 06c → 06d). After a child is reviewed, integrate it into the tracker by merging that child into its base (or fast-forwarding the tracker through the stack). Keep tracker PR19 draft until terminal WU integrated; WU10a PR49 draft base fix/migrate-appwrite-to-pocketbase-biome-check (PR48) → WU10b PR50 draft base …-10-appwrite-removal (PR49) chain PR48→PR49→PR50 → WU10c PR51 draft base …-10b-appwrite-deps (PR50 @03b05aa) chain PR48→PR49→PR50→PR51; production gates not done. Merge tracker to `main` only after final WU10c is verified (or after PR15 if acceptance deferred; then WU10b/c are follow-up on `main` still using this chain). Apply creates branches/PRs; this file does not. Planning PRs `…-02-auth-split-plan` and `…-06-locations-write` are intermediate docs-only chain nodes, not implementation WUs. WU10c is an erratum of WU7/WU8 docs, not a rewrite of completed history.
 
-**Out of every child PR:** CI workflows, Husky, lint-staged, Dependabot, `CODEOWNERS`, root `SECURITY.md`, `DESIGN.md` / `design/DESIGN.md`, PocketBase hosting/Dokploy compose, admin secret names, data/user import.
+**Out of every child PR:** CI workflows, Husky, lint-staged, Dependabot, `CODEOWNERS`, root `SECURITY.md`, PocketBase hosting/Dokploy compose, admin secret names, data/user import. **Exception for explicit WU10c only:** `DESIGN.md` / `design/DESIGN.md` move to canonical root `DESIGN.md` is allowed (no duplicate, visual baseline preserved).
 
 **Secrets:** never request, print, or commit PocketBase/Appwrite secret values. Record only presence and target identity (`POCKETBASE_URL` host, e.g. local `http://127.0.0.1:8090` vs “Dokploy PocketBase”).
 
@@ -333,7 +335,15 @@ main
 
 ---
 
-## 17. Parent / operator / lifecycle gates — (A) dev vs (B) production final gate
+## 17. WU10c / PR 17 — English documentation remediation (erratum for WU7/WU8)
+
+**Depends on:** WU10b integrated (PocketBase-final code at `03b05aa`). **Scope:** docs-only erratum — translate `README.md` to English (preserve accurate PocketBase guidance: `POCKETBASE_URL` only, `127.0.0.1:8090` explicit apply, `pb_auth` httpOnly, `userId = {:uid}` + `userId = @request.auth.id`, empty-start, native 15-char ids, `{ data, total, page, limit }`, `LIKE` `~` on `clientName`/`invoiceNumber`/`rut`, optional `address`, historical rollback only; no Appwrite setup), correct `ARCHITECTURE.md`/`PRD.md`/`docs/CODEBASE-GUIDE.md` to `pb_auth` only, no live `proxy.ts`/janitor/`clearLegacySessionCookie`/legacy session clearing, WU10a/b completed historical only, keep links/paths accurate. Move `design/DESIGN.md` → `DESIGN.md` (no duplicate, preserve English visual baseline + minimal verified framing; keep `design/*_serviceflow` mockups). **Do not** modify code/tests/package/lock/env/workflows, create `CODEMAP.md`, or invent tokens/motion/components.
+
+- [x] WU10c — English documentation remediation: `README.md` English; `ARCHITECTURE.md`/`PRD.md`/`docs/CODEBASE-GUIDE.md` PocketBase-only (no live janitor, WU10 completed historical); `design/DESIGN.md` → `DESIGN.md` canonical; `rg`/`ls`/`git diff --stat` proof, `pnpm test:run` still green (docs-only, no runtime). **Erratum of WU7/WU8 outcomes, not rewriting completed checkboxes; `Out of every child PR` DESIGN exclusion lifted only for this WU.** <!-- sdd-owner: implementation -->
+
+---
+
+## 18. Parent / operator / lifecycle gates — (A) dev vs (B) production final gate
 
 Group after implementation. Create no PRs and collect no secret values in the tasks phase. Bounded review stays opt-in. **(A) Dev:** WU10 dev candidate (draft/no-merge + local/CI) MAY proceed without (B). **(B) Production final gate:** local/production artifact + Dokploy/smoke/explicit acceptance — ONLY before final WU10 merge/deploy, NOT before WU10 code edits or local/CI.
 
