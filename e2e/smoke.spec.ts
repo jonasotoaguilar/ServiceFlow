@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./pb-admin";
 
 const pw = "E2eTest123!";
 const uid = `${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 1000)}`;
@@ -57,11 +57,8 @@ async function selectLocationInModal(modal: import("@playwright/test").Locator, 
 		.first();
 	await trigger.click();
 	await expect(modal.getByRole("button", { name: target }).first()).toBeVisible({ timeout: 10000 });
-	// Use evaluate to avoid detach
-	await modal
-		.getByRole("button", { name: target })
-		.first()
-		.evaluate((el) => (el as HTMLElement).click());
+	await modal.getByRole("button", { name: target }).first().click();
+	await expect(trigger).toContainText(target, { timeout: 5000 });
 }
 
 test("smoke: register → location → service → move → history → isolation", async ({ page }) => {
@@ -115,15 +112,21 @@ test("smoke: register → location → service → move → history → isolatio
 		await expect(
 			modal.getByRole("heading", { name: /Nueva servicio|Actualizar Servicio/ }).first(),
 		).toBeVisible();
+		await expect(modal.getByLabel("SKU")).toBeVisible({ timeout: 5000 });
+		await expect(modal.getByLabel("SKU")).toBeEnabled();
 		const today = new Date().toISOString().split("T")[0];
 		await modal.getByLabel("Fecha de Ingreso").fill(today);
 		await modal.getByLabel("SKU").fill(sku);
+		await expect(modal.getByLabel("SKU")).toHaveValue(sku);
 		await modal.getByLabel("RUT").fill("12.345.678-9");
 		await modal.getByLabel("Email").fill(`svc-${uid}@example.com`);
 		await modal.getByLabel("N° Boleta").fill(invoice);
+		await expect(modal.getByLabel("N° Boleta")).toHaveValue(invoice);
 		await modal.getByLabel("Cliente").fill(client);
 		await modal.getByLabel("Teléfono").fill("+56 9 1234 5678");
+		await expect(modal.getByLabel("Teléfono")).toHaveValue("+56 9 1234 5678");
 		await modal.getByLabel("Producto").fill("Producto E2E");
+		await expect(modal.getByLabel("Producto")).toHaveValue("Producto E2E");
 		await selectLocationInModal(modal, locA);
 		await modal.getByLabel("Descripción del Problema").fill(`Falla E2E ${uid}`);
 		await modal.getByLabel("Notas").fill("Notas E2E");
