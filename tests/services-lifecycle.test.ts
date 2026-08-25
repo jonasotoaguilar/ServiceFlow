@@ -10,6 +10,7 @@ const mockServicesUpdate = vi.fn();
 const mockServicesDelete = vi.fn();
 const mockLocationsGetList = vi.fn();
 const mockLogsGetList = vi.fn();
+const mockLogsCreate = vi.fn();
 const mockLogsDelete = vi.fn();
 const mockFilter = vi.fn((t: string, p: Record<string, unknown>) => {
   let s = t;
@@ -19,7 +20,7 @@ const mockFilter = vi.fn((t: string, p: Record<string, unknown>) => {
 const mockCollection = vi.fn((n: string) => {
   if (n === "services") return { getList: mockServicesGetList, create: mockServicesCreate, getOne: mockServicesGetOne, update: mockServicesUpdate, delete: mockServicesDelete };
   if (n === "locations") return { getList: mockLocationsGetList };
-  if (n === "location_logs") return { getList: mockLogsGetList, delete: mockLogsDelete };
+  if (n === "location_logs") return { getList: mockLogsGetList, create: mockLogsCreate, delete: mockLogsDelete };
   throw new Error(n);
 });
 const mockCreatePocketBaseClient = vi.fn(async () => ({ filter: mockFilter, collection: mockCollection }));
@@ -269,5 +270,53 @@ describe("services write WU5 — update/delete ownership/completed/delete-order 
     const del=sSrc.slice(sSrc.indexOf("deleteService"), sSrc.indexOf("deleteService")+4000); expect(del).not.toContain("databases.deleteDocument"); expect(del).not.toContain("Query.equal"); expect(del).toContain('collection("location_logs")'); expect(del).toContain('collection("services")');
     const fSrc=fs.readFileSync(path.join(process.cwd(),"lib/pocketbase-filter.ts"),"utf8"); expect((fSrc.match(/pb\.filter/g) ?? []).length).toBe(1);
     const rSrc=fs.readFileSync(path.join(process.cwd(),"app/api/services/route.ts"),"utf8"); expect(rSrc).not.toContain("databases"); expect(rSrc).not.toContain("Query"); expect(rSrc).not.toContain("ID.unique");
+  });
+});
+describe("movement logs WU6c — updateService creates location_logs only on location change, skip on completing", () => {
+  beforeEach(() => {
+    vi.clearAllMocks(); mockGetAuthUser.mockReset(); mockServicesGetOne.mockReset(); mockServicesUpdate.mockReset(); mockServicesCreate.mockReset(); mockServicesDelete.mockReset(); mockLogsGetList.mockReset(); mockLogsCreate.mockReset(); mockLogsDelete.mockReset(); mockFilter.mockClear(); mockCollection.mockClear(); mockCreatePocketBaseClient.mockClear();
+    mockServicesGetOne.mockResolvedValue(pbRecord({ id:"pb15svcWU6c00001", userId:"owner-1", locationId:"locA", status:"pending" }));
+    mockServicesUpdate.mockResolvedValue(pbRecord({ id:"pb15svcWU6c00001" }));
+    mockLogsCreate.mockResolvedValue({ id:"log1" });
+    mockLogsGetList.mockResolvedValue({ items:[], totalItems:0 });
+  });
+  it("non-completing location change writes one log with denormalized userId/ServiceId/from/to/changedAt", async () => {
+    const { updateService } = await import("@/lib/storage");
+    const before = Date.now();
+    await updateService({ id:"pb15svcWU6c00001", userId:"owner-1", invoiceNumber:"INV-001", clientName:"Cliente WU6c", contact:"56912345678", product:"Laptop", locationId:"locB", entryDate:new Date().toISOString(), status:"ready", repairCost:0, notes:"" } as any, "owner-1");
+    expect(mockServicesUpdate).toHaveBeenCalledTimes(1);
+    expect(mockLogsCreate).toHaveBeenCalledTimes(1);
+    const payload = mockLogsCreate.mock.calls[0][0] as Record<string, unknown>;
+    expect(payload.userId).toBe("owner-1");
+    expect(payload.ServiceId).toBe("pb15svcWU6c00001");
+    expect(payload.fromLocationId).toBe("locA");
+    expect(payload.toLocationId).toBe("locB");
+    expect(typeof payload.changedAt).toBe("string");
+    expect(new Date(payload.changedAt as string).getTime()).toBeGreaterThanOrEqual(before);
+    expect(payload.changedAt).not.toBe("");
+    // ensure create uses PocketBase location_logs collection
+    expect(mockCollection).toHaveBeenCalledWith("location_logs");
+    const sSrc = fs.readFileSync(path.join(process.cwd(),"lib/storage.ts"),"utf8");
+    const updSlice = sSrc.slice(sSrc.indexOf("updateService"), sSrc.indexOf("updateService")+3500);
+    expect(updSlice).toContain('collection("location_logs")');
+    expect(updSlice).toContain(".create(");
+    expect(updSlice).toContain("fromLocationId");
+    expect(updSlice).toContain("toLocationId");
+    expect(updSlice).toContain("changedAt");
+    expect(updSlice).toContain("ServiceId");
+  });
+  it("completing with a location change skips the log", async () => {
+    mockServicesGetOne.mockResolvedValue(pbRecord({ id:"pb15svcWU6c00001", userId:"owner-1", locationId:"locA", status:"pending" }));
+    const { updateService } = await import("@/lib/storage");
+    await updateService({ id:"pb15svcWU6c00001", userId:"owner-1", invoiceNumber:"INV-001", clientName:"Cliente WU6c", contact:"56912345678", product:"Laptop", locationId:"locB", entryDate:new Date().toISOString(), status:"completed", repairCost:0, notes:"" } as any, "owner-1");
+    expect(mockServicesUpdate).toHaveBeenCalledTimes(1);
+    expect(mockLogsCreate).not.toHaveBeenCalled();
+  });
+  it("unchanged location writes no log", async () => {
+    mockServicesGetOne.mockResolvedValue(pbRecord({ id:"pb15svcWU6c00001", userId:"owner-1", locationId:"locA", status:"pending" }));
+    const { updateService } = await import("@/lib/storage");
+    await updateService({ id:"pb15svcWU6c00001", userId:"owner-1", invoiceNumber:"INV-001", clientName:"Cliente WU6c", contact:"56912345678", product:"Laptop", locationId:"locA", entryDate:new Date().toISOString(), status:"ready", repairCost:0, notes:"" } as any, "owner-1");
+    expect(mockServicesUpdate).toHaveBeenCalledTimes(1);
+    expect(mockLogsCreate).not.toHaveBeenCalled();
   });
 });

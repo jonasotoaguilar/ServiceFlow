@@ -150,7 +150,20 @@ export async function updateService(updatedService: Service, userId?: string): P
 		repairCost: updatedService.repairCost,
 		notes: updatedService.notes,
 	};
+	const fromLocationId = current.locationId as string | undefined;
+	const toLocationId = updatedService.locationId as string | undefined;
+	const isLocationChanged = !!fromLocationId && !!toLocationId && fromLocationId !== toLocationId;
+	const isCompleting = current.status !== "completed" && updatedService.status === "completed";
 	await pb.collection("services").update(updatedService.id, payload);
+	if (isLocationChanged && !isCompleting) {
+		await pb.collection("location_logs").create({
+			userId: current.userId,
+			ServiceId: updatedService.id,
+			fromLocationId,
+			toLocationId,
+			changedAt: now,
+		});
+	}
 }
 
 export async function deleteService(id: string, userId?: string): Promise<void> {
