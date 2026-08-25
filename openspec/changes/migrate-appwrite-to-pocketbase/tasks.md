@@ -283,13 +283,13 @@ main
 
 ### 12.1 getLocationLogs — RED → GREEN → TRIANGULATE
 
-- [ ] RED: add compact history cases to `tests/locations-history.test.ts` for `getLocationLogs` in `app/actions/logs.ts`: requires auth, binds `userId`, `{ data, total, page, limit }`, sort `-changedAt`, optional from/to `locationId` and date bounds; peer logs excluded. Focused test fails. <!-- sdd-owner: implementation -->
-- [ ] GREEN: rewrite `getLocationLogs` via `logListBinding`. Keep `app/locationLogs/page.tsx` and `app/dashboard/page.tsx` auth redirects. Focused test passes. <!-- sdd-owner: implementation -->
-- [ ] TRIANGULATE: from-or-to filter; unauthenticated history returns error without `data`. REFACTOR log mapping. <!-- sdd-owner: implementation -->
+- [x] RED: add compact history cases to `tests/locations-history.test.ts` for `getLocationLogs` in `app/actions/logs.ts`: requires auth, binds `userId`, `{ data, total, page, limit }`, sort `-changedAt`, optional from/to `locationId` and date bounds; peer logs excluded. Focused test fails. <!-- sdd-owner: implementation -->
+- [x] GREEN: rewrite `getLocationLogs` via `logListBinding`. Keep `app/locationLogs/page.tsx` and `app/dashboard/page.tsx` auth redirects. Focused test passes. <!-- sdd-owner: implementation -->
+- [x] TRIANGULATE: from-or-to filter; unauthenticated history returns error without `data`. REFACTOR log mapping. <!-- sdd-owner: implementation -->
 
 ### 12.2 WU6d verification
 
-- [ ] Run `pnpm exec vitest run tests/locations-history.test.ts tests/services-lifecycle.test.ts tests/schemas.test.ts`, then `pnpm test:run`, `pnpm exec tsc --noEmit`, `pnpm run lint`, `pnpm run build`. Runtime (local PB only if applied): location create → service create/search → move → history → second user sees nothing. <!-- sdd-owner: implementation -->
+- [x] Run `pnpm exec vitest run tests/locations-history.test.ts tests/services-lifecycle.test.ts tests/schemas.test.ts`, then `pnpm test:run`, `pnpm exec tsc --noEmit`, `pnpm run lint`, `pnpm run build`. Runtime (local PB only if applied): location create → service create/search → move → history → second user sees nothing. <!-- sdd-owner: implementation -->
 
 ## 13. WU7 / PR 13 — Docs / env contracts (before Appwrite deletion)
 
