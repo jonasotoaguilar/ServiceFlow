@@ -516,3 +516,24 @@
 - Secrets/network: none — no `POCKETBASE_URL` secret value beyond documented `http://127.0.0.1:8090` example, no `POCKETBASE_ADMIN_*`/`NEXT_PUBLIC_APPWRITE_*`/`APPWRITE_API_KEY` collected, no live PocketBase/Appwrite contacted, no token/cookie/secret logged, no `console.log`; `check_or.ts` probe contained no secret, `lint_output.txt` contained only absolute local filesystem paths which are not secret — both removed without leaking
 - Workload / PR boundary: single work-unit **09-hygiene**; base `44962c032e59729c59a84ae286394bc5d62603ef` (WU8 `feat/migrate-appwrite-to-pocketbase-08-prd-arch`, PR #36); chain `feature-branch-chain` `auto-chain` hard400; tracker `feat/migrate-appwrite-to-pocketbase`; this slice starts at contracts done (65/77) and ends at hygiene artifacts gone verified (66/77); next is WU10 `…-10-appwrite-removal` (base 09, acceptance-gated) — do NOT open WU10 PR until parent acceptance per tasks 17; **WU10 pending/acceptance-gated: lib/appwrite.ts, scripts/setup-appwrite.ts, proxy.ts janitor, appwrite/node-appwrite deps, lockfile NOT removed in this slice**
 
+## 2026-08-24 — WU10 dev-gate plan correction (WU10-dev-gate-plan-correction) — planning-only
+
+- Branch: `feat/migrate-appwrite-to-pocketbase-10-dev-gate-plan` at base `1fde4d1` (WU9 `feat/migrate-appwrite-to-pocketbase-09-hygiene`)
+- Scope: planning-only — `design.md`, `tasks.md`, `apply-progress.md` only; no app/source/package/lock/docs outside OpenSpec, no formatters, no WU10 implementation, no topology change
+- Decision encoded: project in development; WU10 Appwrite removal MAY be implemented and tested now as draft/no-merge development PR with local/CI proof; Dokploy/local-production artifact evidence, production smoke checks, and explicit acceptance gate ONLY final merge/deployment; they MUST NOT be prerequisites for editing code, removing Appwrite dependencies in WU10 dev candidate, or running local/CI verification; production handled at the end
+- Tasks: restructured 11 pending checks intact (77 total / 66 completed / 11 pending — no checkbox toggled); separated (A) WU10 dev implementation+local/CI proof and draft/no-merge PR from (B) production artifact/Dokploy/smoke/explicit acceptance before final merge/deploy; next apply deterministic: exact rollback boundary `lib/appwrite.ts`, `scripts/setup-appwrite.ts`, `proxy.ts`+`session` helpers, `appwrite`/`node-appwrite`+`pnpm-lock.yaml`; verification `pnpm test:run`/`tsc --noEmit`/`lint`/`build`+`rg` grep (local/CI only, prod gate off path); provider ≤400, no size:exception
+- Design: Review-safe WU10 row and Rollout steps 4–6 aligned with same dev vs production gate split; no scope drift from proposal/specs; governance/other WUs untouched
+- Verification: structural readback 77/66/11; planning statements agree across design/tasks/apply-progress; git diff allowed paths only (`design.md`, `tasks.md`, `apply-progress.md`) and ≤120 provider lines; no unstaged files outside allowed artifacts; no checked boxes changed; no implementation files touched
+- Strict TDD: `strict_tdd: true`, runner `pnpm test:run` — no test run required for planning-only Markdown (no implementation file changed, STAMP N/A)
+- Workload / PR boundary: planning-only `WU10-dev-gate-plan-correction`; base `1fde4d1`; chain `feature-branch-chain` `auto-chain`; this slice ends at encoded dev vs prod gate; next is WU10 dev candidate implementation from `…-09-hygiene` base
+- TDD Cycle Evidence: N/A — planning-only docs correction (no RED/GREEN/TRIANGULATE for code; structural readback is verification)
+- Work Unit Evidence:
+  | Evidence | Required value |
+  |----------|---------------|
+  | Focused test command and exact result | `rg -n` structural readback + `grep -c` task counts — 77 total / 66 completed / 11 pending, no checkbox changed; `git diff --stat` allowed paths only |
+  | Full suite + typecheck + lint + build | N/A per planning-only (no product code changed); previous `pnpm test:run` 125 still green and preserved; no new suite required |
+  | Runtime harness command/scenario and exact result | N/A — planning-only, no server/runtime boundary; explicit N/A with reason: no PocketBase hosting/prod deployment in this slice, production gate documented as final merge/deploy only |
+  | Rollback boundary | `design.md`, `tasks.md`, `apply-progress.md` — revert restores previous dev vs prod wording without touching `lib/*`/`app/*`/`tests/*`/`pocketbase/*`/`package.json`/`pnpm-lock.yaml`/docs; autonomous single work-unit |
+- Secrets/network: none — no `POCKETBASE_URL`/admin values, no live PocketBase/Appwrite contacted, no token/cookie/secret logged
+- Native attempt: `sha256:10f93cb5532251315a2d30e7b7f3f21e753ebc5772170aa422989f85c51d868d` preserved, parent owns settlement; do not acquire/settle/reset; no commit/push
+
