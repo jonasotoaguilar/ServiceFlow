@@ -586,7 +586,7 @@ Provider review budgets count `additions + deletions` of all files including `pn
 | 7 | Docs/env: `.env.example` contains only `POCKETBASE_URL=http://127.0.0.1:8090` for PocketBase runtime (no secrets, no `POCKETBASE_ADMIN_*`, no `NEXT_PUBLIC_APPWRITE_*`, no `APPWRITE_API_KEY`); `README.md` removes Appwrite setup, `scripts/setup-appwrite.ts`, and API-key instructions; `docs/CODEBASE-GUIDE.md` is the only codebase-guide path | 200–350 | PocketBase-only setup text |
 | 8 | `PRD.md`, `ARCHITECTURE.md` | 250–380 | Accurate contracts; no Appwrite-as-live |
 | 9 | Delete `check_or.ts` and `lint_output.txt` | <30 | Hygiene only; Appwrite rewrite already gone from root `proxy.ts` in WU 2c |
-| 10 | After acceptance: remove `lib/appwrite.ts`, setup script, `appwrite` / `node-appwrite`, Appwrite env docs, and the root session-janitor `proxy.ts` | deletions | Rollback image already proven |
+| 10 | WU10 dev candidate (draft/no-merge, local/CI — no prod gate to edit/verify) then acceptance-gated final merge: remove `lib/appwrite.ts`, setup script, `appwrite`/`node-appwrite`, Appwrite env docs, and root janitor `proxy.ts` | deletions (prod artifact/Dokploy/smoke/acceptance only gates final merge/deploy) | Rollback image already proven; dev candidate: `pnpm test:run`/`tsc`/`lint`/`build`+`rg` |
 
 Do not merge WU 10 with product work. Do not touch CI, Husky, Dependabot, `CODEOWNERS`, root `SECURITY.md`, or `DESIGN.md`.
 
@@ -629,15 +629,14 @@ Out of scope: CI/Husky/Dependabot/`CODEOWNERS`/`SECURITY.md`/`DESIGN.md`; Pocket
 
 Residual risk: operator applies wrong rules. Mitigation: artifact tests + verification checklist + app-level `userId` filters. Residual risk: PB down. Mitigation: data path fails closed with generic errors; no anonymous success.
 
-## Rollout
+## Rollout — dev candidate vs production gate
 
 1. Land WU 1a, 1b, 2a, 2b, 2c, 3 and prove locally: register → notice → login → empty locations. Production image unchanged (old WU2 574–737 pre-split before acquire).
 2. Land WU 4–6. Keep Appwrite files unused on this branch.
 3. Land WU 7–9 docs/hygiene.
-4. Operator applies `v1.collections.json` on Dokploy PocketBase and checks the verification list.
-5. Deploy PocketBase-backed image with `POCKETBASE_URL` only. Smoke: register, notice, login, location create, service create/search, move, history, logout, second user sees nothing.
-6. On failure: redeploy last Appwrite image + Appwrite env.
-7. On acceptance: WU 10. Deleting the Appwrite cloud project is operational and outside this change.
+4. WU10 dev candidate: remove Appwrite deps/code/janitor (`lib/appwrite.ts`, `scripts/setup-appwrite.ts`, `proxy.ts`, `appwrite`/`node-appwrite`+lockfile) — may be implemented/tested now as draft/no-merge PR with `pnpm test:run`/`tsc --noEmit`/`lint`/`build`+`rg` (no Dokploy/prod artifact/smoke/acceptance required to edit or verify locally/CI).
+5. Production gate (only before final WU10 merge/deploy, not before dev candidate): operator applies `v1.collections.json` on Dokploy, verifies checklist, confirms `POCKETBASE_URL` presence, deploys PocketBase-backed image, smoke (register→notice→login→location→service→move→history→logout→second user isolation). On failure redeploy last Appwrite image.
+6. On explicit acceptance recorded: merge WU10 draft to tracker and deploy. Deleting Appwrite cloud project is operational and outside this change.
 
 ## Traceability
 

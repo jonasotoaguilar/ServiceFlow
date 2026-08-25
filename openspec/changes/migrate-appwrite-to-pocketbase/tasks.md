@@ -320,26 +320,26 @@ main
 
 ---
 
-## 16. WU10 / PR 16 — Appwrite removal (acceptance-gated last slice)
+## 16. WU10 / PR 16 — Appwrite removal (dev candidate now — draft/no-merge + local/CI; acceptance only gates final merge/deploy)
 
-**Depends on:** WU9 integrated **and** parent acceptance (section 17). **Do not** start this slice before that checkbox. **Do not** delete the Appwrite cloud project.
+**Depends on:** WU9 integrated. **Dev candidate (A):** may start now as draft/no-merge PR from `…-09-hygiene` with no prod gate. **Final merge/deploy (B):** gated by production artifact/Dokploy/smoke/explicit acceptance (section 17 B). Prod gate MUST NOT block code edits or local/CI verification. **Do not** delete the Appwrite cloud project.
 
-- [ ] Confirm the parent acceptance gate is checked. If not, stop. Do not open PR 16 until acceptance. <!-- sdd-owner: implementation -->
-- [ ] Delete `lib/appwrite.ts`, `scripts/setup-appwrite.ts`, leftover `session` helpers, and root janitor `proxy.ts` (leftover-session path is gone). Remove `appwrite` and `node-appwrite` from `package.json` and refresh the lockfile. <!-- sdd-owner: implementation -->
-- [ ] Grep the app (`lib/`, `app/`, `components/`, `.env.example`, in-scope docs) for `node-appwrite`, `NEXT_PUBLIC_APPWRITE`, `APPWRITE_API_KEY`, `SESSION_COOKIE`, and live Appwrite setup. Only historical rollback notes may remain. <!-- sdd-owner: implementation -->
-- [ ] Run `pnpm test:run`, `pnpm exec tsc --noEmit`, `pnpm run lint`, `pnpm run build`. Runtime harness: N/A beyond existing mocked suite (production cutover already proven). <!-- sdd-owner: implementation -->
+- [ ] (A) Dev candidate — may start now (no prod gate): open draft/no-merge PR 16 from `…-09-hygiene` base; acceptance (section 17 B) only gates final merge/deploy, not code edits or local/CI. <!-- sdd-owner: implementation -->
+- [ ] (A) Delete exact rollback boundary: `lib/appwrite.ts`, `scripts/setup-appwrite.ts`, `proxy.ts` janitor + `session` helpers, `appwrite`/`node-appwrite` from `package.json`+`pnpm-lock.yaml` refresh (deletions ≤400). <!-- sdd-owner: implementation -->
+- [ ] (A) Grep verification (local/CI, no prod gate): `rg` `lib/`/`app/`/`components/`/`.env.example`/docs for `node-appwrite`/`NEXT_PUBLIC_APPWRITE`/`APPWRITE_API_KEY`/`SESSION_COOKIE`/live setup — only historical rollback notes remain. <!-- sdd-owner: implementation -->
+- [ ] (A) Local/CI proof (no prod gate): `pnpm test:run`, `pnpm exec tsc --noEmit`, `pnpm run lint`, `pnpm run build` (mocked suite) — deterministic; (B) final merge/deploy only after section 17 B production artifact/Dokploy/smoke/explicit acceptance. <!-- sdd-owner: implementation -->
 
 ---
 
-## 17. Parent / operator / lifecycle gates
+## 17. Parent / operator / lifecycle gates — (A) dev vs (B) production final gate
 
-Group after implementation. Create no PRs and collect no secret values in the tasks phase. Bounded review stays opt-in per repo review mode; start or reuse it only when that mode is enabled.
+Group after implementation. Create no PRs and collect no secret values in the tasks phase. Bounded review stays opt-in. **(A) Dev:** WU10 dev candidate (draft/no-merge + local/CI) MAY proceed without (B). **(B) Production final gate:** local/production artifact + Dokploy/smoke/explicit acceptance — ONLY before final WU10 merge/deploy, NOT before WU10 code edits or local/CI.
 
 - [ ] After each integrated child PR (1a, 1b, 2a, 2b, 2c, 3–5, 6a–6d, 7–10), start or reuse bounded review for that slice only. <!-- sdd-owner: parent -->
-- [x] At apply start: create draft/no-merge tracker PR from `feat/migrate-appwrite-to-pocketbase` → `main`, then open child PRs in order with the bases in the chain table. Do not open PR 16 (WU10) until acceptance. <!-- sdd-owner: parent -->
-- [ ] Operator (local, out of band): apply `pocketbase/v1.collections.json` via existing Admin UI import or hand transcription. Verify design checklist (four collections, optional `address`, required log `userId`, zero business rows, tenant rules, public user create, guest list denied). Do not flip production URL. Record only “local artifact applied: yes/no”. <!-- sdd-owner: parent -->
-- [ ] Operator (production, after WU9 and local smoke): apply the same artifact to the **existing Dokploy-managed PocketBase**. Verify the same checklist. Record target identity only (Dokploy PocketBase, not a URL secret). `POCKETBASE_URL` flip is a **separate** later step. <!-- sdd-owner: parent -->
-- [ ] Operator: confirm production ServiceFlow env **presence** of `POCKETBASE_URL` (set / not set) and absence of Appwrite keys and any `POCKETBASE_ADMIN_*` names. Never read or store the URL or other secret values in tickets, PRs, or memory. <!-- sdd-owner: parent -->
-- [ ] Operator smoke after deploy of the PocketBase-backed image: register, notice, login, location create, service create/search, move, history, logout, second user isolation. On failure, redeploy last Appwrite-backed image + Appwrite env. PocketBase rows are not copied back. <!-- sdd-owner: parent -->
-- [ ] Acceptance gate: record cutover accepted (yes/no) without secrets. Only then allow WU10 / PR 16. Deleting the Appwrite cloud project stays outside this change. <!-- sdd-owner: parent -->
-- [ ] Keep tracker draft until the allowed terminal child is integrated; merge tracker only after the chosen terminal slice. <!-- sdd-owner: parent -->
+- [x] At apply start: create draft/no-merge tracker PR from `feat/migrate-appwrite-to-pocketbase` → `main`, then open child PRs in order. WU10 draft may open after WU9 without acceptance; final WU10 merge stays acceptance-gated. <!-- sdd-owner: parent -->
+- [ ] (B) Operator (local, out of band — final gate only, not WU10 dev prerequisite): apply `pocketbase/v1.collections.json` via Admin UI import/transcription. Verify design checklist (four collections, optional `address`, required log `userId`, zero rows, tenant rules, public create, guest denied). Do not flip prod URL. Record “local artifact applied: yes/no”. <!-- sdd-owner: parent -->
+- [ ] (B) Operator (production — final gate only): apply same artifact to existing Dokploy PocketBase, verify same checklist, record target identity only (no URL secret). `POCKETBASE_URL` flip is separate later step. <!-- sdd-owner: parent -->
+- [ ] (B) Operator — final gate only: confirm prod env `POCKETBASE_URL` presence (set/not set) and absence of Appwrite/`POCKETBASE_ADMIN_*` names; never store URL/secret values. <!-- sdd-owner: parent -->
+- [ ] (B) Operator smoke — final gate only (after deploy, not WU10 dev): register→notice→login→location→service→move→history→logout→second user isolation; on failure redeploy last Appwrite image. <!-- sdd-owner: parent -->
+- [ ] (B) Acceptance gate — ONLY for final WU10 merge/deploy (WU10 dev+local/CI MAY proceed without it): record cutover accepted (yes/no) without secrets; deleting cloud project stays outside change. <!-- sdd-owner: parent -->
+- [ ] Keep tracker draft until allowed terminal child is integrated; merge tracker only after chosen terminal slice (WU10 draft stays draft until (B) passes). <!-- sdd-owner: parent -->
