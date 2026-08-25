@@ -1,0 +1,235 @@
+# Generic release workflow template — the transversal release contract only.
+#
+# This template is deliberately ecosystem-agnostic. How a project builds,
+# packages, signs, and publishes its artifacts changes from repository to
+# repository, so none of that is encoded here. The consuming project supplies
+# three executable hooks under scripts/; the workflow owns the release
+# contract around them:
+#
+#   preflight -> publication -> verification
+#
+# Contract preserved in this template:
+#   - Stable version-tag trigger only: exact stable tags (vX.Y.Z) trigger the
+#     workflow; the "!v*-*" exclusion keeps pre-release tags (vX.Y.Z-rc.N,
+#     vX.Y.Z-beta.N, ...) out entirely — they never reach publication.
+#   - Workflow-level read-only permissions (`contents: read`); a single
+#     job-scoped write capability (`contents: write`) on the publication job.
+#   - Concurrency grouped per tag with `cancel-in-progress: false`: a second
+#     run on the same tag waits instead of cancelling the in-flight release.
+#   - Bounded jobs in strict order (preflight -> publication -> verification),
+#     each with an explicit timeout.
+#   - Exact-tag checkout with full history and tags and no persisted checkout
+#     credentials in every job.
+#   - Preflight and verification are read-only. Publication is the only
+#     write-capable job and runs in the protected `release` environment.
+#
+# ADAPTATION (required before use — the project supplies the hooks):
+#   The consuming project MUST provide three executable scripts (any language,
+#   but present and executable in the repository at the tagged commit):
+#     scripts/release-preflight   (read-only) — validate CI/provenance for the
+#                                   tagged commit, and prepare/validate the
+#                                   release plan (targets, packaging, signing,
+#                                   publisher omissions). Never publishes.
+#     scripts/release-publish     (write-capable, single step) — build,
+#                                   package, sign, and publish the release;
+#                                   creates the release from the curated
+#                                   release notes file for RELEASE_TAG.
+#     scripts/release-verify      (read-only) — verify the published artifacts
+#                                   from the outside (identity, checksums).
+#   Every hook step fails closed with an explicit ::error:: when its script is
+#   missing; no release proceeds on a stub or a broken command.
+#   Curated release notes (contract — see references/release-notes.md and
+#   assets/release-notes-template.md): the project keeps exactly ONE current
+#   release document at docs/releases/<RELEASE_TAG>.md. A new release renames
+#   the previous document to the new tag name (git mv) and replaces its
+#   content; the template asset is never installed into a project. The
+#   preflight hook MUST fail the release before publication when the release
+#   directory has zero or multiple documents, when the document name does
+#   not match RELEASE_TAG, or when the body is empty, placeholder-filled,
+#   malformed, or mismatched to the tag/version. The publish hook MUST create
+#   the release from that file only — never a raw commit log, never an
+#   auto-notes fallback.
+#   Release credentials and material are supplied by the consuming project
+#   through GitHub secrets/environment — never committed to the repository:
+#   attach the release secrets to the `release` environment (reviewers +
+#   tag protection; the workflow does not work without it). The publish hook
+#   receives them via its own `env:` block: the project adds its publisher
+#   tokens and secrets there and nowhere else. If the hook must write
+#   credentials to disk, it MUST place them under $RUNNER_TEMP/release-material
+#   so the workflow can remove them on every outcome (the `if: always()`
+#   cleanup step below); the runner is ephemeral and destroyed after the job
+#   regardless — this is defense in depth.
+#   Tag/commit/repository context reaches the hooks as RELEASE_TAG,
+#   RELEASE_COMMIT, and RELEASE_REPOSITORY environment variables.
+#   No secrets or real credentials live in this file — only references.
+#
+# ROLLBACK / FIX-FORWARD:
+#   This workflow only ever publishes; it never rewrites or deletes published
+#   artifacts, and release tags are not moved automatically. A failed or
+#   incorrect release stops at the failing step, preserves the evidence (job
+#   logs, artifacts), and follows the project's recovery/fix-forward policy —
+#   typically cutting the next patch release from the previously shipped tag.
+#   Rerunning on the same tag reproduces artifacts only when the project's
+#   hooks/build are proven reproducible; do not assume it. Editing or deleting
+#   a published release is an out-of-band, human-audited project decision made
+#   after verification — never an automatic workflow step, and never a
+#   substitute for the fix-forward path. If a hook or verification step fails,
+#   fix the cause and re-run on the same tag; never bypass the hooks.
+#
+# Action pins are floating majors (repo policy); dependency-update automation
+# (Dependabot/Renovate on `github-actions`) keeps them current.
+
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+      # Pre-release tags (v2.2.0-rc.1, v3.0.0-beta.2, ...) are for community
+      # testing, never for publication: the exclusion below keeps them from
+      # triggering the workflow at all.
+      - "!v*-*"
+
+# Read-only is the workflow default. Only the publication job receives the one
+# write capability a release needs.
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      # Read-only: lets the project's preflight hook confirm the CI conclusion
+      # for this exact commit before any release work starts.
+      actions: read
+    steps:
+      - name: Checkout exact tag
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          # Full history and tags so the preflight hook can inspect the tag
+          # object, ancestors, and the tagged commit. actions/checkout fetches
+          # with --no-tags by default, so this is required for tag refs to
+          # exist on the runner.
+          fetch-tags: true
+          persist-credentials: false
+
+      # Project hook: validate CI/provenance and prepare/validate the release
+      # plan without publishing. Replace with the project's own script.
+      - name: Run release preflight
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_COMMIT: ${{ github.sha }}
+          RELEASE_REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          if [[ ! -x ./scripts/release-preflight ]]; then
+            echo "::error::Project hook missing: scripts/release-preflight is not present or not executable — see the ADAPTATION note at the top of this file."
+            exit 1
+          fi
+          ./scripts/release-preflight
+
+  release:
+    needs: preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    # Protected environment: the consuming project creates it and attaches the
+    # release secrets and required reviewers here.
+    environment: release
+    permissions:
+      contents: write
+      packages: write
+    env:
+      # Blank out the runner's auto-injected token: no run step in this job
+      # receives it by default. Only the publish hook step opts back in.
+      GITHUB_TOKEN: ""
+    steps:
+      - name: Checkout exact tag
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          persist-credentials: false
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      # Project hook: the single write-capable step. Build, package, sign, and
+      # publish the release. Replace with the project's own script. The
+      # project's publisher tokens and secrets belong in this step's env: block
+      # and nowhere else.
+      - name: Run release publication hook
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_COMMIT: ${{ github.sha }}
+          RELEASE_REPOSITORY: ${{ github.repository }}
+          # Project-specific publisher tokens/secrets are added here by the
+          # consuming project, for example:
+          # PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [[ ! -x ./scripts/release-publish ]]; then
+            echo "::error::Project hook missing: scripts/release-publish is not present or not executable — see the ADAPTATION note at the top of this file."
+            exit 1
+          fi
+          ./scripts/release-publish
+
+      # Defense in depth: the publish hook must materialize any release
+      # credentials under $RUNNER_TEMP/release-material; this step removes them
+      # on every outcome. The runner is ephemeral regardless.
+      - name: Remove release credentials and material from the runner
+        if: always()
+        run: |
+          rm -rf -- "$RUNNER_TEMP/release-material"
+          test ! -e "$RUNNER_TEMP/release-material"
+
+  verify:
+    needs: release
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Checkout exact tag
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          persist-credentials: false
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      # Project hook: read-only verification of the published artifacts.
+      # Replace with the project's own script.
+      - name: Verify published artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_COMMIT: ${{ github.sha }}
+          RELEASE_REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          if [[ ! -x ./scripts/release-verify ]]; then
+            echo "::error::Project hook missing: scripts/release-verify is not present or not executable — see the ADAPTATION note at the top of this file."
+            exit 1
+          fi
+          ./scripts/release-verify
+
+      - name: Remove release credentials and material from the runner
+        if: always()
+        run: |
+          rm -rf -- "$RUNNER_TEMP/release-material"
+          test ! -e "$RUNNER_TEMP/release-material"
