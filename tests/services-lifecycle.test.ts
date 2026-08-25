@@ -4,15 +4,22 @@ import path from "node:path";
 const mockGetAuthUser = vi.fn();
 vi.mock("@/lib/auth", () => ({ getAuthUser: (...a: unknown[]) => (mockGetAuthUser as any)(...a) }));
 const mockServicesGetList = vi.fn();
+const mockServicesCreate = vi.fn();
+const mockServicesGetOne = vi.fn();
+const mockServicesUpdate = vi.fn();
+const mockServicesDelete = vi.fn();
 const mockLocationsGetList = vi.fn();
+const mockLogsGetList = vi.fn();
+const mockLogsDelete = vi.fn();
 const mockFilter = vi.fn((t: string, p: Record<string, unknown>) => {
   let s = t;
   for (const [k, v] of Object.entries(p)) s = s.replaceAll(`{:${k}}`, `"${String(v)}"`);
   return s;
 });
 const mockCollection = vi.fn((n: string) => {
-  if (n === "services") return { getList: mockServicesGetList };
+  if (n === "services") return { getList: mockServicesGetList, create: mockServicesCreate, getOne: mockServicesGetOne, update: mockServicesUpdate, delete: mockServicesDelete };
   if (n === "locations") return { getList: mockLocationsGetList };
+  if (n === "location_logs") return { getList: mockLogsGetList, delete: mockLogsDelete };
   throw new Error(n);
 });
 const mockCreatePocketBaseClient = vi.fn(async () => ({ filter: mockFilter, collection: mockCollection }));
@@ -166,5 +173,101 @@ describe("services read WU4 — getServices PocketBase tenant scope + GET route"
     expect(mockServicesGetList).toHaveBeenCalledWith(2, 5, expect.objectContaining({ sort: "-entryDate" }));
     const [t, p] = mockFilter.mock.calls.find(([x]) => (x as string).includes("userId")) as [string, Record<string, unknown>];
     expect(p.uid).toBe("auth-user-123"); expect(p.search).toBe("Acme"); expect(Object.values(p)).toContain("pending"); expect(Object.values(p)).toContain("ready"); expect(p.locationId).toBe("loc_pb_15_chars1");
+  });
+});
+describe("services write WU5 — saveService native ids + POST contract", () => {
+  beforeEach(() => {
+    vi.clearAllMocks(); mockGetAuthUser.mockReset(); mockServicesCreate.mockReset(); mockServicesGetOne.mockReset(); mockServicesUpdate.mockReset(); mockServicesDelete.mockReset(); mockLogsGetList.mockReset(); mockLogsDelete.mockReset(); mockFilter.mockClear(); mockCollection.mockClear(); mockCreatePocketBaseClient.mockClear();
+    mockGetAuthUser.mockResolvedValue({ id:"auth-user-1", email:"a@b.com", name:"Auth" }); mockServicesCreate.mockResolvedValue(pbRecord({ id:"pb15newid123456", userId:"auth-user-1" })); mockLogsGetList.mockResolvedValue({ items:[], totalItems:0 });
+  });
+  it("saveService omits id PB assigns + POST auth/defaults/cancelled source invariant", async () => {
+    const { saveService } = await import("@/lib/storage");
+    const payload={ userId:"auth-user-1", invoiceNumber:"INV-900", clientName:"Cliente Test", contact:"56999999999", product:"Televisor", locationId:"loc_pb_15_chars1", entryDate:new Date().toISOString(), status:"pending" as const, notes:"" } as any;
+    expect((payload as any).id).toBeUndefined(); const created=await saveService(payload);
+    expect(mockServicesCreate).toHaveBeenCalledTimes(1); const arg=mockServicesCreate.mock.calls[0][0] as Record<string,unknown>;
+    expect(arg).not.toHaveProperty("id"); expect(arg).not.toHaveProperty("$id"); expect(arg.userId).toBe("auth-user-1"); expect(created.id).toBe("pb15newid123456");
+    const sSrc=fs.readFileSync(path.join(process.cwd(),"lib/storage.ts"),"utf8"); expect(sSrc).not.toMatch(/generateId/); expect(sSrc).not.toMatch(/crypto\.randomUUID/);
+    const rSrc=fs.readFileSync(path.join(process.cwd(),"app/api/services/route.ts"),"utf8"); expect(rSrc).not.toMatch(/generateId/); expect(rSrc).not.toMatch(/crypto\.randomUUID/);
+    expect(sSrc).toContain('collection("services")'); expect(sSrc).toContain(".create("); expect(sSrc.slice(sSrc.indexOf("saveService"), sSrc.indexOf("saveService")+3000)).not.toContain("databases.createDocument");
+    const before=Date.now(); const { POST } = await import("@/app/api/services/route");
+    const req=new Request("http://localhost/api/services", { method:"POST", body:JSON.stringify({ invoiceNumber:"INV-901", clientName:"Cliente Uno", contact:"56911111111", product:"Celular", locationId:"loc_pb_15_chars1", userId:"evil-user" }), headers:{ "Content-Type":"application/json" } });
+    const res=await POST(req); expect(res.status).toBe(201); const body=await res.json(); expect(body.userId).toBe("auth-user-1"); expect(body.userId).not.toBe("evil-user"); expect(body.status).toBe("pending");
+    const a2=mockServicesCreate.mock.calls[1][0] as Record<string,unknown>; expect(a2.userId).toBe("auth-user-1"); expect(a2.status).toBe("pending"); expect(new Date(a2.entryDate as string).getTime()).toBeGreaterThanOrEqual(before);
+    mockServicesCreate.mockResolvedValue(pbRecord({ id:"pb15cancel123456", status:"cancelled", cancellationDate:new Date().toISOString() }));
+    const before2=Date.now(); const req2=new Request("http://localhost/api/services", { method:"POST", body:JSON.stringify({ invoiceNumber:"INV-902", clientName:"Cliente Dos", contact:"56922222222", product:"Tablet", locationId:"loc_pb_15_chars1", status:"cancelled" }), headers:{ "Content-Type":"application/json" } });
+    const res2=await POST(req2); expect(res2.status).toBe(201); const a3=mockServicesCreate.mock.calls[2][0] as Record<string,unknown>; expect(a3.status).toBe("cancelled"); expect(a3.cancellationDate).toBeDefined(); expect(new Date(a3.cancellationDate as string).getTime()).toBeGreaterThanOrEqual(before2);
+    const postSlice=rSrc.slice(rSrc.indexOf("export async function POST"), rSrc.indexOf("export async function POST")+2500); expect(postSlice).toContain("ServiceSchema.safeParse"); expect(postSlice.indexOf("ServiceSchema.safeParse")).toBeLessThan(postSlice.indexOf("saveService"));
+  });
+  it("POST unauthenticated 401 and invalid 400 no PB create triangulates", async () => {
+    mockGetAuthUser.mockResolvedValue(null); const { POST } = await import("@/app/api/services/route");
+    const req=new Request("http://localhost/api/services", { method:"POST", body:JSON.stringify({ invoiceNumber:"INV-903", clientName:"Cliente Tres", contact:"56933333333", product:"Laptop", locationId:"loc_pb_15_chars1" }), headers:{ "Content-Type":"application/json" } });
+    const res=await POST(req); expect(res.status).toBe(401); expect(await res.json()).toEqual({ error:"Unauthorized" }); expect(mockCreatePocketBaseClient).not.toHaveBeenCalled(); expect(mockServicesCreate).not.toHaveBeenCalled();
+    mockGetAuthUser.mockResolvedValue({ id:"auth-user-1", email:"a@b.com", name:"A" });
+    const payload={ invoiceNumber:"INV-904", contact:"56944444444", product:"Monitor", locationId:"loc_pb_15_chars1" } as any;
+    const req2=new Request("http://localhost/api/services", { method:"POST", body:JSON.stringify(payload), headers:{ "Content-Type":"application/json" } });
+    const res2=await POST(req2); expect(res2.status).toBe(400); expect((await res2.json()).error).toBe("Validation failed"); expect(mockServicesCreate).not.toHaveBeenCalled();
+    const payload2={ invoiceNumber:"INV-905", clientName:"Cliente Cuatro", contact:"56955555555", product:"Mouse", locationId:"loc_pb_15_chars1", status:"invalid_status" } as any;
+    const req3=new Request("http://localhost/api/services", { method:"POST", body:JSON.stringify(payload2), headers:{ "Content-Type":"application/json" } });
+    const res3=await POST(req3); expect(res3.status).toBe(400); expect((await res3.json()).error).toBe("Validation failed"); expect(mockServicesCreate).not.toHaveBeenCalled();
+  });
+});
+describe("services write WU5 — update/delete ownership/completed/delete-order + PUT/DELETE contract", () => {
+  beforeEach(() => {
+    vi.clearAllMocks(); mockGetAuthUser.mockReset(); mockServicesGetOne.mockReset(); mockServicesUpdate.mockReset(); mockServicesDelete.mockReset(); mockLogsGetList.mockReset(); mockLogsDelete.mockReset(); mockFilter.mockClear(); mockCollection.mockClear(); mockCreatePocketBaseClient.mockClear();
+    mockGetAuthUser.mockResolvedValue({ id:"owner-1", email:"owner@a.com", name:"Owner" }); mockLogsGetList.mockResolvedValue({ items:[], totalItems:0 });
+    mockServicesGetOne.mockResolvedValue(pbRecord({ id:"pb15svc00000001", userId:"owner-1", status:"pending", locationId:"loc1" })); mockServicesUpdate.mockResolvedValue(pbRecord({ id:"pb15svc00000001" })); mockServicesDelete.mockResolvedValue({});
+  });
+  it("completed immutable + ownership failure no mutation", async () => {
+    mockServicesGetOne.mockResolvedValue(pbRecord({ id:"pb15svc00000002", userId:"owner-1", status:"completed" }));
+    const { updateService } = await import("@/lib/storage");
+    await expect(updateService({ id:"pb15svc00000002", clientName:"Nuevo", invoiceNumber:"INV-1", contact:"56912345678", product:"Prod", locationId:"loc1", entryDate:new Date().toISOString(), status:"pending", userId:"owner-1", repairCost:0, notes:"" } as any, "owner-1")).rejects.toThrow(); expect(mockServicesUpdate).not.toHaveBeenCalled();
+    mockServicesGetOne.mockResolvedValue(pbRecord({ id:"pb15svc00000003", userId:"owner-1", status:"pending" }));
+    await expect(updateService({ id:"pb15svc00000003", clientName:"X", invoiceNumber:"INV-2", contact:"56912345678", product:"Prod", locationId:"loc1", entryDate:new Date().toISOString(), status:"pending", userId:"attacker", repairCost:0, notes:"" } as any, "attacker-1")).rejects.toThrow(); expect(mockServicesUpdate).not.toHaveBeenCalled();
+    mockServicesGetOne.mockResolvedValue(pbRecord({ id:"pb15svc00000004", userId:"owner-1" })); const { deleteService } = await import("@/lib/storage");
+    await expect(deleteService("pb15svc00000004", "attacker-1")).rejects.toThrow(); expect(mockServicesDelete).not.toHaveBeenCalled();
+    const { PUT } = await import("@/app/api/services/route"); mockGetAuthUser.mockResolvedValue({ id:"owner-1", email:"owner@a.com", name:"Owner" });
+    mockServicesGetOne.mockResolvedValue(pbRecord({ id:"pb15svc00000002", userId:"owner-1", status:"completed" }));
+    const putReq=new Request("http://localhost/api/services", { method:"PUT", body:JSON.stringify({ id:"pb15svc00000002", invoiceNumber:"INV-1", clientName:"Cliente", contact:"56912345678", product:"Prod", locationId:"loc1", status:"pending" }), headers:{ "Content-Type":"application/json" } });
+    const putRes=await PUT(putReq); expect(putRes.status).toBe(500); expect(mockServicesUpdate).not.toHaveBeenCalled();
+  });
+  it("PUT/DELETE without id 400 unauth 401 generic 500 no PB leak", async () => {
+    mockGetAuthUser.mockResolvedValue({ id:"owner-1", email:"a@b.com", name:"Owner" }); const { PUT } = await import("@/app/api/services/route");
+    const putReq=new Request("http://localhost/api/services", { method:"PUT", body:JSON.stringify({ invoiceNumber:"INV-1", clientName:"Cliente", contact:"56912345678", product:"Prod", locationId:"loc1" } as any), headers:{ "Content-Type":"application/json" } });
+    const putRes=await PUT(putReq); expect(putRes.status).toBe(400); expect(mockServicesUpdate).not.toHaveBeenCalled();
+    const { DELETE } = await import("@/app/api/services/route"); const delReq=new Request("http://localhost/api/services", { method:"DELETE" });
+    const delRes=await DELETE(delReq); expect(delRes.status).toBe(400); expect(mockServicesDelete).not.toHaveBeenCalled();
+    mockGetAuthUser.mockResolvedValue(null); const putReq2=new Request("http://localhost/api/services", { method:"PUT", body:JSON.stringify({ id:"pb15svc00000005", invoiceNumber:"INV-1", clientName:"C", contact:"56912345678", product:"P", locationId:"loc1" }), headers:{ "Content-Type":"application/json" } });
+    const putRes2=await PUT(putReq2); expect(putRes2.status).toBe(401); expect(await putRes2.json()).toEqual({ error:"Unauthorized" });
+    const delReq2=new Request("http://localhost/api/services?id=pb15svc00000005", { method:"DELETE" }); const delRes2=await DELETE(delReq2); expect(delRes2.status).toBe(401);
+    mockGetAuthUser.mockResolvedValue({ id:"owner-1", email:"a@b.com", name:"Owner" }); mockServicesCreate.mockRejectedValue(new Error("PocketBase connection failed at http://127.0.0.1:8090 details")); const { POST } = await import("@/app/api/services/route");
+    const postReq=new Request("http://localhost/api/services", { method:"POST", body:JSON.stringify({ invoiceNumber:"INV-999", clientName:"Cliente Fail", contact:"56999999999", product:"Prod", locationId:"loc1" }), headers:{ "Content-Type":"application/json" } });
+    const postRes=await POST(postReq); expect(postRes.status).toBe(500); expect((await postRes.json()).error).not.toMatch(/PocketBase|127\.0\.0\.1/);
+    mockServicesGetOne.mockResolvedValue(pbRecord({ id:"pb15svc00000006", userId:"owner-1", status:"pending" })); mockServicesUpdate.mockRejectedValue(new Error("PocketBase update failed secret"));
+    const putReq3=new Request("http://localhost/api/services", { method:"PUT", body:JSON.stringify({ id:"pb15svc00000006", invoiceNumber:"INV-1", clientName:"Cliente", contact:"56912345678", product:"Prod", locationId:"loc1", status:"pending" }), headers:{ "Content-Type":"application/json" } });
+    const putRes3=await PUT(putReq3); expect(putRes3.status).toBe(500); expect(JSON.stringify(await putRes3.json())).not.toMatch(/PocketBase/);
+  });
+  it("delete logs first abort on failure and peer/completed triangulate", async () => {
+    mockGetAuthUser.mockResolvedValue({ id:"owner-1", email:"a@b.com", name:"Owner" }); mockServicesGetOne.mockResolvedValue(pbRecord({ id:"pb15svc00000007", userId:"owner-1" }));
+    mockLogsGetList.mockResolvedValue({ items:[{ id:"log1", ServiceId:"pb15svc00000007" },{ id:"log2", ServiceId:"pb15svc00000007" }], totalItems:2 }); mockLogsDelete.mockResolvedValueOnce({}).mockRejectedValueOnce(new Error("log delete fail"));
+    const { deleteService } = await import("@/lib/storage"); await expect(deleteService("pb15svc00000007", "owner-1")).rejects.toThrow(); expect(mockLogsDelete).toHaveBeenCalledTimes(2); expect(mockServicesDelete).not.toHaveBeenCalled();
+    const sSrc=fs.readFileSync(path.join(process.cwd(),"lib/storage.ts"),"utf8"); const delSlice=sSrc.slice(sSrc.indexOf("deleteService"), sSrc.indexOf("deleteService")+4000);
+    expect(delSlice).toContain("location_logs"); expect(delSlice).toContain("ServiceId"); expect(delSlice.indexOf("location_logs")).toBeLessThan(delSlice.lastIndexOf("delete("));
+    vi.clearAllMocks(); mockGetAuthUser.mockResolvedValue({ id:"owner-1", email:"a@b.com", name:"Owner" }); mockServicesGetOne.mockResolvedValue(pbRecord({ id:"pb15svc00000008", userId:"owner-1" })); mockLogsGetList.mockResolvedValue({ items:[{ id:"logA" },{ id:"logB" }], totalItems:2 }); mockLogsDelete.mockResolvedValue({}); mockServicesDelete.mockResolvedValue({}); mockCreatePocketBaseClient.mockResolvedValue({ filter: mockFilter, collection: mockCollection } as any);
+    const { deleteService:del2 } = await import("@/lib/storage"); await del2("pb15svc00000008", "owner-1"); expect(mockLogsDelete).toHaveBeenCalledTimes(2); expect(mockServicesDelete).toHaveBeenCalledWith("pb15svc00000008");
+    mockGetAuthUser.mockResolvedValue({ id:"owner-1", email:"owner@a.com", name:"Owner" }); mockServicesGetOne.mockResolvedValue(pbRecord({ id:"pb15svc00000009", userId:"owner-1" })); mockLogsGetList.mockResolvedValue({ items:[{ id:"logX" }], totalItems:1 }); mockLogsDelete.mockResolvedValue({});
+    const { DELETE } = await import("@/app/api/services/route"); const delReq=new Request("http://localhost/api/services?id=pb15svc00000009", { method:"DELETE" }); const delRes=await DELETE(delReq); expect(delRes.status).toBe(200);
+    mockGetAuthUser.mockResolvedValue({ id:"attacker-1", email:"attacker@a.com", name:"Attacker" }); mockServicesGetOne.mockResolvedValue(pbRecord({ id:"pb15svc00000010", userId:"owner-1", status:"pending" }));
+    const { PUT:putPeer } = await import("@/app/api/services/route"); const putPeerReq=new Request("http://localhost/api/services", { method:"PUT", body:JSON.stringify({ id:"pb15svc00000010", invoiceNumber:"INV-1", clientName:"Cliente", contact:"56912345678", product:"Prod", locationId:"loc1", status:"pending" }), headers:{ "Content-Type":"application/json" } });
+    const putPeerRes=await putPeer(putPeerReq); expect(putPeerRes.status).toBe(500); expect(mockServicesUpdate).not.toHaveBeenCalled();
+    mockGetAuthUser.mockResolvedValue({ id:"owner-1", email:"owner@a.com", name:"Owner" }); mockServicesGetOne.mockResolvedValue(pbRecord({ id:"pb15svc00000012", userId:"owner-1", status:"completed", locationId:"loc1" }));
+    const putCompReq=new Request("http://localhost/api/services", { method:"PUT", body:JSON.stringify({ id:"pb15svc00000012", invoiceNumber:"INV-1", clientName:"Cliente", contact:"56912345678", product:"Prod", locationId:"loc2", status:"pending" }), headers:{ "Content-Type":"application/json" } });
+    const putCompRes=await putPeer(putCompReq); expect(putCompRes.status).toBe(500); expect(mockServicesUpdate).not.toHaveBeenCalled();
+  });
+  it("storage uses PB for writes no Appwrite fallback sole pb.filter", () => {
+    const sSrc=fs.readFileSync(path.join(process.cwd(),"lib/storage.ts"),"utf8"); expect(sSrc).toContain("createPocketBaseClient");
+    const upd=sSrc.slice(sSrc.indexOf("updateService"), sSrc.indexOf("updateService")+3000); expect(upd).not.toContain("databases.updateDocument"); expect(upd).not.toContain("databases.getDocument"); expect(upd).toContain('collection("services")'); expect(upd).toContain(".getOne"); expect(upd).toContain(".update");
+    const del=sSrc.slice(sSrc.indexOf("deleteService"), sSrc.indexOf("deleteService")+4000); expect(del).not.toContain("databases.deleteDocument"); expect(del).not.toContain("Query.equal"); expect(del).toContain('collection("location_logs")'); expect(del).toContain('collection("services")');
+    const fSrc=fs.readFileSync(path.join(process.cwd(),"lib/pocketbase-filter.ts"),"utf8"); expect((fSrc.match(/pb\.filter/g) ?? []).length).toBe(1);
+    const rSrc=fs.readFileSync(path.join(process.cwd(),"app/api/services/route.ts"),"utf8"); expect(rSrc).not.toContain("databases"); expect(rSrc).not.toContain("Query"); expect(rSrc).not.toContain("ID.unique");
   });
 });
