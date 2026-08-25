@@ -12,7 +12,7 @@ The pipeline is backend-agnostic and durable: the same checks and publications a
 4. Push the stable tag `vX.Y.Z` only; do not push prerelease tags for publication.
 5. Observe the workflow `preflight → release (environment: release) → verify` and confirm success before announcing.
 
-Documentation changes never publish by themselves; only a stable tag triggers publication.
+Documentation changes and container images never publish by themselves; only a stable tag triggers publication — merge to `main` publishes nothing.
 
 ## Contract
 
@@ -26,7 +26,7 @@ Documentation changes never publish by themselves; only a stable tag triggers pu
 | GitHub Release | Created via `gh release create --verify-tag --notes-file docs/releases/<tag>.md`; never `--generate-notes`. |
 | GHCR tags | One build pushes four tags `vX.Y.Z`, `X.Y`, `X`, `latest` to `ghcr.io/jonasotoaguilar/serviceflow`. |
 | Verification | `scripts/release-verify` inspects the four tags with `docker buildx imagetools inspect --raw` and requires identical SHA256 digests. |
-| Deploy ownership | `.github/workflows/deploy.yml` publishes `latest` from `main` only; it does not own stable version tags. |
+| Deploy ownership | `.github/workflows/release.yml` is the only image publisher; stable tag publishes version tags + `latest`; merge to `main` publishes nothing. |
 
 ## Protection prerequisites before the first tag
 
@@ -58,5 +58,4 @@ To roll back a deployment, redeploy by the immutable prior digest recorded befor
 - Workflow: `.github/workflows/release.yml`
 - Hooks: `scripts/release-preflight`, `scripts/release-publish`, `scripts/release-verify`
 - Current notes: `docs/releases/v2.0.0.md`
-- Deploy: `.github/workflows/deploy.yml`
 - Image: `ghcr.io/jonasotoaguilar/serviceflow`
