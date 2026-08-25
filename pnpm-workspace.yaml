@@ -11,6 +11,7 @@ minimumReleaseAgeExclude:
   - "typescript"
   - "@biomejs/biome"
   - "@biomejs/*"
+  - "pocketbase"
 
 blockExoticSubdeps: true
 
