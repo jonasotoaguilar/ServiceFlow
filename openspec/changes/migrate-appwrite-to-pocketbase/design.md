@@ -59,13 +59,13 @@ No admin client, no module-scope PocketBase, no Appwrite locator fallback.
 
 ## ADR-style decisions
 
-### ADR-1 — Request-scoped PocketBase client, `pb_auth` only
+### ADR-1 — Request-scoped PocketBase client, `pb_auth` only with server validation
 
-**Status:** Accepted
+**Status:** Accepted (amended 2026-08-22 — gate FAIL: `authRefresh` required)
 
-**Context:** The JS SDK keeps a mutable `authStore` on the client instance. A process-wide singleton would leak user A onto user B's concurrent RSC/action. The current `lib/appwrite.ts` already exports a module-scope admin `databases` client; that pattern must not be copied.
+**Context:** The JS SDK keeps a mutable `authStore` on the client instance. A process-wide singleton would leak user A onto user B's concurrent RSC/action. The current `lib/appwrite.ts` already exports a module-scope admin `databases` client; that pattern must not be copied. Expiry-only `authStore.isValid` is insufficient — a forged cookie with future `exp`/tampered record would otherwise be trusted.
 
-**Decision:** Every server request that talks to PocketBase constructs `new PocketBase(getPocketBaseUrl())`. Request-client hydration MUST `await cookies()` (Next.js 16 async cookies API; never call `cookies()` synchronously) and read only the `pb_auth` cookie. Hydrate `authStore` only from that value via official `authStore.save(token, record)` after JSON-parsing the cookie. Ignore query strings, bodies, and the legacy `session` cookie. If the cookie is missing or not well-formed, leave the client unauthenticated and do not throw an identity.
+**Decision:** Every server request that talks to PocketBase constructs `new PocketBase(getPocketBaseUrl())`. Request-client hydration MUST `await cookies()` (Next.js 16 async cookies API; never call `cookies()` synchronously) and read only the `pb_auth` cookie. Hydrate `authStore` only from that value via official `authStore.save(token, record)` after JSON-parsing the cookie, then MUST call `pb.authRefresh()` (or equivalent server validation) before `getAuthUser` returns an identity. On `authRefresh` success use the refreshed record; on forged/tampered record or invalid signature → unauthenticated (`null`/401); on transport failure/unreachable → fail closed (no identity, no Appwrite admin fallback). Ignore query strings, bodies, and the legacy `session` cookie. If the cookie is missing or not well-formed, leave the client unauthenticated and do not throw an identity. No cache yet. Verification is required; refreshed cookie persistence is only allowed in mutable Server Action/Route Handler (`await cookies()` `set`); RSC can verify but MUST NOT attempt to persist cookies (Next.js RSC cookie-write limitation).
 
 **Sources:** [Authentication](https://pocketbase.io/docs/authentication), [JS SDK](https://github.com/pocketbase/js-sdk) SSR guidance that a new client is required per request so `authStore` does not leak.
 
@@ -75,9 +75,9 @@ No admin client, no module-scope PocketBase, no Appwrite locator fallback.
 | --- | --- | --- |
 | Module-scope `new PocketBase` | Fast, matches today's Appwrite singleton | Cross-request identity leak |
 | `loadFromCookie(entire Cookie header)` | Official helper | Would see `session` sitting next to `pb_auth`; we must not treat `session` as PocketBase auth |
-| `authRefresh()` on every `getAuthUser` | Confirms token against PB | Mutating cookies from RSC is illegal in Next 15+; extra network on every page; PB downtime would blank the session during render. Data calls already fail closed |
+| `authRefresh()` on every `getAuthUser` | Server-validates token before trusting identity; refreshed record is authority; no cache yet | Required for security — RSC verifies but persists refreshed cookie only in Server Action/Route (RSC cookie-write limitation); PB failure → fail closed (`null`/401), extra network accepted |
 
-`getAuthUser` is local and MUST `await cookies()` (directly or through the request-client helper). It hydrates + checks `authStore.isValid` + returns `{ id, email, name }` from the stored record. No network. Unreachable PocketBase fails closed on the first collection call, not by inventing an anonymous session.
+`getAuthUser` MUST `await cookies()`, hydrate via `authStore.save`, then `await pb.authRefresh()` to validate before returning `{ id, email, name }` from the refreshed record; on forged/invalid → `null`, on failure/unreachable → `null` fail closed with `401` where applicable, never raw-cookie identity nor Appwrite fallback. RSC callers verify but do not persist the refreshed cookie; persistence only in Server Action/Route Handler. No cache yet.
 
 ### ADR-2 — Runtime env is only `POCKETBASE_URL`
 
@@ -427,15 +427,23 @@ sequenceDiagram
   participant RSC as Server Component
   participant Auth as getAuthUser
   participant Client as createPocketBaseClient
+  participant PB as PocketBase
   RSC->>Auth: getAuthUser
-  Auth->>Client: await cookies, read pb_auth only
-  alt missing or malformed or expired
+  Auth->>Client: await cookies, read pb_auth
+  alt missing/malformed
     Client-->>Auth: unauthenticated
     Auth-->>RSC: null
-  else valid token and record
-    Client-->>Auth: authStore saved
-    Auth-->>RSC: id email name
+  else hydrated
+    Auth->>PB: authRefresh validation
+    alt forged/invalid or unreachable → fail closed
+      PB-->>Auth: fail → null/401
+      Auth-->>RSC: null
+    else success
+      PB-->>Auth: refreshed record
+      Auth-->>RSC: id email name
+    end
   end
+  Note over Auth,RSC: RSC verifies; cookie persist only in Action/Route
 ```
 
 ### Service list filtering
@@ -568,7 +576,7 @@ Provider review budgets count `additions + deletions` of all files including `pn
 | --- | --- | --- | --- |
 | 1a | `lib/env.ts`, `pocketbase/v1.collections.json`, tests `env-pocketbase` + `schema-artifact` | ~140 | Appwrite still compiled; no UI wiring |
 | 1b | `pocketbase` dep, `lib/pocketbase.ts`, `lib/pocketbase-filter.ts`, tests `pocketbase-filter` + `pocketbase-client`, `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml` | ~271 | Owns pocketbase dependency/lockfile/workspace; provider budget counts all files |
-| 2a | `lib/pocketbase.ts` cookie helpers + `lib/auth.ts` `getAuthUser`, RED/GREEN/TRIANGULATE tests in `tests/auth-session.test.ts` (cookie helpers + getAuthUser) — base planning branch | <=300 | `pb_auth` helpers + `getAuthUser` from hydrated `authStore`, no network |
+| 2a | `lib/pocketbase.ts` cookie helpers + `lib/auth.ts` `getAuthUser`, RED/GREEN/TRIANGULATE tests in `tests/auth-session.test.ts` (cookie helpers + `getAuthUser` via `authRefresh`) — base planning branch | <=300 | `pb_auth` helpers + `getAuthUser` server-validated via `authRefresh` before identity, forged→`null`/401, unreachable→fail closed, no cache; RSC verify, Action/Route persists |
 | 2b | `app/actions/auth.ts` login/register/logout + error mapping/Zod ordering, RED/GREEN/TRIANGULATE tests — base 02a | <=380 | Server Zod before PB; deterministic errors; `passwordConfirm` + `authWithPassword` |
 | 2c | Root `proxy.ts` janitor + login/register empty-start banner (`app/login/page.tsx`, `app/register/page.tsx`) + verification — base 02b | <=250 | Janitor expires `session` only; Spanish notice; `auth-session` verification green |
 | 3 | `getLocations` read + locations page still gated | 150–220 | First slice: notice → empty location list |
@@ -616,6 +624,7 @@ Out of scope: CI/Husky/Dependabot/`CODEOWNERS`/`SECURITY.md`/`DESIGN.md`; Pocket
 | Forms / JSON | Account and ticket data | Server Zod; ownership from `getAuthUser` |
 | `search` query | Filter injection | Bound `{:search}` only |
 | PocketBase responses | Tenant rows | Map known fields; rules + app filter |
+| Forged `pb_auth` / Appwrite admin | Session impersonation, tenant bypass | `authRefresh` server validation before identity; forged future-`exp`/tampered `id` → unauthenticated `null`/401; failure/unreachable → fail closed; no Appwrite admin query; RSC verification, refreshed cookie persistence only in Action/Route; no cache yet |
 | Admin UI | Schema and all rows | Operator-only; outside runtime |
 
 Residual risk: operator applies wrong rules. Mitigation: artifact tests + verification checklist + app-level `userId` filters. Residual risk: PB down. Mitigation: data path fails closed with generic errors; no anonymous success.

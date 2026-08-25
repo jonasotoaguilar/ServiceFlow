@@ -119,11 +119,11 @@ main
 
 **Depends on:** WU1b merged to its base and planning `feat/migrate-appwrite-to-pocketbase-02-auth-split-plan` applied (planning docs-only). **Specs:** `auth-session`, `pocketbase-access` (cookie flags, ignore/clear `session`). **Do not** rewrite storage or data pages yet. Old WU2 forecast 574–737 split pre-emptively; this slice guarantees headroom at <=300 provider lines.
 
-### 3.1 Cookie helpers + getAuthUser — RED → GREEN → TRIANGULATE
+### 3.1 Cookie helpers + getAuthUser — RED → GREEN → TRIANGULATE (server-validated)
 
-- [ ] RED: add `tests/auth-session.test.ts` cases: `getAuthUser` in `lib/auth.ts` returns `{ id, email, name }` from hydrated store and `authStore.isValid` with **no network**; missing/malformed `pb_auth` → `null`; only `session` → `null`. Focused test fails. <!-- sdd-owner: implementation -->
-- [ ] GREEN: implement `saveAuthCookie`, `clearAuthCookie`, `clearLegacySessionCookie` on `lib/pocketbase.ts` (`await cookies()`, `httpOnly`, `sameSite=lax`, `path=/`, `secure` iff `NODE_ENV === "production"`, `expires` from JWT `exp` when parseable). Rewrite `getAuthUser` onto the request client. Never log cookie values. Focused cases pass. <!-- sdd-owner: implementation -->
-- [ ] TRIANGULATE: expired/invalid store → `null` without throwing. REFACTOR shared cookie name constants. <!-- sdd-owner: implementation -->
+- [x] RED: add `tests/auth-session.test.ts` cases: `getAuthUser` server-validates via `authRefresh` (or equivalent) after hydrating `pb_auth`; forged `pb_auth` with future `exp`/tampered victim `id`/invalid signature → `null` (route `401`), missing/malformed/`session`-only → `null`, `authRefresh` failure/unreachable → `null` fail-closed with no Appwrite admin query; valid refresh uses refreshed record. Focused test fails. <!-- sdd-owner: implementation -->
+- [x] GREEN: implement `saveAuthCookie`, `clearAuthCookie`, `clearLegacySessionCookie` on `lib/pocketbase.ts` (`await cookies()`, `httpOnly`, `sameSite=lax`, `path=/`, `secure` iff `NODE_ENV === "production"`, `expires` from JWT `exp` when parseable). Rewrite `getAuthUser` to hydrate then `await pb.authRefresh()` before returning identity; on success return refreshed record, on forged/invalid/unreachable fail closed; never log cookie values; never query Appwrite. Focused cases pass. <!-- sdd-owner: implementation -->
+- [x] TRIANGULATE: forged future-exp/tampered record → `null` via `authRefresh` `401`; unreachable/transport → `null` fail-closed; expired/invalid store still `null`; shared cookie name constants. REFACTOR while green; no cache. <!-- sdd-owner: implementation -->
 
 ---
 
