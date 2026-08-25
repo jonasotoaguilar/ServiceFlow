@@ -1,0 +1,48 @@
+schema: spec-driven
+
+context: |
+  Tech stack: Next.js 16 (App Router), React 19, TypeScript 5.9 (strict), Tailwind CSS 4, Appwrite (node-appwrite 14), pnpm 11 workspace.
+  Architecture: App Router pages under app/, shared lib/ (appwrite client, schemas, auth), components/ UI kit (Radix + cva + shadcn-style), zod schemas for validation.
+  Testing: Vitest 4 + Testing Library (jsdom) in tests/; 17 unit/component tests passing; no E2E layer; coverage provider not installed.
+  Style: ESLint 9 flat config (eslint-config-next), tsc --noEmit typecheck, husky + lint-staged (eslint --fix); no formatter.
+  Conventions: PRD.md / ARCHITECTURE.md / DESIGN.md at repo root; PR review budget 400 lines; conventional commits.
+
+strict_tdd: true
+
+testing:
+  runner: pnpm test:run (vitest run)
+  layers:
+    unit: vitest
+    integration: "@testing-library/react + jsdom"
+    e2e: null
+  coverage:
+    available: false
+    command: pnpm coverage (requires installing @vitest/coverage-v8)
+  quality:
+    linter: pnpm run lint (eslint .)
+    typecheck: pnpm exec tsc --noEmit
+    formatter: null
+
+rules:
+  proposal:
+    - State intent, scope, and approach; include rollback plan for risky changes
+  specs:
+    - Use Given/When/Then for scenarios
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+  design:
+    - Include sequence diagrams for complex flows
+    - Document architecture decisions with rationale
+  tasks:
+    - Group by phase, use hierarchical numbering
+    - Keep tasks completable in one session
+  apply:
+    guidelines:
+      - Follow existing code patterns
+    tdd: true
+    test_command: pnpm test:run
+  verify:
+    test_command: pnpm test:run
+    build_command: pnpm run build
+    coverage_threshold: 0
+  archive:
+    - Warn before merging destructive deltas

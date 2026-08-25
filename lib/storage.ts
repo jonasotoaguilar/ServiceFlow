@@ -1,39 +1,19 @@
-import { databases, COLLECTIONS, DB_ID, Query, ID } from "@/lib/appwrite";
 import { Service, ServiceStatus } from "./types";
+import { createPocketBaseClient } from "@/lib/pocketbase";
+import { serviceListBinding, applyBinding } from "@/lib/pocketbase-filter";
 
-// Helper to convert Appwrite document to Service type
-function mapToService(
-	item: any,
-	locMap: Map<string, any>,
-	logs: any[] = [],
-): Service {
+// Helper to convert PocketBase document to Service type (WU4 read-only)
+function mapToService(item: any, locMap: Map<string, any>): Service {
 	const locationName = locMap.get(item.locationId)?.name || "Sin Sede";
-
-	// Sort logs for this Service
-	const ServiceLogs = logs
-		.filter((l) => l.ServiceId === item.$id)
-		.sort(
-			(a, b) =>
-				new Date(b.changedAt).getTime() - new Date(a.changedAt).getTime(),
-		)
-		.map((log) => ({
-			...log,
-			id: log.$id,
-			fromLocation: locMap.get(log.fromLocationId)?.name || "Desconocido",
-			toLocation: locMap.get(log.toLocationId)?.name || "Desconocido",
-			changedAt: log.changedAt, // Already string in Appwrite
-		}));
-
 	return {
 		...item,
-		id: item.$id, // Map $id to id
+		id: item.id,
 		location: locationName,
 		entryDate: item.entryDate,
 		deliveryDate: item.deliveryDate || undefined,
 		readyDate: item.readyDate || undefined,
 		cancellationDate: item.cancellationDate || undefined,
 		status: item.status as ServiceStatus,
-		locationLogs: ServiceLogs,
 	};
 }
 
@@ -46,242 +26,162 @@ export async function getServices(params?: {
 	userId?: string;
 	sortOrder?: "asc" | "desc";
 }): Promise<{ data: Service[]; total: number; page: number; limit: number }> {
-	const page = params?.page || 1;
-	const limit = params?.limit || 20;
-	const offset = (page - 1) * limit;
-
-	const queries: string[] = [
-		Query.limit(limit),
-		Query.offset(offset),
-		params?.sortOrder === "desc" ? Query.orderDesc("entryDate") : Query.orderAsc("entryDate"),
-	];
-
-	if (params?.userId) {
-		queries.push(Query.equal("userId", params.userId));
-	}
-
-	if (params?.status && params.status.length > 0) {
-		queries.push(Query.equal("status", params.status));
-	}
-
-	if (params?.location) {
-		queries.push(Query.equal("locationId", params.location));
-	}
-
-	if (params?.search) {
-		const search = params.search;
-		// Note: 'search' requires FullText index
-		// 'starsWith' works on Key index
-		queries.push(
-			Query.or([
-				Query.search("clientName", search),
-				Query.search("invoiceNumber", search),
-				Query.search("rut", search),
-			]),
-		);
-	}
-
+	const page = params?.page && Number.isFinite(params.page) && params.page > 0 ? Math.floor(params.page) : 1;
+	const limit = params?.limit && Number.isFinite(params.limit) && params.limit > 0 ? Math.floor(params.limit) : 20;
+	const sort = params?.sortOrder === "desc" ? "-entryDate" : "entryDate";
+	const userId = params?.userId ?? "";
+	const binding = serviceListBinding({
+		userId,
+		search: params?.search,
+		status: params?.status,
+		locationId: params?.location,
+	});
 	try {
-		const result = await databases.listDocuments(
-			DB_ID,
-			COLLECTIONS.Services,
-			queries,
-		); // Casting query array to any[] if TS complains, but string[] is correct for SDK
-
-		if (result.documents.length === 0) {
-			return { data: [], total: result.total, page, limit };
-		}
-
-		// Batch Fetch Relations
-		const ServiceIds = result.documents.map((d) => d.$id);
-
-		// 1. Fetch Logs for these Services
-		// Limit logs? If a Service has 100 logs, fetching all might be too much,
-		// but usually they have few. Let's fetch reasonably.
-		// We can't easily limit "per parent" in one query.
-		// We'll fetch all logs where ServiceId IN [...].
-		const logsResult = await databases.listDocuments(
-			DB_ID,
-			COLLECTIONS.LOCATION_LOGS,
-			[
-				Query.equal("ServiceId", ServiceIds),
-				Query.limit(1000), // Sanity limit
-			],
-		);
-
-		// 2. Collect all Location IDs
-		const locationIds = new Set<string>();
-
-		// From Services
-		result.documents.forEach((d) => locationIds.add(d.locationId));
-
-		// From logs
-		logsResult.documents.forEach((l) => {
-			locationIds.add(l.fromLocationId);
-			locationIds.add(l.toLocationId);
+		const pb = await createPocketBaseClient();
+		const filter = applyBinding(pb, binding);
+		const result = await pb.collection("services").getList(page, limit, {
+			filter,
+			sort,
 		});
-
-		// 3. Fetch Locations
-		const locationsResult = await databases.listDocuments(
-			DB_ID,
-			COLLECTIONS.LOCATIONS,
-			[
-				Query.equal("$id", Array.from(locationIds)),
-				Query.limit(100), // Sanity limit
-			],
-		);
-
-		const locMap = new Map(locationsResult.documents.map((l) => [l.$id, l]));
-
-		const data = result.documents.map((doc) =>
-			mapToService(doc, locMap, logsResult.documents),
-		);
-
-		return {
-			data,
-			total: result.total,
-			page,
-			limit,
-		};
+		const total = typeof (result as { totalItems?: number }).totalItems === "number"
+			? (result as { totalItems: number }).totalItems
+			: 0;
+		if (!result.items || result.items.length === 0) {
+			return { data: [], total, page, limit };
+		}
+		const locationIds = new Set<string>();
+		for (const doc of result.items as Array<{ locationId?: string }>) {
+			if (doc.locationId) locationIds.add(doc.locationId);
+		}
+		let locMap = new Map<string, any>();
+		if (locationIds.size > 0) {
+			const ids = Array.from(locationIds);
+			const parts = ids.map((_, i) => `id = {:id${i}}`).join(" || ");
+			const locParams: Record<string, unknown> = {};
+			ids.forEach((id, i) => {
+				locParams[`id${i}`] = id;
+			});
+			const locFilter = applyBinding(pb, { filter: parts, params: locParams });
+			const locRes = await pb.collection("locations").getList(1, 100, {
+				filter: locFilter,
+			});
+			locMap = new Map((locRes.items as Array<{ id: string }>).map((l) => [l.id, l]));
+		}
+		const data = (result.items as any[]).map((doc) => mapToService(doc, locMap));
+		return { data, total, page, limit };
 	} catch (error) {
 		console.error("Error fetching Services:", error);
 		throw error;
 	}
 }
 
-export async function saveService(Service: Service): Promise<void> {
-	try {
-		await databases.createDocument(DB_ID, COLLECTIONS.Services, Service.id, {
-			userId: Service.userId,
-			invoiceNumber: Service.invoiceNumber,
-			clientName: Service.clientName,
-			rut: Service.rut,
-			contact: Service.contact,
-			email: Service.email,
-			product: Service.product,
-			failureDescription: Service.failureDescription,
-			sku: Service.sku,
-			locationId: Service.locationId,
-			entryDate: new Date(Service.entryDate).toISOString(), // ensure ISO format
-			deliveryDate: Service.deliveryDate
-				? new Date(Service.deliveryDate).toISOString()
+export async function saveService(service: Omit<Service, "id">): Promise<Service> {
+	const pb = await createPocketBaseClient();
+	const now = new Date().toISOString();
+	const payload: Record<string, unknown> = {
+		userId: service.userId,
+		invoiceNumber: service.invoiceNumber,
+		clientName: service.clientName,
+		rut: service.rut,
+		contact: service.contact,
+		email: service.email,
+		product: service.product,
+		failureDescription: service.failureDescription,
+		sku: service.sku,
+		locationId: service.locationId,
+		entryDate: service.entryDate ? new Date(service.entryDate).toISOString() : now,
+		deliveryDate: service.deliveryDate ? new Date(service.deliveryDate).toISOString() : null,
+		readyDate: service.readyDate ? new Date(service.readyDate).toISOString() : null,
+		cancellationDate: service.cancellationDate
+			? new Date(service.cancellationDate).toISOString()
+			: service.status === "cancelled"
+				? now
 				: null,
-			readyDate: Service.readyDate
-				? new Date(Service.readyDate).toISOString()
-				: null,
-			cancellationDate: Service.cancellationDate
-				? new Date(Service.cancellationDate).toISOString()
-				: null,
-			status: Service.status,
-			repairCost: Service.repairCost,
-			notes: Service.notes,
-		});
-	} catch (error) {
-		console.error("Error saving Service:", error);
-		throw error;
-	}
+		status: service.status ?? "pending",
+		repairCost: service.repairCost,
+		notes: service.notes ?? "",
+	};
+	const record = (await pb.collection("services").create(payload)) as any;
+	return {
+		...record,
+		id: record.id,
+		entryDate: record.entryDate,
+		deliveryDate: record.deliveryDate || undefined,
+		readyDate: record.readyDate || undefined,
+		cancellationDate: record.cancellationDate || undefined,
+		status: record.status as ServiceStatus,
+	} as Service;
 }
 
-export async function updateService(
-	updatedService: Service,
-	userId?: string,
-): Promise<void> {
-	// 1. Get current to check ownership and diff
-	const current = await databases.getDocument(
-		DB_ID,
-		COLLECTIONS.Services,
-		updatedService.id,
-	);
-
+export async function updateService(updatedService: Service, userId?: string): Promise<void> {
+	const pb = await createPocketBaseClient();
+	let current: any;
+	try {
+		current = await pb.collection("services").getOne(updatedService.id);
+	} catch {
+		throw new Error("No Service found or access denied");
+	}
 	if (userId && current.userId !== userId) {
 		throw new Error("No Service found or access denied");
 	}
-
 	if (current.status === "completed") {
 		throw new Error("Cannot modify a completed Service");
 	}
-
-	// 2. Update Service
-	await databases.updateDocument(
-		DB_ID,
-		COLLECTIONS.Services,
-		updatedService.id,
-		{
-			invoiceNumber: updatedService.invoiceNumber,
-			clientName: updatedService.clientName,
-			rut: updatedService.rut,
-			contact: updatedService.contact,
-			email: updatedService.email,
-			product: updatedService.product,
-			failureDescription: updatedService.failureDescription,
-			sku: updatedService.sku,
-			locationId: updatedService.locationId,
-			entryDate: new Date(updatedService.entryDate).toISOString(),
-			deliveryDate: updatedService.deliveryDate
-				? new Date(updatedService.deliveryDate).toISOString()
-				: null,
-			readyDate: updatedService.readyDate
-				? new Date(updatedService.readyDate).toISOString()
-				: null,
-			cancellationDate: updatedService.cancellationDate
-				? new Date(updatedService.cancellationDate).toISOString()
-				: null,
-			status: updatedService.status,
-			repairCost: updatedService.repairCost,
-			notes: updatedService.notes,
-		},
-	);
-
-	// 3. Create Log if Location changed
-	if (current.locationId !== updatedService.locationId) {
-		if (
-			updatedService.status === "completed" &&
-			current.status !== "completed"
-		) {
-			// Skip logic as per original
-		} else {
-			await databases.createDocument(
-				DB_ID,
-				COLLECTIONS.LOCATION_LOGS,
-				ID.unique(),
-				{
-					userId: current.userId, // use owner ID
-					ServiceId: updatedService.id,
-					fromLocationId: current.locationId,
-					toLocationId: updatedService.locationId,
-					changedAt: new Date().toISOString(),
-				},
-			);
-		}
+	const now = new Date().toISOString();
+	const payload: Record<string, unknown> = {
+		invoiceNumber: updatedService.invoiceNumber,
+		clientName: updatedService.clientName,
+		rut: updatedService.rut,
+		contact: updatedService.contact,
+		email: updatedService.email,
+		product: updatedService.product,
+		failureDescription: updatedService.failureDescription,
+		sku: updatedService.sku,
+		locationId: updatedService.locationId,
+		entryDate: updatedService.entryDate ? new Date(updatedService.entryDate).toISOString() : current.entryDate,
+		deliveryDate: updatedService.deliveryDate ? new Date(updatedService.deliveryDate).toISOString() : null,
+		readyDate: updatedService.readyDate ? new Date(updatedService.readyDate).toISOString() : null,
+		cancellationDate: updatedService.cancellationDate
+			? new Date(updatedService.cancellationDate).toISOString()
+			: updatedService.status === "cancelled" && !current.cancellationDate
+				? now
+				: current.cancellationDate ?? null,
+		status: updatedService.status,
+		repairCost: updatedService.repairCost,
+		notes: updatedService.notes,
+	};
+	const fromLocationId = current.locationId as string | undefined;
+	const toLocationId = updatedService.locationId as string | undefined;
+	const isLocationChanged = !!fromLocationId && !!toLocationId && fromLocationId !== toLocationId;
+	const isCompleting = current.status !== "completed" && updatedService.status === "completed";
+	await pb.collection("services").update(updatedService.id, payload);
+	if (isLocationChanged && !isCompleting) {
+		await pb.collection("location_logs").create({
+			userId: current.userId,
+			ServiceId: updatedService.id,
+			fromLocationId,
+			toLocationId,
+			changedAt: now,
+		});
 	}
 }
 
 export async function deleteService(id: string, userId?: string): Promise<void> {
-	const current = await databases.getDocument(DB_ID, COLLECTIONS.Services, id);
-
+	const pb = await createPocketBaseClient();
+	let current: any;
+	try {
+		current = await pb.collection("services").getOne(id);
+	} catch {
+		throw new Error("No Service found or access denied");
+	}
 	if (userId && current.userId !== userId) {
 		throw new Error("No Service found or access denied");
 	}
-
-	// 1. Fetch all related location logs
-	try {
-		const logs = await databases.listDocuments(DB_ID, COLLECTIONS.LOCATION_LOGS, [
-			Query.equal("ServiceId", id),
-			Query.limit(100), // Assuming reasonable amount of logs
-		]);
-
-		// 2. Delete each log
-		const deleteLogsPromises = logs.documents.map((log) =>
-			databases.deleteDocument(DB_ID, COLLECTIONS.LOCATION_LOGS, log.$id),
-		);
-
-		await Promise.all(deleteLogsPromises);
-	} catch (error) {
-		console.error("Error deleting related logs:", error);
-		// We continue to delete the Service even if logs deletion fails,
-		// but ideally we'd want this to be atomic.
+	const filter = applyBinding(pb, { filter: "ServiceId = {:sid}", params: { sid: id } });
+	const logsRes = await pb.collection("location_logs").getList(1, 100, { filter });
+	const items = (logsRes.items as Array<{ id: string }>) ?? [];
+	for (const log of items) {
+		await pb.collection("location_logs").delete(log.id);
 	}
-
-	// 3. Delete the Service itself
-	await databases.deleteDocument(DB_ID, COLLECTIONS.Services, id);
+	await pb.collection("services").delete(id);
 }
