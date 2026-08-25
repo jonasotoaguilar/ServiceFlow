@@ -241,13 +241,13 @@ main
 
 ### 9.1 Location Zod schemas — RED → GREEN → TRIANGULATE
 
-- [ ] RED: extend `tests/schemas.test.ts` for `LocationCreateSchema` / `LocationUpdateSchema` in `lib/schemas.ts`: name required after trim; update name 3–100; address optional, trimmed, max 200, blank → omitted. Focused test fails. <!-- sdd-owner: implementation -->
-- [ ] GREEN: add the schemas. Existing `ServiceSchema` cases stay green. <!-- sdd-owner: implementation -->
-- [ ] TRIANGULATE: whitespace-only address and oversized address. REFACTOR only while green. <!-- sdd-owner: implementation -->
+- [x] RED: extend `tests/schemas.test.ts` for `LocationCreateSchema` / `LocationUpdateSchema` in `lib/schemas.ts`: name required after trim; update name 3–100; address optional, trimmed, max 200, blank → omitted. Focused test fails. <!-- sdd-owner: implementation -->
+- [x] GREEN: add the schemas. Existing `ServiceSchema` cases stay green. <!-- sdd-owner: implementation -->
+- [x] TRIANGULATE: whitespace-only address and oversized address. REFACTOR only while green. <!-- sdd-owner: implementation -->
 
 ### 9.2 WU6a verification
 
-- [ ] Run `pnpm exec vitest run tests/schemas.test.ts`, then `pnpm test:run`, `pnpm exec tsc --noEmit`, `pnpm run lint`. Runtime harness: N/A (schema-only). <!-- sdd-owner: implementation -->
+- [x] Run `pnpm exec vitest run tests/schemas.test.ts`, then `pnpm test:run`, `pnpm exec tsc --noEmit`, `pnpm run lint`. Runtime harness: N/A (schema-only). <!-- sdd-owner: implementation -->
 
 ## 10. WU6b / PR 10 — Location CRUD + guards
 

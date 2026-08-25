@@ -55,3 +55,32 @@ export const ServiceSchema = z.object({
 });
 
 export type ServiceValues = z.infer<typeof ServiceSchema>;
+
+const trimmedAddress = z
+	.string()
+	.optional()
+	.transform((val) => {
+		if (val === undefined) return undefined;
+		const t = val.trim();
+		return t === "" ? undefined : t;
+	})
+	.pipe(z.string().max(200, "La dirección no puede exceder 200 caracteres").optional());
+
+export const LocationCreateSchema = z.object({
+	name: z
+		.string()
+		.transform((val) => val.trim())
+		.pipe(z.string().min(1, "El nombre es requerido")),
+	address: trimmedAddress,
+});
+
+export const LocationUpdateSchema = z.object({
+	name: z
+		.string()
+		.transform((val) => val.trim())
+		.pipe(z.string().min(3, "El nombre debe tener al menos 3 caracteres").max(100, "El nombre no puede exceder 100 caracteres")),
+	address: trimmedAddress,
+});
+
+export type LocationCreateValues = z.infer<typeof LocationCreateSchema>;
+export type LocationUpdateValues = z.infer<typeof LocationUpdateSchema>;
