@@ -26,6 +26,18 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
+# Coverage & mutation
+coverage
+.reports
+reports
+.stryker-tmp
+test-results
+playwright-report
+
+# E2E
+e2e
+playwright.config.*
+
 # Sistema operativo
 .DS_Store
 Thumbs.db

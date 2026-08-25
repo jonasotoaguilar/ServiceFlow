@@ -1,0 +1,66 @@
+services:
+  pocketbase:
+    image: adrianmusante/pocketbase:0.40.1@sha256:4e70ab9cccb220e73edae0c9e94a5ba6a41777829d0039b72c2f1eb47681b986
+    container_name: serviceflow-pocketbase-local
+    ports:
+      - "127.0.0.1:8090:8090"
+    volumes:
+      - pocketbase-data:/pocketbase
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      POCKETBASE_ADMIN_EMAIL: ${POCKETBASE_ADMIN_EMAIL:-admin@local.test}
+      POCKETBASE_ADMIN_PASSWORD: ${POCKETBASE_ADMIN_PASSWORD:-admin123456}
+      POCKETBASE_ADMIN_UPSERT: "true"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8090/api/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+      start_interval: 2s
+    restart: unless-stopped
+
+  pocketbase-init:
+    image: node:22-alpine
+    depends_on:
+      pocketbase:
+        condition: service_healthy
+    volumes:
+      - ./pocketbase/v1.collections.json:/app/pocketbase/v1.collections.json:ro
+      - ./scripts/pb-init.mjs:/app/pb-init.mjs:ro
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      POCKETBASE_URL: http://pocketbase:8090
+      POCKETBASE_ADMIN_EMAIL: ${POCKETBASE_ADMIN_EMAIL:-admin@local.test}
+      POCKETBASE_ADMIN_PASSWORD: ${POCKETBASE_ADMIN_PASSWORD:-admin123456}
+    entrypoint: ["node", "/app/pb-init.mjs"]
+    restart: "no"
+
+  app:
+    build: .
+    container_name: serviceflow-app-local
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      POCKETBASE_URL: http://pocketbase:8090
+    depends_on:
+      pocketbase:
+        condition: service_healthy
+      pocketbase-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:3000/login || curl -f http://127.0.0.1:3000/login"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+      start_interval: 3s
+
+volumes:
+  pocketbase-data:
+    name: serviceflow-pocketbase-local-data

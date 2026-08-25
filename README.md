@@ -9,7 +9,7 @@ A modern web application for managing the product service lifecycle. Register se
 - **UI**: [React 19](https://react.dev/)
 - **Styles**: [Tailwind CSS v4](https://tailwindcss.com/)
 - **Database & Authentication**: [PocketBase](https://pocketbase.io/)
-- **Containerization**: [Docker](https://www.docker.com/) & Docker Compose (app only)
+- **Containerization**: [Docker](https://www.docker.com/) & Docker Compose (PocketBase + app)
 - **Icons**: [Lucide React](https://lucide.dev/)
 - **Date Handling**: [date-fns](https://date-fns.org/)
 
@@ -33,15 +33,21 @@ A modern web application for managing the product service lifecycle. Register se
 
 2. **Configure environment variables**
 
-   Create a `.env` file at the root:
+   Copy `.env.example` to `.env` and adjust if needed:
+
+   ```bash
+   cp .env.example .env
+   ```
 
    ```env
    POCKETBASE_URL=http://127.0.0.1:8090
+   POCKETBASE_ADMIN_EMAIL=admin@local.test
+   POCKETBASE_ADMIN_PASSWORD=admin123456
    ```
 
-   - `POCKETBASE_URL` is the only required locator; local example `http://127.0.0.1:8090`.
-   - No secrets are committed; no `POCKETBASE_ADMIN_*` or admin token in the repository.
-   - The local instance is assumed already running at `127.0.0.1:8090` (no PocketBase container or Dokploy runbook is added here).
+   - `POCKETBASE_URL` is the only locator read by the Next.js app; local default `http://127.0.0.1:8090` (host) and `http://pocketbase:8090` (inside compose network).
+   - `POCKETBASE_ADMIN_*` is local-only for the compose PocketBase superuser — never read by Next.js. Keep real `.env` gitignored; `.env.example` documents placeholders.
+   - No admin credentials are baked into the app image.
 
 3. **Install dependencies**
 
@@ -49,14 +55,14 @@ A modern web application for managing the product service lifecycle. Register se
    pnpm install
    ```
 
-4. **Apply the schema (explicit, out of band)**
+4. **Apply the schema**
 
    The versioned artifact is `pocketbase/v1.collections.json` (collections `users`, `services`, `locations`, `location_logs`, with optional `address` and required `location_logs.userId`; tenant rules `userId = @request.auth.id`, no business rows).
 
-   - Open the existing PocketBase Admin UI (local `http://127.0.0.1:8090/_/` or the existing Dokploy instance).
-   - Import `pocketbase/v1.collections.json` if the version supports it; otherwise transcribe fields, indexes, and rules manually. Update the existing `users` collection — do not create a second one.
+   - **Local compose**: `pocketbase-init` imports the artifact automatically with `PUT /api/collections/import` and `deleteMissing:false` after PocketBase is healthy — no manual step.
+   - **External / Dokploy instance**: open the Admin UI (`http://127.0.0.1:8090/_/` or the managed URL), import `pocketbase/v1.collections.json` if supported, otherwise transcribe fields, indexes, and rules manually. Update the existing `users` collection — do not create a second one.
    - Verify: 4 collections, `address` optional, `userId` required in logs, 0 business rows, tenant rules present, `users` create public and list/delete blocked.
-   - `POCKETBASE_URL` is changed in a separate step after verification. No admin API is used from Next.js.
+   - Next.js never calls the admin API; only `pocketbase-init` (local) or the operator uses it.
 
 ## Development
 
@@ -66,17 +72,28 @@ pnpm dev
 
 The app is available at `http://localhost:3000`.
 
-## Docker
+## Docker (local full stack)
 
-1. **Ensure `.env` contains `POCKETBASE_URL`.**
+`compose.yaml` runs **PocketBase + the Next.js app** so you can use the full stack in Docker without an external PocketBase.
 
-2. **Start the app container:**
+```bash
+# from the repo root
+docker compose up --build -d --wait
+```
 
-   ```bash
-   docker-compose up -d --build
-   ```
+- App: http://127.0.0.1:3000
+- PocketBase API: http://127.0.0.1:8090
+- PocketBase Admin UI: http://127.0.0.1:8090/_/
 
-   This repository does not operate PocketBase (no binary, volume, proxy, TLS, backup, or PocketBase/Dokploy compose).
+PocketBase uses the pinned community image `adrianmusante/pocketbase:0.40.1` (digest-pinned, non-root 1001, state at `/pocketbase`, healthcheck `GET /api/health`). A one-shot `pocketbase-init` container imports `pocketbase/v1.collections.json` with `deleteMissing:false`. The app container is built from the existing `Dockerfile` and reaches PocketBase via compose DNS at `http://pocketbase:8090` (`POCKETBASE_URL` inside the network).
+
+Stop:
+
+```bash
+docker compose down
+```
+
+Volumes (`pocketbase-data` → `serviceflow-pocketbase-local-data`) persist data across restarts. Do not run `down -v` or `prune` unless you intend to wipe local data. Production/Dokploy remains out of scope for this local compose.
 
 ## Project Structure
 
