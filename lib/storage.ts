@@ -1,39 +1,20 @@
 import { databases, COLLECTIONS, DB_ID, Query, ID } from "@/lib/appwrite";
 import { Service, ServiceStatus } from "./types";
+import { createPocketBaseClient } from "@/lib/pocketbase";
+import { serviceListBinding, applyBinding } from "@/lib/pocketbase-filter";
 
-// Helper to convert Appwrite document to Service type
-function mapToService(
-	item: any,
-	locMap: Map<string, any>,
-	logs: any[] = [],
-): Service {
+// Helper to convert PocketBase document to Service type (WU4 read-only)
+function mapToService(item: any, locMap: Map<string, any>): Service {
 	const locationName = locMap.get(item.locationId)?.name || "Sin Sede";
-
-	// Sort logs for this Service
-	const ServiceLogs = logs
-		.filter((l) => l.ServiceId === item.$id)
-		.sort(
-			(a, b) =>
-				new Date(b.changedAt).getTime() - new Date(a.changedAt).getTime(),
-		)
-		.map((log) => ({
-			...log,
-			id: log.$id,
-			fromLocation: locMap.get(log.fromLocationId)?.name || "Desconocido",
-			toLocation: locMap.get(log.toLocationId)?.name || "Desconocido",
-			changedAt: log.changedAt, // Already string in Appwrite
-		}));
-
 	return {
 		...item,
-		id: item.$id, // Map $id to id
+		id: item.id,
 		location: locationName,
 		entryDate: item.entryDate,
 		deliveryDate: item.deliveryDate || undefined,
 		readyDate: item.readyDate || undefined,
 		cancellationDate: item.cancellationDate || undefined,
 		status: item.status as ServiceStatus,
-		locationLogs: ServiceLogs,
 	};
 }
 
@@ -46,103 +27,49 @@ export async function getServices(params?: {
 	userId?: string;
 	sortOrder?: "asc" | "desc";
 }): Promise<{ data: Service[]; total: number; page: number; limit: number }> {
-	const page = params?.page || 1;
-	const limit = params?.limit || 20;
-	const offset = (page - 1) * limit;
-
-	const queries: string[] = [
-		Query.limit(limit),
-		Query.offset(offset),
-		params?.sortOrder === "desc" ? Query.orderDesc("entryDate") : Query.orderAsc("entryDate"),
-	];
-
-	if (params?.userId) {
-		queries.push(Query.equal("userId", params.userId));
-	}
-
-	if (params?.status && params.status.length > 0) {
-		queries.push(Query.equal("status", params.status));
-	}
-
-	if (params?.location) {
-		queries.push(Query.equal("locationId", params.location));
-	}
-
-	if (params?.search) {
-		const search = params.search;
-		// Note: 'search' requires FullText index
-		// 'starsWith' works on Key index
-		queries.push(
-			Query.or([
-				Query.search("clientName", search),
-				Query.search("invoiceNumber", search),
-				Query.search("rut", search),
-			]),
-		);
-	}
-
+	const page = params?.page && Number.isFinite(params.page) && params.page > 0 ? Math.floor(params.page) : 1;
+	const limit = params?.limit && Number.isFinite(params.limit) && params.limit > 0 ? Math.floor(params.limit) : 20;
+	const sort = params?.sortOrder === "desc" ? "-entryDate" : "entryDate";
+	const userId = params?.userId ?? "";
+	const binding = serviceListBinding({
+		userId,
+		search: params?.search,
+		status: params?.status,
+		locationId: params?.location,
+	});
 	try {
-		const result = await databases.listDocuments(
-			DB_ID,
-			COLLECTIONS.Services,
-			queries,
-		); // Casting query array to any[] if TS complains, but string[] is correct for SDK
-
-		if (result.documents.length === 0) {
-			return { data: [], total: result.total, page, limit };
-		}
-
-		// Batch Fetch Relations
-		const ServiceIds = result.documents.map((d) => d.$id);
-
-		// 1. Fetch Logs for these Services
-		// Limit logs? If a Service has 100 logs, fetching all might be too much,
-		// but usually they have few. Let's fetch reasonably.
-		// We can't easily limit "per parent" in one query.
-		// We'll fetch all logs where ServiceId IN [...].
-		const logsResult = await databases.listDocuments(
-			DB_ID,
-			COLLECTIONS.LOCATION_LOGS,
-			[
-				Query.equal("ServiceId", ServiceIds),
-				Query.limit(1000), // Sanity limit
-			],
-		);
-
-		// 2. Collect all Location IDs
-		const locationIds = new Set<string>();
-
-		// From Services
-		result.documents.forEach((d) => locationIds.add(d.locationId));
-
-		// From logs
-		logsResult.documents.forEach((l) => {
-			locationIds.add(l.fromLocationId);
-			locationIds.add(l.toLocationId);
+		const pb = await createPocketBaseClient();
+		const filter = applyBinding(pb, binding);
+		const result = await pb.collection("services").getList(page, limit, {
+			filter,
+			sort,
 		});
-
-		// 3. Fetch Locations
-		const locationsResult = await databases.listDocuments(
-			DB_ID,
-			COLLECTIONS.LOCATIONS,
-			[
-				Query.equal("$id", Array.from(locationIds)),
-				Query.limit(100), // Sanity limit
-			],
-		);
-
-		const locMap = new Map(locationsResult.documents.map((l) => [l.$id, l]));
-
-		const data = result.documents.map((doc) =>
-			mapToService(doc, locMap, logsResult.documents),
-		);
-
-		return {
-			data,
-			total: result.total,
-			page,
-			limit,
-		};
+		const total = typeof (result as { totalItems?: number }).totalItems === "number"
+			? (result as { totalItems: number }).totalItems
+			: 0;
+		if (!result.items || result.items.length === 0) {
+			return { data: [], total, page, limit };
+		}
+		const locationIds = new Set<string>();
+		for (const doc of result.items as Array<{ locationId?: string }>) {
+			if (doc.locationId) locationIds.add(doc.locationId);
+		}
+		let locMap = new Map<string, any>();
+		if (locationIds.size > 0) {
+			const ids = Array.from(locationIds);
+			const parts = ids.map((_, i) => `id = {:id${i}}`).join(" || ");
+			const locParams: Record<string, unknown> = {};
+			ids.forEach((id, i) => {
+				locParams[`id${i}`] = id;
+			});
+			const locFilter = applyBinding(pb, { filter: parts, params: locParams });
+			const locRes = await pb.collection("locations").getList(1, 100, {
+				filter: locFilter,
+			});
+			locMap = new Map((locRes.items as Array<{ id: string }>).map((l) => [l.id, l]));
+		}
+		const data = (result.items as any[]).map((doc) => mapToService(doc, locMap));
+		return { data, total, page, limit };
 	} catch (error) {
 		console.error("Error fetching Services:", error);
 		throw error;

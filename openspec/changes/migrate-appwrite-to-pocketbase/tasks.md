@@ -181,18 +181,18 @@ main
 
 ### 7.1 getServices adapter — RED → GREEN → TRIANGULATE
 
-- [ ] RED: add `tests/services-lifecycle.test.ts` list cases for `getServices` in `lib/storage.ts`: default `page=1` `limit=20`; `{ data, total, page, limit }`; empty match `{ data: [], total: 0, page, limit }`; sort `entryDate` / `-entryDate`; bound search on `clientName` / `invoiceNumber` / `rut`; template invariant under metacharacters; status allowlist + `locationId`; two-user isolation via bound `uid`. Focused test fails. <!-- sdd-owner: implementation -->
-- [ ] GREEN: rewrite `getServices` to `getList` + `serviceListBinding` / `applyBinding`. Map known fields (`id`, not `$id`). Batched location name join with bound `id = {:id0} || ...`; skip fetch when id set empty. Keep export name. Focused test passes. <!-- sdd-owner: implementation -->
-- [ ] TRIANGULATE: page 2 of 25; search + status + location compose. REFACTOR picker `mapToService` off Appwrite `$id`. <!-- sdd-owner: implementation -->
+- [x] RED: add `tests/services-lifecycle.test.ts` list cases for `getServices` in `lib/storage.ts`: default `page=1` `limit=20`; `{ data, total, page, limit }`; empty match `{ data: [], total: 0, page, limit }`; sort `entryDate` / `-entryDate`; bound search on `clientName` / `invoiceNumber` / `rut`; template invariant under metacharacters; status allowlist + `locationId`; two-user isolation via bound `uid`. Focused test fails. <!-- sdd-owner: implementation -->
+- [x] GREEN: rewrite `getServices` to `getList` + `serviceListBinding` / `applyBinding`. Map known fields (`id`, not `$id`). Batched location name join with bound `id = {:id0} || ...`; skip fetch when id set empty. Keep export name. Focused test passes. <!-- sdd-owner: implementation -->
+- [x] TRIANGULATE: page 2 of 25; search + status + location compose. REFACTOR picker `mapToService` off Appwrite `$id`. <!-- sdd-owner: implementation -->
 
 ### 7.2 GET route
 
-- [ ] RED: unauthenticated `GET` `/api/services` in `app/api/services/route.ts` returns `401 { error: "Unauthorized" }` (no details leak). Focused test fails if not already covered. <!-- sdd-owner: implementation -->
-- [ ] GREEN: keep GET query params (`page`, `limit`, `search`, `status`, `location`, `sortOrder`) and pass `userId: user.id` from `getAuthUser` only. TRIANGULATE comma-separated status. <!-- sdd-owner: implementation -->
+- [x] RED: unauthenticated `GET` `/api/services` in `app/api/services/route.ts` returns `401 { error: "Unauthorized" }` (no details leak). Focused test fails if not already covered. <!-- sdd-owner: implementation -->
+- [x] GREEN: keep GET query params (`page`, `limit`, `search`, `status`, `location`, `sortOrder`) and pass `userId: user.id` from `getAuthUser` only. TRIANGULATE comma-separated status. <!-- sdd-owner: implementation -->
 
 ### 7.3 WU4 verification
 
-- [ ] Run `pnpm exec vitest run tests/services-lifecycle.test.ts tests/pocketbase-filter.test.ts`, then `pnpm test:run`, `pnpm exec tsc --noEmit`, `pnpm run lint`. Runtime harness: N/A unless local PB already applied (empty list envelope). <!-- sdd-owner: implementation -->
+- [x] Run `pnpm exec vitest run tests/services-lifecycle.test.ts tests/pocketbase-filter.test.ts`, then `pnpm test:run`, `pnpm exec tsc --noEmit`, `pnpm run lint`. Runtime harness: N/A unless local PB already applied (empty list envelope). <!-- sdd-owner: implementation -->
 
 ---
 
