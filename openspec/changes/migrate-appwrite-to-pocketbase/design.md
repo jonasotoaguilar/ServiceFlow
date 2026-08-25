@@ -587,8 +587,9 @@ Provider review budgets count `additions + deletions` of all files including `pn
 | 8 | `PRD.md`, `ARCHITECTURE.md` | 250–380 | Accurate contracts; no Appwrite-as-live |
 | 9 | Delete `check_or.ts` and `lint_output.txt` | <30 | Hygiene only; Appwrite rewrite already gone from root `proxy.ts` in WU 2c |
 | 10 | Two chained draft/no-merge slices before production gates — **WU10a janitor/session/tests** (delete `proxy.ts`, remove `LEGACY_SESSION_COOKIE*`/`clearLegacySessionCookie` from `lib/pocketbase.ts`, remove calls/imports from `app/actions/auth.ts`, delete obsolete proxy janitor test block from `tests/auth-session.test.ts` retaining PB_AUTH no-legacy assertions; zero `describe.skip`/`expect(true)`/dummy proxy) → **WU10b Appwrite client/setup/deps/lock + final grep/local-CI proof** (`lib/appwrite.ts`, `scripts/setup-appwrite.ts`, `appwrite`/`node-appwrite` + `pnpm-lock.yaml` + `rg`/local-CI) — dev before production; prod artifact/Dokploy/smoke/acceptance only gates final WU10b merge/deploy | deletions (WU10a ≤300, WU10b deletions; both draft/no-merge) | WU10a rollback: `proxy.ts`/`lib/pocketbase.ts`/`app/actions/auth.ts`/`tests/auth-session.test.ts`; WU10b rollback: Appwrite image + lockfile; dev candidates: `pnpm test:run`/`tsc`/`lint`/`build`+`rg` |
+| 10c | English documentation remediation (erratum for WU7/WU8) — `README.md` English + `ARCHITECTURE.md`/`PRD.md`/`docs/CODEBASE-GUIDE.md` PocketBase-only (no live `proxy.ts`/janitor/`clearLegacySessionCookie`, WU10a/b historical) + `design/DESIGN.md` → `DESIGN.md` canonical | <=80 | `README.md` English, docs PocketBase-only, `DESIGN.md` move; mockups preserved; `rg`/`ls` proof |
 
-Do not merge WU 10 with product work. Do not touch CI, Husky, Dependabot, `CODEOWNERS`, root `SECURITY.md`, or `DESIGN.md`.
+Do not merge WU 10 with product work. Do not touch CI, Husky, Dependabot, `CODEOWNERS`, root `SECURITY.md`, or `DESIGN.md` except explicit WU10c `design/DESIGN.md` → `DESIGN.md` move.
 
 ## Documentation boundaries
 
@@ -602,7 +603,7 @@ WU 7 owns the env/README/guide slice:
 
 Those docs MUST also state: public self-registration; `pb_auth` httpOnly; tenant isolation by `userId` plus `pocketbase-schema` rules; empty-start; native 15-character ids; `{ data, total, page, limit }`; LIKE search; optional `address`; schema applied out of band. Appwrite may appear only as a historical rollback note.
 
-Out of scope: CI/Husky/Dependabot/`CODEOWNERS`/`SECURITY.md`/`DESIGN.md`; PocketBase hosting runbooks; Dokploy compose; admin secret names; data import how-tos.
+Out of scope: CI/Husky/Dependabot/`CODEOWNERS`/`SECURITY.md`; PocketBase hosting runbooks; Dokploy compose; admin secret names; data import how-tos. **Exception for explicit WU10c only:** `design/DESIGN.md` → `DESIGN.md` move to canonical root.
 
 ## Non-goals
 

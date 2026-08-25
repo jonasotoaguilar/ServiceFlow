@@ -1,105 +1,105 @@
-# Sistema de Gestión de servicios (Service Flow)
+# ServiceFlow — Service Management System
 
-Este proyecto es una aplicación web moderna para administrar el ciclo de vida de servicios de productos. Permite registrar ingresos, gestionar estados, controlar Sedes y visualizar métricas como tiempos de espera y costos. El backend vivo es **PocketBase** para autenticación y datos.
+A modern web application for managing the product service lifecycle. Register service intakes, manage status, control locations (branches), and track metrics such as wait times and costs. The live backend is **PocketBase** for authentication and data.
 
-## 🚀 Tecnologías
+## Technologies
 
-- **Framework Principal**: [Next.js 16](https://nextjs.org/) (Turbopack + App Router)
-- **Lenguaje**: [TypeScript](https://www.typescriptlang.org/)
-- **Interfaz (UI)**: [React 19](https://react.dev/)
-- **Estilos**: [Tailwind CSS v4](https://tailwindcss.com/)
-- **Base de Datos y Autenticación**: [PocketBase](https://pocketbase.io/)
-- **Containerización**: [Docker](https://www.docker.com/) & Docker Compose (solo app)
-- **Iconos**: [Lucide React](https://lucide.dev/)
-- **Manejo de Fechas**: [date-fns](https://date-fns.org/)
+- **Core Framework**: [Next.js 16](https://nextjs.org/) (Turbopack + App Router)
+- **Language**: [TypeScript](https://www.typescriptlang.org/)
+- **UI**: [React 19](https://react.dev/)
+- **Styles**: [Tailwind CSS v4](https://tailwindcss.com/)
+- **Database & Authentication**: [PocketBase](https://pocketbase.io/)
+- **Containerization**: [Docker](https://www.docker.com/) & Docker Compose (app only)
+- **Icons**: [Lucide React](https://lucide.dev/)
+- **Date Handling**: [date-fns](https://date-fns.org/)
 
-## 📋 Características Principales
+## Features
 
-- **Gestión de servicios**: CRUD completo de tickets de servicio.
-- **Control de Estados**: `Pendiente`, `Reparada`, `Completada`, `Cancelada` (solo lectura).
-- **Cálculo de Tiempos**: Días transcurridos (Business Days).
-- **Control de Sedes**: Gestión de ubicación con historial de movimientos; `address` opcional en `locations`.
-- **Búsqueda y Paginación**: Filtrado por cliente, producto o número de orden con búsqueda `LIKE` (`~`) y envelope `{ data, total, page, limit }`.
-- **Tenancy**: Aislamiento por `userId` + reglas de colección `userId = @request.auth.id`; ids nativos 15-char (15 caracteres, PocketBase-native).
+- **Service management**: Full CRUD for service tickets.
+- **Status workflow**: `pending`, `ready`, `completed`, `cancelled` (read-only after completion).
+- **Time calculation**: Elapsed days (business days).
+- **Location control**: Branch management with movement history; `address` optional on `locations`.
+- **Search & Pagination**: Filter by client, product, or invoice number with `LIKE` (`~`) search and `{ data, total, page, limit }` envelope.
+- **Tenancy**: Isolation by `userId` + collection rules `userId = @request.auth.id`; PocketBase-native 15-character ids.
 
-## ⚙️ Configuración del Entorno
+## Environment Setup
 
-1. **Clonar el repositorio**
+1. **Clone the repository**
 
    ```bash
-   git clone <url-del-repositorio>
+   git clone <repository-url>
    cd ServiceFlow
    ```
 
-2. **Configurar Variables de Entorno**
+2. **Configure environment variables**
 
-   Crea un archivo `.env` en la raíz:
+   Create a `.env` file at the root:
 
    ```env
    POCKETBASE_URL=http://127.0.0.1:8090
    ```
 
-   - `POCKETBASE_URL` es el único locator requerido; ejemplo local `http://127.0.0.1:8090`.
-   - No se commitean secretos; no hay `POCKETBASE_ADMIN_*` ni token admin en el repo.
-   - La instancia local se asume ya en ejecución en `127.0.0.1:8090` (no se añade contenedor ni runbook Dokploy aquí).
+   - `POCKETBASE_URL` is the only required locator; local example `http://127.0.0.1:8090`.
+   - No secrets are committed; no `POCKETBASE_ADMIN_*` or admin token in the repository.
+   - The local instance is assumed already running at `127.0.0.1:8090` (no PocketBase container or Dokploy runbook is added here).
 
-3. **Instalar dependencias**
+3. **Install dependencies**
 
    ```bash
    pnpm install
    ```
 
-4. **Aplicar el schema (explícito, fuera del proceso)**
+4. **Apply the schema (explicit, out of band)**
 
-   El artefacto versionado es `pocketbase/v1.collections.json` (colecciones `users`, `services`, `locations`, `location_logs`, con `address` opcional y `location_logs.userId` requerido; reglas tenant `userId = @request.auth.id`, sin filas de negocio).
+   The versioned artifact is `pocketbase/v1.collections.json` (collections `users`, `services`, `locations`, `location_logs`, with optional `address` and required `location_logs.userId`; tenant rules `userId = @request.auth.id`, no business rows).
 
-   - Abre el Admin UI del PocketBase ya existente (local `http://127.0.0.1:8090/_/` o el Dokploy existente).
-   - Importa `pocketbase/v1.collections.json` si la versión lo acepta; si no, transcribe campos, índices y reglas a mano. Actualiza la colección `users` existente, no crees una segunda.
-   - Verifica: 4 colecciones, `address` opcional, `userId` requerido en logs, 0 filas de negocio, reglas tenant presentes, `users` create público y list/delete bloqueados.
-   - `POCKETBASE_URL` se cambia en un paso separado después de verificar. No se usa API admin desde Next.js.
+   - Open the existing PocketBase Admin UI (local `http://127.0.0.1:8090/_/` or the existing Dokploy instance).
+   - Import `pocketbase/v1.collections.json` if the version supports it; otherwise transcribe fields, indexes, and rules manually. Update the existing `users` collection — do not create a second one.
+   - Verify: 4 collections, `address` optional, `userId` required in logs, 0 business rows, tenant rules present, `users` create public and list/delete blocked.
+   - `POCKETBASE_URL` is changed in a separate step after verification. No admin API is used from Next.js.
 
-## ▶️ Ejecución en Desarrollo
+## Development
 
 ```bash
 pnpm dev
 ```
 
-La aplicación estará disponible en `http://localhost:3000`.
+The app is available at `http://localhost:3000`.
 
-## 🐳 Ejecución con Docker
+## Docker
 
-1. **Asegúrate de tener `.env` con `POCKETBASE_URL` configurado.**
+1. **Ensure `.env` contains `POCKETBASE_URL`.**
 
-2. **Levantar el contenedor de la app:**
+2. **Start the app container:**
 
    ```bash
    docker-compose up -d --build
    ```
 
-   Este repo no opera PocketBase (sin binary, volumen, proxy, TLS, backup o compose de PocketBase/Dokploy).
+   This repository does not operate PocketBase (no binary, volume, proxy, TLS, backup, or PocketBase/Dokploy compose).
 
-## 📁 Estructura del Proyecto
+## Project Structure
 
-- `/app`: Rutas y páginas de Next.js (App Router).
-- `/components`: Componentes reutilizables.
-- `/lib`: `pocketbase.ts` (cliente por request, `pb_auth`), `pocketbase-filter.ts` (templates `{:param}` + `pb.filter`), `env.ts` (`POCKETBASE_URL` + Zod), `auth.ts` (`getAuthUser` validado con `authRefresh`), `storage.ts` (services CRUD), `schemas.ts` (Zod), `types.ts`.
-- `/pocketbase`: Artefacto `v1.collections.json`.
-- `/tests`: Suite Vitest (mocks de PocketBase, sin red).
+- `/app`: Next.js routes and pages (App Router).
+- `/components`: Reusable UI components.
+- `/lib`: `pocketbase.ts` (per-request client, `pb_auth`), `pocketbase-filter.ts` (templates `{:param}` + `pb.filter`), `env.ts` (`POCKETBASE_URL` + Zod), `auth.ts` (`getAuthUser` validated via `authRefresh`), `storage.ts` (service CRUD), `schemas.ts` (Zod), `types.ts`.
+- `/pocketbase`: Artifact `v1.collections.json`.
+- `/tests`: Vitest suite (mocked PocketBase, no network).
 
-## 🔐 Autenticación y Sesión
+## Authentication & Session
 
-- **Registro público**: `public self-registration` — cualquier usuario puede registrarse sin invitación; `users` create `""`.
-- **Sesión**: cookie `pb_auth` con `httpOnly`, `sameSite=lax`, `path=/`, `secure` en producción, `expires` desde `exp` del JWT; valor nunca logueado. Validación server-side vía `authRefresh` antes de retornar identidad; forjada/unreachable → `null`/401 fail-closed.
-- **Tenancy**: todo listado filtra `userId = {:uid}` y reglas de colección `userId = @request.auth.id`; segundo tenant no ve filas ajenas.
-- **Legado**: cookie `session` (Appwrite) se ignora y se borra (`Max-Age=0`); no hay compatibilidad ni copia a `pb_auth`.
+- **Public registration**: any user can register without an invite; `users` create `""`.
+- **Session**: `pb_auth` cookie with `httpOnly`, `sameSite=lax`, `path=/`, `secure` in production, `expires` from JWT `exp`; value is never logged. Server validation via `authRefresh` before returning identity; forged/unreachable → `null`/401 fail-closed.
+- **Tenancy**: every list binds `userId = {:uid}` and collection rules enforce `userId = @request.auth.id`; a second tenant sees no foreign rows.
+- **Legacy (historical)**: the Appwrite `session` cookie handling was removed in WU10 (deleted `proxy.ts`/`clearLegacySessionCookie`); current code uses `pb_auth` only.
 
-## 📦 Datos y Ciclo de Vida
+## Data & Lifecycle
 
-- **Empty start**: este entorno PocketBase comienza vacío. Los tickets y sedes anteriores de Appwrite no aparecerán (aviso temporal en `/login` y `/register`). Sin import, sin dual-write, sin mapa de ids.
-- **Ids nativos**: PocketBase genera ids nativos 15-char ids (15 caracteres, 15-character); no se pre-genera UUID ni se preserva `$id`.
-- **Paginación**: `{ data, total, page, limit }` con `getList(page, perPage, { filter, sort })`; `total` desde `totalItems`; `LIKE` search (`~`) sobre `clientName`, `invoiceNumber`, `rut`; status allowlist `pending|ready|completed|cancelled`.
-- **Sedes**: `address` opcional (trim, max 200, blank → omitido); `isActive` toggle; guard de borrado por historial (`location_logs`).
+- **Empty start**: this PocketBase environment starts empty. Previous Appwrite tickets and locations do not appear (temporary notice on `/login` and `/register`). No import, no dual-write, no id mapping.
+- **Native ids**: PocketBase generates native 15-character ids; no UUID pre-generation and no `$id` preservation.
+- **Pagination**: `{ data, total, page, limit }` via `getList(page, perPage, { filter, sort })`; `total` from `totalItems`; `LIKE` search (`~`) on `clientName`, `invoiceNumber`, `rut`; status allowlist `pending|ready|completed|cancelled`.
+- **Locations**: `address` optional (trim, max 200, blank → omitted); `isActive` toggle; delete blocked by history (`location_logs`).
 
-## 🔄 Rollback Histórico
+## Historical Rollback
 
-Appwrite se dejó intacto hasta aceptación y no fue importado. En caso de falla de cutover, redesplegar la última imagen con env Appwrite previo; filas PocketBase no se copian de vuelta. La mención de Appwrite aquí es solo histórica — no configure Appwrite para trabajo nuevo ni ejecute scripts de setup de Appwrite.
+Appwrite was left untouched until acceptance and was not imported. On cutover failure, redeploy the last Appwrite-backed image with the previous env; PocketBase rows are not copied back. The Appwrite mention here is historical only — do not configure Appwrite for new work or run Appwrite setup scripts.

@@ -27,7 +27,7 @@ Garage and repair-shop service lifecycle management on a PocketBase-only backend
 ## Current State (PocketBase contract)
 
 - **Backend**: PocketBase is the only data and auth backend. Next.js uses `POCKETBASE_URL` plus the `pb_auth` user session; no Appwrite, no admin credentials at runtime.
-- **Auth / session**: `pb_auth` is `httpOnly`, `sameSite=lax`, `path=/`, `secure` in production; `expires` from JWT `exp` when parseable, otherwise session cookie. Value is never logged. Validation is server-side via `authRefresh` before returning identity; forged or unreachable → unauthenticated (`null`/`401`) fail-closed. Legacy `session` (Appwrite) is ignored and deleted (`Max-Age=0`) via `proxy.ts` janitor and auth actions.
+- **Auth / session**: `pb_auth` is `httpOnly`, `sameSite=lax`, `path=/`, `secure` in production; `expires` from JWT `exp` when parseable, otherwise session cookie. Value is never logged. Validation is server-side via `authRefresh` before returning identity; forged or unreachable → unauthenticated (`null`/`401`) fail-closed. Legacy Appwrite `session` handling was removed in WU10; current code uses `pb_auth` only.
 - **Empty start**: this PocketBase environment starts empty. Temporary notice on `/login` and `/register` reads: `Este entorno PocketBase comienza vacío. Los tickets y sedes anteriores de Appwrite no aparecerán.` No import wizard, no dual-write, no id mapping, no password migration. Appwrite project was left untouched until acceptance — see Historical Transition.
 - **Tenancy**: every list binds `userId = {:uid}` and collection API rules enforce `userId = @request.auth.id` on all CRUD for `services`, `locations`, and `location_logs`. A second user sees none of the first user's rows. Unauthenticated RSC/actions/API redirect or `401`.
 - **Ids**: PocketBase-native 15-character ids (15-char). Create omits `id`; no `crypto.randomUUID` / `generateId`, no `$id` preservation.
@@ -65,16 +65,15 @@ Garage and repair-shop service lifecycle management on a PocketBase-only backend
 
 ## Historical Transition
 
-Appwrite was the live backend before this migration and was left untouched until cutover acceptance — not imported, not dual-written. The only migration reference that remains is this rollback note: if cutover failed, redeploy the last Appwrite-backed image with the prior env; PocketBase rows created after cutover are not copied back. Do not configure Appwrite for new work and do not run `scripts/setup-appwrite.ts`.
+Appwrite was the live backend before this migration and was left untouched until cutover acceptance — not imported, not dual-written. The only migration reference that remains is this rollback note: if cutover failed, redeploy the last Appwrite-backed image with the prior env; PocketBase rows created after cutover are not copied back. **WU10a/WU10b deletion is completed (removed `proxy.ts`/`clearLegacySessionCookie` and `lib/appwrite.ts`/`scripts/setup-appwrite.ts`/deps); no live Appwrite config remains.** Do not configure Appwrite for new work and do not run `scripts/setup-appwrite.ts`.
 
 ## Roadmap
 
 | Phase | Scope |
 |-------|-------|
-| Shipped (WU1–WU6) | PocketBase request client, bound filters, auth + janitor + notice, tenant-scoped reads, service writes with native ids, location CRUD + movement + history, LIKE search + envelope |
-| This slice (WU8) | PocketBase-accurate `PRD.md` + `ARCHITECTURE.md` contracts |
-| Next (WU9–WU10) | Neutral hygiene (`check_or.ts`/`lint_output.txt`), then Appwrite removal after acceptance (deletes `lib/appwrite.ts`, SDKs, setup script, janitor) |
-| Out of change | PocketBase hosting/ops, import/migration tooling, CI/Husky/Dependabot/CODEOWNERS/SECURITY/DESIGN |
+| Shipped (WU1–WU10b) | PocketBase request client, bound filters, auth + notice, tenant-scoped reads, service writes with native ids, location CRUD + movement + history, LIKE search + envelope, env/README/guide (WU7), PRD/ARCH (WU8), hygiene (WU9), legacy janitor/Appwrite removal (WU10a/b) — completed |
+| Shipped (WU10c) | English documentation remediation — translate README, correct ARCH/PRD/GUIDE to PocketBase-only, move `design/DESIGN.md` → `DESIGN.md` |
+| Out of change | PocketBase hosting/ops, import/migration tooling, CI/Husky/Dependabot/CODEOWNERS/SECURITY/DESIGN changes beyond WU10c |
 
 ## Success Criteria
 

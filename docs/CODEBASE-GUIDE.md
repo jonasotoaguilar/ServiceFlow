@@ -15,10 +15,10 @@ ServiceFlow is a Next.js 16 App Router app. Every request builds a request-scope
 | Area | File | Use when |
 |------|------|----------|
 | Env | `lib/env.ts` | Validate `POCKETBASE_URL` (`http`/`https` absolute, Zod `PocketBaseEnvSchema`, `getPocketBaseUrl()` fail-closed, no admin vars) |
-| Request client | `lib/pocketbase.ts` | Build per-request `new PocketBase(url)`; hydrate `authStore` from `pb_auth` only; `saveAuthCookie` / `clearAuthCookie` / `clearLegacySessionCookie` (`httpOnly`, `sameSite=lax`, `path=/`, `secure` in prod) |
+| Request client | `lib/pocketbase.ts` | Build per-request `new PocketBase(url)`; hydrate `authStore` from `pb_auth` only; `saveAuthCookie` / `clearAuthCookie` (`httpOnly`, `sameSite=lax`, `path=/`, `secure` in prod) |
 | Filters | `lib/pocketbase-filter.ts` | Pure templates `serviceListBinding`, `locationListBinding`, `logListBinding` + `applyBinding` sole `pb.filter` site; `LIKE` `~` search, status allowlist |
 | Auth identity | `lib/auth.ts` | `getAuthUser()` → `await cookies()` + `authRefresh` server validation; forged/unreachable → `null` fail-closed |
-| Auth actions | `app/actions/auth.ts` | `login` / `register` / `logout`; Zod `loginSchema` / `registerSchema` before PocketBase; `passwordConfirm` + `authWithPassword`; deterministic Spanish errors; `pb_auth` + `session` clear |
+| Auth actions | `app/actions/auth.ts` | `login` / `register` / `logout`; Zod `loginSchema` / `registerSchema` before PocketBase; `passwordConfirm` + `authWithPassword`; deterministic Spanish errors; `pb_auth` only |
 | Services | `lib/storage.ts` + `app/api/services/route.ts` | `getServices` / `saveService` / `updateService` / `deleteService` via `getList`/`create`/`update`/`delete`; native 15-char ids; `{ data, total, page, limit }`; `LIKE` on `clientName`/`invoiceNumber`/`rut` |
 | Locations | `app/actions/locations.ts` | `getLocations` (tenant-bound `locationListBinding`), create/update/toggle/delete with Zod + `normalizeString` + history guard |
 | History | `app/actions/logs.ts` + `lib/storage.ts` movement | `getLocationLogs` via `logListBinding`; movement `location_logs` create on `locationId` change (not when completing) |
@@ -34,13 +34,13 @@ ServiceFlow is a Next.js 16 App Router app. Every request builds a request-scope
 - Cookie: `pb_auth` (`JSON { token, record }`), never logged, `httpOnly` + `sameSite=lax`.
 - Validation: `getAuthUser` `authRefresh` before identity; RSC validates, Action/Route may persist refreshed cookie.
 - Isolation: every list binds `userId = {:uid}`; API rules enforce `userId = @request.auth.id` on all CRUD for `services`/`locations`/`location_logs`; unauthenticated → `401`/redirect.
-- Legacy: `session` (Appwrite) is ignored and cleared (`Max-Age=0`, `path=/`) via root `proxy.ts` janitor and auth actions; never read for identity.
+- Legacy (historical): Appwrite `session` handling and `proxy.ts` janitor were removed in WU10a; current code uses `pb_auth` only and has no legacy cookie handling.
 
 ## What is NOT current
 
-- `lib/appwrite.ts` and `node-appwrite` / `appwrite` SDK are historical rollback only; do not use for new work.
+- `lib/appwrite.ts` and `node-appwrite` / `appwrite` SDK are deleted (WU10b) — historical rollback only; do not use for new work.
 - Appwrite collection setup is not the live setup; the PocketBase artifact `pocketbase/v1.collections.json` is.
-- The old unauthenticated Appwrite proxy rewrite is not live; `proxy.ts` is now a `session`-only janitor.
+- The old unauthenticated Appwrite proxy rewrite is not live and `proxy.ts` is deleted; no janitor remains (WU10a).
 
 ## Reading path
 
@@ -53,7 +53,7 @@ ServiceFlow is a Next.js 16 App Router app. Every request builds a request-scope
 ## Checklist
 
 - [ ] Every linked path above exists
-- [ ] No new work imports `node-appwrite` or reads `session` for auth
+- [ ] No new work imports `node-appwrite` or reads legacy `session` for auth
 - [ ] Filters use `applyBinding` with `{:param}` only
 
 ## Next step

@@ -1,6 +1,6 @@
 # ARCHITECTURE.md
 
-> **Status**: Active | **Last updated**: 2026-08-24 | **Author**: jonasotoaguilar
+> **Status**: Active | **Last updated**: 2026-08-25 | **Author**: jonasotoaguilar
 
 ## System Overview
 
@@ -15,13 +15,13 @@ Server Components render the page shell and auth gate; interactive sections (das
 **Alternatives rejected**:
 
 - **Shared singleton PocketBase**: leaks `authStore` across concurrent requests.
-- **`loadFromCookie(full Cookie header)`**: would ingest the legacy `session` cookie beside `pb_auth`; rejected.
+- **`loadFromCookie(full Cookie header)`**: would ingest deleted legacy cookies; rejected.
 
 ## System Map
 
 ```mermaid
 graph TD
-    Browser["Browser<br/>pb_auth (+ legacy session ignored)"]
+    Browser["Browser<br/>pb_auth"]
     Next["Next.js 16 Server<br/>RSC / API / Server Actions"]
     PB["PocketBase<br/>users / services / locations / location_logs"]
     Browser -->|HTTP + pb_auth| Next
@@ -35,16 +35,16 @@ Start paths: `docs/CODEBASE-GUIDE.md` → `lib/pocketbase.ts` → `lib/pocketbas
 | Area | File | Boundary |
 |------|------|----------|
 | Env | `lib/env.ts` | Zod `PocketBaseEnvSchema`; `getPocketBaseUrl()` validates `POCKETBASE_URL` as absolute `http`/`https`, fail-closed, no default, no `POCKETBASE_ADMIN_*` or Appwrite vars |
-| Request client | `lib/pocketbase.ts` | `createPocketBaseClient()` per request: `await cookies()`, read `pb_auth` only, `authStore.save(token, record)` after `JSON.parse`; `saveAuthCookie`/`clearAuthCookie`/`clearLegacySessionCookie` set `httpOnly`, `sameSite=lax`, `path=/`, `secure` in prod, `expires` from JWT `exp` |
+| Request client | `lib/pocketbase.ts` | `createPocketBaseClient()` per request: `await cookies()`, read `pb_auth` only, `authStore.save(token, record)` after `JSON.parse`; `saveAuthCookie`/`clearAuthCookie` set `httpOnly`, `sameSite=lax`, `path=/`, `secure` in prod, `expires` from JWT `exp` |
 | Filters | `lib/pocketbase-filter.ts` | Pure templates `serviceListBinding`, `locationListBinding`, `logListBinding` + `applyBinding` sole `pb.filter` site; LIKE `~` on `clientName`/`invoiceNumber`/`rut`, status allowlist `pending|ready|completed|cancelled` |
-| Auth identity | `lib/auth.ts` | `getAuthUser()` → `await cookies()` + `createPocketBaseClient()` + `await pb.collection("users").authRefresh()` before returning `{ id, email, name }`; forged/invalid signature or unreachable → `null` fail-closed; never reads `session` for identity |
-| Auth actions | `app/actions/auth.ts` | `login`/`register`/`logout` validate `loginSchema`/`registerSchema` before PocketBase; `authWithPassword` / `collection("users").create` with `passwordConfirm`; success writes `pb_auth` and deletes `session` |
+| Auth identity | `lib/auth.ts` | `getAuthUser()` → `await cookies()` + `createPocketBaseClient()` + `await pb.collection("users").authRefresh()` before returning `{ id, email, name }`; forged/invalid signature or unreachable → `null` fail-closed; never reads legacy cookies for identity |
+| Auth actions | `app/actions/auth.ts` | `login`/`register`/`logout` validate `loginSchema`/`registerSchema` before PocketBase; `authWithPassword` / `collection("users").create` with `passwordConfirm`; success writes `pb_auth` only |
 | Services | `lib/storage.ts` + `app/api/services/route.ts` | `getServices`/`saveService`/`updateService`/`deleteService` via `getList`/`create`/`update`/`delete`; native 15-char ids, `{ data, total, page, limit }`, `LIKE` search, bound `userId` |
 | Locations | `app/actions/locations.ts` | `getLocations` via `locationListBinding`; create/update/toggle/delete with `LocationCreateSchema`/`LocationUpdateSchema`, `normalizeString` per-user duplicate, `isActive` guard, history delete guard |
 | History | `app/actions/logs.ts` + `lib/storage.ts` movement | `getLocationLogs` via `logListBinding` (`fromLocationId = {:lid} || toLocationId = {:lid}`, `changedAt` bounds, sort `-changedAt`); movement `location_logs` created in `updateService` when `locationId` changes and not completing |
 | Validation | `lib/schemas.ts` | `ServiceSchema`, `LocationCreateSchema`/`LocationUpdateSchema` (address optional trimmed max 200), `loginSchema`/`registerSchema` |
 | Schema artifact | `pocketbase/v1.collections.json` | Versioned collections `users` (auth), `services`, `locations` (`address` optional), `location_logs` (`userId` required); text FKs not relations; tenant rules `userId = @request.auth.id`; no seed rows |
-| Janitor | `proxy.ts` | Root `export function proxy` with matcher excluding `_next/static`, `_next/image`, `favicon.ico`, images; if `session` present, expires it `Max-Age=0` `path=/` and `NextResponse.next()`; never rewrites to Appwrite, never reads `pb_auth` |
+| Legacy janitor (historical) | `proxy.ts` (deleted in WU10a) | Previously a root `export function proxy` that expired legacy `session`; removed — current code has no `proxy.ts` and no legacy cookie handling; Appwrite rewrite never live in PocketBase era |
 
 No hosting, no container, no PocketBase Admin UI operation, and no schema apply from the Next.js process belong to this repository.
 
@@ -94,7 +94,7 @@ sequenceDiagram
 |----------|--------|
 | Performance | `getList` with bound index; LIKE over small personal dataset; page load <2s |
 | Availability | Depends on managed PocketBase SLA; fail-closed when unreachable |
-| Security | `pb_auth` httpOnly/lax/path/secure-in-prod; tenant rules `userId = @request.auth.id`; `{:param}` only; `authRefresh` required; legacy `session` ignored/deleted |
+| Security | `pb_auth` httpOnly/lax/path/secure-in-prod; tenant rules `userId = @request.auth.id`; `{:param}` only; `authRefresh` required; no legacy `session` handling in current code |
 | Observability | Server console; never logs `pb_auth` value or token |
 | Deployment | Docker standalone via `Dockerfile`; env is `POCKETBASE_URL` only |
 
@@ -127,7 +127,7 @@ No ADR is deleted; supersession would be recorded explicitly if needed.
 
 ## Historical Transition
 
-Appwrite (Admin SDK, `lib/appwrite.ts`, `node-appwrite`/`appwrite`, `scripts/setup-appwrite.ts`, `DB_ID`/`COLLECTIONS`/`Query`/`ID`, and the unauthenticated Appwrite proxy rewrite) was the live backend before this change. It was left untouched on its cloud project until acceptance — no data import, no dual-write, no `session` bridge. After product slices WU1–WU6d, docs WU7, and this contracts slice WU8, Appwrite remains only as the historical rollback target described in `PRD.md` and `README.md`. WU9 deletes `check_or.ts`/`lint_output.txt`; WU10 (acceptance-gated) deletes Appwrite code/deps and the leftover `session` janitor. Do not configure Appwrite for new work and do not describe the old proxy rewrite as live.
+Appwrite (Admin SDK, `lib/appwrite.ts`, `node-appwrite`/`appwrite`, `scripts/setup-appwrite.ts`, `DB_ID`/`COLLECTIONS`/`Query`/`ID`, and the unauthenticated Appwrite proxy rewrite) was the live backend before this change. It was left untouched on its cloud project until acceptance — no data import, no dual-write, no `session` bridge. After product slices WU1–WU6d, docs WU7 and contracts WU8, hygiene WU9, **WU10a deleted the legacy `proxy.ts` janitor and `clearLegacySessionCookie` path and WU10b deleted `lib/appwrite.ts`/`scripts/setup-appwrite.ts` and `appwrite`/`node-appwrite` deps** (verified `rg` 0 live Appwrite refs). WU10 is completed historical context; do not configure Appwrite for new work and do not describe the old proxy rewrite as live.
 
 ## Reading Path and Operational Boundaries
 
