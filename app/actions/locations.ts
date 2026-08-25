@@ -1,11 +1,11 @@
 "use server";
 
-import { databases, COLLECTIONS, DB_ID, Query, ID } from "@/lib/appwrite";
 import { revalidatePath } from "next/cache";
 import { getAuthUser } from "@/lib/auth";
 import { normalizeString } from "@/lib/utils";
 import { createPocketBaseClient } from "@/lib/pocketbase";
 import { locationListBinding, applyBinding } from "@/lib/pocketbase-filter";
+import { LocationCreateSchema, LocationUpdateSchema } from "@/lib/schemas";
 
 export async function getLocations(onlyActive = false) {
   const user = await getAuthUser();
@@ -49,44 +49,49 @@ export async function createLocation(prevState: any, formData: FormData) {
     return { error: "No autenticado" };
   }
 
-  const name = formData.get("name") as string;
-  const address = formData.get("address") as string;
+  const rawName = formData.get("name") as string | null;
+  const rawAddress = formData.get("address") as string | null;
 
-  if (!name || name.trim() === "") {
-    return { error: "El nombre es requerido" };
+  const parsed = LocationCreateSchema.safeParse({
+    name: rawName ?? "",
+    address: rawAddress ?? undefined,
+  });
+
+  if (!parsed.success) {
+    const first = parsed.error.issues[0]?.message ?? "El nombre es requerido";
+    return { error: first };
   }
 
+  const { name, address } = parsed.data;
+
   try {
+    const pb = await createPocketBaseClient();
     const normalizedNew = normalizeString(name);
 
-    // Obtener todas las Sedes del usuario para comparar
-    const existingResult = await databases.listDocuments(
-      DB_ID,
-      COLLECTIONS.LOCATIONS,
-      [Query.equal("userId", user.id), Query.limit(100)]
-    );
+    const filter = applyBinding(pb, { filter: "userId = {:uid}", params: { uid: user.id } });
+    const existingResult = await pb.collection("locations").getList(1, 100, { filter });
 
-    const isDuplicate = existingResult.documents.some(
-      (loc: any) => normalizeString(loc.name) === normalizedNew
+    const isDuplicate = (existingResult.items as unknown as Array<{ name: string }>).some(
+      (loc) => normalizeString(loc.name) === normalizedNew,
     );
 
     if (isDuplicate) {
       return { error: "Ya existe una Sede con este nombre (o similar)" };
     }
 
-    const docData: any = {
-      name: name.trim(),
+    const docData: Record<string, unknown> = {
+      name,
       userId: user.id,
-      isActive: true, // Default
+      isActive: true,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
 
-    if (address && address.trim()) {
-      docData.address = address.trim();
+    if (address !== undefined) {
+      docData.address = address;
     }
 
-    await databases.createDocument(DB_ID, COLLECTIONS.LOCATIONS, ID.unique(), docData);
+    await pb.collection("locations").create(docData);
 
     revalidatePath("/locations");
     return { success: true, message: "Sede creada correctamente" };
@@ -103,37 +108,34 @@ export async function updateLocation(prevState: any, formData: FormData) {
     return { error: "No autenticado" };
   }
 
-  const id = formData.get("id") as string;
-  const name = formData.get("name") as string;
-  const address = formData.get("address") as string;
+  const id = formData.get("id") as string | null;
+  const rawName = formData.get("name") as string | null;
+  const rawAddress = formData.get("address") as string | null;
 
   if (!id) {
     return { error: "ID de Sede requerido" };
   }
 
-  if (!name || name.trim() === "") {
-    return { error: "El nombre es requerido" };
+  const parsed = LocationUpdateSchema.safeParse({
+    name: rawName ?? "",
+    address: rawAddress ?? undefined,
+  });
+
+  if (!parsed.success) {
+    const first = parsed.error.issues[0]?.message ?? "El nombre es requerido";
+    return { error: first };
   }
 
-  if (name.trim().length < 3) {
-    return { error: "El nombre debe tener al menos 3 caracteres" };
-  }
-
-  if (name.trim().length > 100) {
-    return { error: "El nombre no puede exceder 100 caracteres" };
-  }
-
-  if (address && address.trim().length > 200) {
-    return { error: "La dirección no puede exceder 200 caracteres" };
-  }
+  const { name, address } = parsed.data;
 
   try {
-    // Verificar que la Sede pertenece al usuario
-    const location = await databases.getDocument(
-      DB_ID,
-      COLLECTIONS.LOCATIONS,
-      id
-    );
+    const pb = await createPocketBaseClient();
+    let location: any;
+    try {
+      location = await pb.collection("locations").getOne(id);
+    } catch {
+      return { error: "Sede no encontrada" };
+    }
 
     if (!location || location.userId !== user.id) {
       return { error: "Sede no encontrada" };
@@ -141,33 +143,27 @@ export async function updateLocation(prevState: any, formData: FormData) {
 
     const normalizedNew = normalizeString(name);
 
-    // Verificar duplicados (excluyendo la Sede actual)
-    const existingResult = await databases.listDocuments(
-      DB_ID,
-      COLLECTIONS.LOCATIONS,
-      [Query.equal("userId", user.id), Query.limit(100)]
-    );
+    const filter = applyBinding(pb, { filter: "userId = {:uid}", params: { uid: user.id } });
+    const existingResult = await pb.collection("locations").getList(1, 100, { filter });
 
-    const isDuplicate = existingResult.documents.some(
-      (loc: any) => loc.$id !== id && normalizeString(loc.name) === normalizedNew
+    const isDuplicate = (existingResult.items as unknown as Array<{ id: string; name: string }>).some(
+      (loc) => loc.id !== id && normalizeString(loc.name) === normalizedNew,
     );
 
     if (isDuplicate) {
       return { error: "Ya existe otra Sede con este nombre (o similar)" };
     }
 
-    const updateData: any = {
-      name: name.trim(),
+    const updateData: Record<string, unknown> = {
+      name,
       updatedAt: new Date().toISOString(),
     };
 
-    if (address && address.trim()) {
-      updateData.address = address.trim();
-    } else {
-      updateData.address = null;
+    if (address !== undefined) {
+      updateData.address = address;
     }
 
-    await databases.updateDocument(DB_ID, COLLECTIONS.LOCATIONS, id, updateData);
+    await pb.collection("locations").update(id, updateData);
 
     revalidatePath("/locations");
     return { success: true, message: "Sede actualizada correctamente" };
@@ -185,12 +181,18 @@ export async function toggleLocationActive(id: string, active: boolean) {
   }
 
   try {
-    const doc = await databases.getDocument(DB_ID, COLLECTIONS.LOCATIONS, id);
+    const pb = await createPocketBaseClient();
+    let doc: any;
+    try {
+      doc = await pb.collection("locations").getOne(id);
+    } catch {
+      return { error: "No autorizado" };
+    }
     if (doc.userId !== user.id) {
       return { error: "No autorizado" };
     }
 
-    await databases.updateDocument(DB_ID, COLLECTIONS.LOCATIONS, id, {
+    await pb.collection("locations").update(id, {
       isActive: active,
       updatedAt: new Date().toISOString(),
     });
@@ -210,48 +212,46 @@ export async function deleteLocation(id: string, name: string) {
   }
 
   try {
-    // Verificar si la Sede pertenece al usuario
-    const location = await databases.getDocument(
-      DB_ID,
-      COLLECTIONS.LOCATIONS,
-      id
-    );
+    const pb = await createPocketBaseClient();
+    let location: any;
+    try {
+      location = await pb.collection("locations").getOne(id);
+    } catch {
+      return { error: "Sede no encontrada" };
+    }
 
     if (!location || location.userId !== user.id) {
       return { error: "Sede no encontrada" };
     }
 
-    // Validar si está en uso en cualquier servicio (cualquier status)
-    const ServicesRes = await databases.listDocuments(
-      DB_ID,
-      COLLECTIONS.Services,
-      [
-        Query.equal("userId", user.id),
-        Query.equal("locationId", id),
-        Query.limit(1), // Just check total
-      ]
-    );
+    const serviceFilter = applyBinding(pb, {
+      filter: "userId = {:uid} && locationId = {:locationId}",
+      params: { uid: user.id, locationId: id },
+    });
+    const servicesRes = await pb.collection("services").getList(1, 1, { filter: serviceFilter });
 
-    const logsRes = await databases.listDocuments(
-      DB_ID,
-      COLLECTIONS.LOCATION_LOGS,
-      [
-        Query.or([
-          Query.equal("fromLocationId", id),
-          Query.equal("toLocationId", id),
-        ]),
-        Query.limit(1),
-      ]
-    );
+    const logFilter = applyBinding(pb, {
+      filter: "userId = {:uid} && (fromLocationId = {:lid} || toLocationId = {:lid})",
+      params: { uid: user.id, lid: id },
+    });
+    const logsRes = await pb.collection("location_logs").getList(1, 1, { filter: logFilter });
 
-    if (ServicesRes.total > 0 || logsRes.total > 0) {
+    const hasServices =
+      typeof (servicesRes as { totalItems?: number }).totalItems === "number"
+        ? (servicesRes as { totalItems: number }).totalItems > 0
+        : (servicesRes.items?.length ?? 0) > 0;
+    const hasLogs =
+      typeof (logsRes as { totalItems?: number }).totalItems === "number"
+        ? (logsRes as { totalItems: number }).totalItems > 0
+        : (logsRes.items?.length ?? 0) > 0;
+
+    if (hasServices || hasLogs) {
       return {
-        error:
-          "No se puede eliminar una Sede con historial de servicios o movimientos.",
+        error: "No se puede eliminar una Sede con historial de servicios o movimientos.",
       };
     }
 
-    await databases.deleteDocument(DB_ID, COLLECTIONS.LOCATIONS, id);
+    await pb.collection("locations").delete(id);
     revalidatePath("/locations");
     return { success: true };
   } catch (error) {
