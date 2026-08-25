@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { createPocketBaseClient, saveAuthCookie, clearAuthCookie, clearLegacySessionCookie } from "@/lib/pocketbase";
+import { createPocketBaseClient, saveAuthCookie, clearAuthCookie } from "@/lib/pocketbase";
 import { loginSchema, registerSchema } from "@/lib/schemas";
 
 export async function login(formData: FormData) {
@@ -15,7 +15,6 @@ export async function login(formData: FormData) {
     const pb = await createPocketBaseClient();
     await pb.collection("users").authWithPassword(parsed.data.email, parsed.data.password);
     await saveAuthCookie(pb.authStore.token, pb.authStore.record);
-    await clearLegacySessionCookie();
     return { success: true };
   } catch (e: unknown) {
     const err = e as { status?: number; response?: { status?: number; data?: unknown }; message?: string; data?: unknown };
@@ -62,7 +61,6 @@ export async function register(formData: FormData) {
   try {
     await pb.collection("users").authWithPassword(parsed.data.email, parsed.data.password);
     await saveAuthCookie(pb.authStore.token, pb.authStore.record);
-    await clearLegacySessionCookie();
     return { success: true };
   } catch {
     return { error: "Error al registrarse" };
@@ -71,6 +69,5 @@ export async function register(formData: FormData) {
 
 export async function logout() {
   await clearAuthCookie();
-  await clearLegacySessionCookie();
   redirect("/login");
 }
