@@ -55,12 +55,8 @@ export function Navbar({ user }: Readonly<NavbarProps>) {
 							</svg>
 						</div>
 						<div>
-							<h1 className="text-xl font-bold tracking-tight text-white">
-								ServiceFlow
-							</h1>
-							<p className="text-xs text-slate-400 font-medium">
-								Gestión servicios técnicos
-							</p>
+							<h1 className="text-xl font-bold tracking-tight text-white">ServiceFlow</h1>
+							<p className="text-xs text-slate-400 font-medium">Gestión servicios técnicos</p>
 						</div>
 					</div>
 
@@ -105,55 +101,52 @@ export function Navbar({ user }: Readonly<NavbarProps>) {
 							onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
 							aria-label="Toggle menu"
 						>
-							{isMobileMenuOpen ? (
-								<X className="w-5 h-5" />
-							) : (
-								<Menu className="w-5 h-5" />
-							)}
+							{isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
 						</button>
 
 						{/* User Menu */}
 						<div className="relative" ref={dropdownRef}>
-						<button
-							onClick={() => setShowDropdown(!showDropdown)}
-							className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5 transition-all group"
-						>
-							<div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
-								<User className="w-4 h-4" />
-							</div>
-							<span className="text-sm font-medium text-slate-200 group-hover:text-white transition-colors hidden md:block">
-								{user?.name || "Usuario"}
-							</span>
-							<ChevronDown
-								className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${
-									showDropdown ? "rotate-180" : ""
-								}`}
-							/>
-						</button>
-
-						{/* Dropdown */}
-						{showDropdown && (
-							<div className="absolute right-0 top-full mt-2 w-48 rounded-xl bg-slate-800 border border-slate-700 shadow-xl overflow-hidden py-1 z-50 animate-in fade-in zoom-in-95 duration-100">
-								<div className="px-4 py-3 border-b border-white/5 md:hidden">
-									<p className="text-sm font-medium text-white truncate">
-										{user?.name || "Usuario"}
-									</p>
-									{user?.email && (
-										<p className="text-xs text-slate-400 truncate mt-0.5">
-											{user.email}
-										</p>
-									)}
+							<button
+								type="button"
+								aria-label="Menú de usuario"
+								aria-expanded={showDropdown}
+								onClick={() => setShowDropdown(!showDropdown)}
+								className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5 transition-all group"
+							>
+								<div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+									<User className="w-4 h-4" />
 								</div>
+								<span className="text-sm font-medium text-slate-200 group-hover:text-white transition-colors hidden md:block">
+									{user?.name || "Usuario"}
+								</span>
+								<ChevronDown
+									className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${
+										showDropdown ? "rotate-180" : ""
+									}`}
+								/>
+							</button>
 
-								<button
-									onClick={() => logout()}
-									className="w-full px-4 py-2.5 text-left text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors flex items-center gap-2"
-								>
-									<LogOut className="w-4 h-4" />
-									Cerrar Sesión
-								</button>
-							</div>
-						)}
+							{/* Dropdown */}
+							{showDropdown && (
+								<div className="absolute right-0 top-full mt-2 w-48 rounded-xl bg-slate-800 border border-slate-700 shadow-xl overflow-hidden py-1 z-50 animate-in fade-in zoom-in-95 duration-100">
+									<div className="px-4 py-3 border-b border-white/5 md:hidden">
+										<p className="text-sm font-medium text-white truncate">
+											{user?.name || "Usuario"}
+										</p>
+										{user?.email && (
+											<p className="text-xs text-slate-400 truncate mt-0.5">{user.email}</p>
+										)}
+									</div>
+
+									<button
+										onClick={() => logout()}
+										className="w-full px-4 py-2.5 text-left text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors flex items-center gap-2"
+									>
+										<LogOut className="w-4 h-4" />
+										Cerrar Sesión
+									</button>
+								</div>
+							)}
 						</div>
 					</div>
 				</div>

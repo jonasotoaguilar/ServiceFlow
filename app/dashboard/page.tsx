@@ -3,6 +3,8 @@ import { getAuthUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { getServices } from "@/lib/storage";
 
+export const dynamic = "force-dynamic";
+
 export default async function Home() {
 	const user = await getAuthUser();
 

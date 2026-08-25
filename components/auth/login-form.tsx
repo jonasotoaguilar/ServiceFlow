@@ -7,15 +7,12 @@ import { login } from "@/app/actions/auth";
 import Link from "next/link";
 import { Loader2, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 export function LoginForm() {
 	const [isPending, startTransition] = useTransition();
 	const [error, setError] = useState<string | null>(null);
 	const [showPassword, setShowPassword] = useState(false);
-	const router = useRouter();
-
 	const form = useForm<LoginValues>({
 		resolver: zodResolver(loginSchema),
 		defaultValues: {
@@ -36,12 +33,10 @@ export function LoginForm() {
 			if (result?.error) {
 				setError(result.error);
 			} else {
-				router.push("/");
+				window.location.assign("/dashboard");
 			}
 		});
 	};
-
-
 
 	return (
 		<div className="w-full max-w-[450px] glass-card rounded-xl p-8 md:p-10 shadow-2xl animate-fade-in relative z-10 mx-auto">
@@ -64,9 +59,7 @@ export function LoginForm() {
 						/>
 					</svg>
 				</div>
-				<h1 className="text-3xl font-bold text-foreground mb-2">
-					Bienvenido
-				</h1>
+				<h1 className="text-3xl font-bold text-foreground mb-2">Bienvenido</h1>
 				<p className="text-muted-foreground text-sm text-center">
 					Inicia sesión para continuar en ServiceFlow
 				</p>
@@ -75,10 +68,7 @@ export function LoginForm() {
 			<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
 				{/* Email Field */}
 				<div className="space-y-2">
-					<label
-						htmlFor="email"
-						className="text-sm font-medium text-foreground ml-1"
-					>
+					<label htmlFor="email" className="text-sm font-medium text-foreground ml-1">
 						Correo electrónico
 					</label>
 					<div className="relative group">
@@ -94,24 +84,19 @@ export function LoginForm() {
 								"block w-full pl-10 pr-3 py-3 bg-surface border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all",
 								form.formState.errors.email
 									? "border-destructive focus:ring-destructive"
-									: "border-input"
+									: "border-input",
 							)}
 						/>
 					</div>
 					{form.formState.errors.email && (
-						<p className="text-xs text-destructive ml-1">
-							{form.formState.errors.email.message}
-						</p>
+						<p className="text-xs text-destructive ml-1">{form.formState.errors.email.message}</p>
 					)}
 				</div>
 
 				{/* Password Field */}
 				<div className="space-y-2">
 					<div className="flex justify-between items-center px-1">
-						<label
-							htmlFor="password"
-							className="text-sm font-medium text-foreground"
-						>
+						<label htmlFor="password" className="text-sm font-medium text-foreground">
 							Contraseña
 						</label>
 					</div>
@@ -128,7 +113,7 @@ export function LoginForm() {
 								"block w-full pl-10 pr-12 py-3 bg-surface border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all",
 								form.formState.errors.password
 									? "border-destructive focus:ring-destructive"
-									: "border-input"
+									: "border-input",
 							)}
 						/>
 						<button
@@ -136,11 +121,7 @@ export function LoginForm() {
 							onClick={() => setShowPassword(!showPassword)}
 							className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground hover:text-foreground transition-colors"
 						>
-							{showPassword ? (
-								<EyeOff className="w-5 h-5" />
-							) : (
-								<Eye className="w-5 h-5" />
-							)}
+							{showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
 						</button>
 					</div>
 					{form.formState.errors.password && (
@@ -166,12 +147,7 @@ export function LoginForm() {
 					) : (
 						<>
 							<span>Ingresar</span>
-							<svg
-								className="w-5 h-5"
-								fill="none"
-								stroke="currentColor"
-								viewBox="0 0 24 24"
-							>
+							<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 								<path
 									strokeLinecap="round"
 									strokeLinejoin="round"

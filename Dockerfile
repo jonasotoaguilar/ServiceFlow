@@ -1,8 +1,11 @@
 # Base image
 FROM node:22-alpine AS base
 
-# Install system dependencies
-RUN apk add --no-cache libc6-compat
+# alpine package versions float with the base tag
+# hadolint ignore=DL3018
+RUN apk add --no-cache libc6-compat \
+	&& corepack enable \
+	&& corepack prepare pnpm@11.1.1 --activate
 
 # Install dependencies only when needed
 FROM base AS deps
@@ -11,8 +14,8 @@ WORKDIR /app
 # Copy package management files
 COPY package.json pnpm-lock.yaml* pnpm-workspace.yaml ./
 
-# Install pnpm and dependencies
-RUN npm install -g pnpm && pnpm install --frozen-lockfile
+# Install dependencies
+RUN pnpm install --frozen-lockfile
 
 # Rebuild the source code only when needed
 FROM base AS builder
@@ -22,7 +25,7 @@ COPY . .
 
 # Build the application
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN npm install -g pnpm && pnpm run build
+RUN pnpm run build
 
 # Production image, copy all the files and run next
 FROM base AS runner

@@ -15,7 +15,8 @@
     "test": "vitest",
     "test:run": "vitest run",
     "coverage": "vitest run --coverage",
-    "test:mutate": "stryker run"
+    "test:mutate": "stryker run",
+    "test:e2e": "playwright test"
   },
   "lint-staged": {
     "**/*.{js,ts,cjs,mjs,d.cts,d.mts,jsx,tsx,json,jsonc,css}": "biome lint --write --no-errors-on-unmatched"
@@ -41,6 +42,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.10",
+    "@playwright/test": "^1.62.1",
     "@stryker-mutator/core": "^9.6.1",
     "@stryker-mutator/vitest-runner": "^9.6.1",
     "@testing-library/jest-dom": "^6.9.1",
