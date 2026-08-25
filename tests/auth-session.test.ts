@@ -6,7 +6,7 @@ const mockSet = vi.fn(), mockDel = vi.fn(), mockGet = vi.fn();
 const mockSave = vi.fn((t: string, r: any) => { curTok = t; curRec = r; });
 const mockClear = vi.fn(() => { curTok = ""; curRec = null; });
 function getPayload(t: string): any {
-  try { const p = t.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"); const pad = p.padEnd(Math.ceil(p.length/4)*4,"="); const j = typeof Buffer!="undefined"?Buffer.from(pad,"base64").toString("utf-8"):atob(pad); return JSON.parse(j)||{}; } catch { return {}; }
+  try { const p = t.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"); const pad = p.padEnd(Math.ceil(p.length/4)*4,"="); const j = typeof Buffer!=="undefined"?Buffer.from(pad,"base64").toString("utf-8"):atob(pad); return JSON.parse(j)||{}; } catch { return {}; }
 }
 function isExpired(t: string){ const p=getPayload(t); if(!Object.keys(p).length) return true; if(!p.exp) return false; return !(p.exp>Date.now()/1e3); }
 const mockAuthRefresh = vi.fn();

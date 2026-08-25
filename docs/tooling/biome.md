@@ -15,8 +15,8 @@ All commands use Biome `2.5.10` (`biome lint`/`format`/`check`/`ci` flags `--for
 
 - **Husky 9.1.7** + **lint-staged 17.3.0** (exact, pinned, satisfies 14-day `minimumReleaseAge`). `package.json` `prepare: husky` is safe in no-`.git` contexts (`.git` missing → `husky` prints `.git can't be found` and exits `0`, Docker build not failed). No global git config.
 - **Hook:** `.husky/pre-commit` (executable) runs `pnpm exec lint-staged`.
-- **lint-staged** (in `package.json`): `**/*.{js,jsx,ts,tsx,json,jsonc,css}` → `biome check --write --no-errors-on-unmatched` — official Biome recipe, no `--unsafe`, skips unmatched.
-- **CI** (`.github/workflows/ci.yml`): `pnpm install --frozen-lockfile` → `pnpm run check` (honest, formatter-disabled) → `tsc --noEmit` → `tests` → `build`. Least permissions `contents: read`.
+- **lint-staged** (in `package.json`): `**/*.{js,ts,cjs,mjs,d.cts,d.mts,jsx,tsx,json,jsonc,css}` → `biome lint --write --no-errors-on-unmatched` — safe lint fixes only to staged supported files; does not run formatter/assist, no `--unsafe`, skips unmatched. Formatter remains explicit via `pnpm format`.
+- **CI** (`.github/workflows/ci.yml`): `pnpm install --frozen-lockfile` → `pnpm run check` (honest, formatter-disabled) → `tsc --noEmit` → `tests` → `build`. Least permissions `contents: read`. `pnpm check` (`biome check --formatter-enabled=false .`) is formatter-disabled in CI and matches the staged hook (lint-only) — no mass-format on commit.
 
 ## React Compiler Warning Gap
 
