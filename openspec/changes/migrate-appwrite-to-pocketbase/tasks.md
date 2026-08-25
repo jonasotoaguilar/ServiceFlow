@@ -316,7 +316,7 @@ main
 
 **Depends on:** WU8. **Do not** delete `lib/appwrite.ts`, SDKs, setup script, or the janitor.
 
-- [ ] Delete `check_or.ts` and `lint_output.txt` only. Confirm `git diff --stat` is those paths. `pnpm test:run`. Runtime harness: N/A (deletion). <!-- sdd-owner: implementation -->
+- [x] Delete `check_or.ts` and `lint_output.txt` only. Confirm `git diff --stat` is those paths. `pnpm test:run`. Runtime harness: N/A (deletion). <!-- sdd-owner: implementation -->
 
 ---
 
