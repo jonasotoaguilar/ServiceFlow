@@ -1,10 +1,10 @@
 name: Create and publish a Docker image
 
+# Stable/versioned images are owned by release.yml; deploy.yml publishes latest from main only.
+
 on:
   push:
     branches: ["main"]
-    tags:
-      - "v*.*.*"
 
 env:
   REGISTRY: ghcr.io
