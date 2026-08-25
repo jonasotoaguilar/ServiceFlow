@@ -7,7 +7,7 @@
 | Estimated changed lines | 2400–3600 across 16 implementation PRs + 2 planning nodes (~80–300 each after WU6 split; WU9 <30; WU10 mostly deletions; planning nodes <150). Provider budgets count additions + deletions of all files including pnpm-lock.yaml, tasks.md, and apply-progress.md. |
 | 400-line budget risk | High (old WU6 rejected 864; split 6a–6d with headroom) |
 | Chained PRs recommended | Yes |
-| Suggested split | PR 1a → PR 1b → planning (02-auth-split-plan) → PR 2a → PR 2b → PR 2c → PR 3 → PR 4 → PR 5 → planning (06-locations-write) → PR 6a → PR 6b → PR 6c → PR 6d → PR 7 → PR 8 → PR 9 → PR 10 (acceptance-gated) → PR 10c (WU10c English docs) |
+| Suggested split | PR 1a → PR 1b → planning (02-auth-split-plan) → PR 2a → PR 2b → PR 2c → PR 3 → PR 4 → PR 5 → planning (06-locations-write) → PR 6a → PR 6b → PR 6c → PR 6d → PR 7 → PR 8 → PR 9 → PR 10 (acceptance-gated) → PR 10c (WU10c English docs) → PR 10d (WU10d schema import correction) |
 | Delivery strategy | auto-chain |
 | Chain strategy | feature-branch-chain |
 
@@ -48,6 +48,7 @@ main
                                                                                            ├── …-10-appwrite-removal (WU10a PR49 draft 194) base: fix/migrate-appwrite-to-pocketbase-biome-check (PR48 @3b6711b)
                                                                                            └── …-10b-appwrite-deps (WU10b PR50 draft 370) base: …-10-appwrite-removal (PR49 @752e7c7) chain PR48→PR49→PR50
                                                                                               └── …-10c-english-docs (WU10c PR51) base: …-10b-appwrite-deps (PR50 @03b05aa) chain PR48→PR49→PR50→PR51
+                                 └── …-10d-schema-import (WU10d PR52) base: …-10c-english-docs (PR51 @4e46c79) chain PR48→PR49→PR50→PR51→PR52
 ```
 
 | Child | WU | Branch | Base | Starts at | Ends with | Provider budget | Rollback |
@@ -72,10 +73,11 @@ main
 | PR 16a (49) | 10a | `…-10-appwrite-removal` | `fix/migrate-appwrite-to-pocketbase-biome-check` (PR48 @3b6711b) | draft, no prod gate | janitor/session/tests gone | 194 | revert janitor files |
 | PR 16b (50) | 10b | `…-10b-appwrite-deps` | `…-10-appwrite-removal` (PR49 @752e7c7) | draft, no prod gate chain PR48→PR49→PR50 | Appwrite client/setup/deps/lock gone + rg proof | 370 | revert Appwrite files |
 | PR 17 (51) | 10c | `…-10c-english-docs` | `…-10b-appwrite-deps` (PR50 @03b05aa) | PocketBase-final docs only | README English + ARCH/PRD/GUIDE PocketBase-only + `design/DESIGN.md` → `DESIGN.md` | <=80 | revert docs + `DESIGN.md` move |
+| PR 18 (52) | 10d | `…-10d-schema-import` | `…-10c-english-docs` (PR51 @4e46c79) | PocketBase-final docs done | `pocketbase/v1.collections.json` indexes as CREATE INDEX + `tests/schema-artifact.test.ts` + local exact import proof | <=120 | revert artifact/indexes/test |
 
-**Tracker integration:** child PR 1 targets the tracker. Later children target the immediate parent branch (including planning → 02a → 02b → 02c and planning `…-06-locations-write` → 06a → 06b → 06c → 06d). After a child is reviewed, integrate it into the tracker by merging that child into its base (or fast-forwarding the tracker through the stack). Keep tracker PR19 draft until terminal WU integrated; WU10a PR49 draft base fix/migrate-appwrite-to-pocketbase-biome-check (PR48) → WU10b PR50 draft base …-10-appwrite-removal (PR49) chain PR48→PR49→PR50 → WU10c PR51 draft base …-10b-appwrite-deps (PR50 @03b05aa) chain PR48→PR49→PR50→PR51; production gates not done. Merge tracker to `main` only after final WU10c is verified (or after PR15 if acceptance deferred; then WU10b/c are follow-up on `main` still using this chain). Apply creates branches/PRs; this file does not. Planning PRs `…-02-auth-split-plan` and `…-06-locations-write` are intermediate docs-only chain nodes, not implementation WUs. WU10c is an erratum of WU7/WU8 docs, not a rewrite of completed history.
+**Tracker integration:** child PR 1 targets the tracker. Later children target the immediate parent branch (including planning → 02a → 02b → 02c and planning `…-06-locations-write` → 06a → 06b → 06c → 06d). After a child is reviewed, integrate it into the tracker by merging that child into its base (or fast-forwarding the tracker through the stack). Keep tracker PR19 draft until terminal WU integrated; WU10a PR49 draft base fix/migrate-appwrite-to-pocketbase-biome-check (PR48) → WU10b PR50 draft base …-10-appwrite-removal (PR49) chain PR48→PR49→PR50 → WU10c PR51 draft base …-10b-appwrite-deps (PR50 @03b05aa) chain PR48→PR49→PR50→PR51 → WU10d PR52 draft base …-10c-english-docs (PR51 @4e46c79) chain PR48→PR49→PR50→PR51→PR52; production gates not done. Merge tracker to `main` only after final WU10c is verified (or after PR15 if acceptance deferred; then WU10b/c are follow-up on `main` still using this chain). Apply creates branches/PRs; this file does not. Planning PRs `…-02-auth-split-plan` and `…-06-locations-write` are intermediate docs-only chain nodes, not implementation WUs. WU10c is an erratum of WU7/WU8 docs, not a rewrite of completed history.
 
-**Out of every child PR:** CI workflows, Husky, lint-staged, Dependabot, `CODEOWNERS`, root `SECURITY.md`, PocketBase hosting/Dokploy compose, admin secret names, data/user import. **Exception for explicit WU10c only:** `DESIGN.md` / `design/DESIGN.md` move to canonical root `DESIGN.md` is allowed (no duplicate, visual baseline preserved).
+**Out of every child PR:** CI workflows, Husky, lint-staged, Dependabot, `CODEOWNERS`, root `SECURITY.md`, PocketBase hosting/Dokploy compose, admin secret names, data/user import. **Exception for explicit WU10c only:** `DESIGN.md` / `design/DESIGN.md` move to canonical root `DESIGN.md` is allowed (no duplicate, visual baseline preserved). **WU10d exception:** minimal `pocketbase/v1.collections.json` indexes and `tests/schema-artifact.test.ts` only.
 
 **Secrets:** never request, print, or commit PocketBase/Appwrite secret values. Record only presence and target identity (`POCKETBASE_URL` host, e.g. local `http://127.0.0.1:8090` vs “Dokploy PocketBase”).
 
@@ -343,13 +345,21 @@ main
 
 ---
 
-## 18. Parent / operator / lifecycle gates — (A) dev vs (B) production final gate
+## 18. WU10d / PR 18 — Schema import artifact correction (indexes as CREATE INDEX)
+
+**Depends on:** WU10c integrated (`…-10c-english-docs` PR51 @4e46c79). **Scope:** fix `pocketbase/v1.collections.json` indexes to PocketBase-importable `CREATE INDEX` SQL only; keep all fields/rules/types/required/optional/no-rows unchanged. **Do not** modify code/package/lock/docs beyond minimal SDD. Provider budget <=120, no `size:exception`. PR after PR51.
+
+- [x] WU10d — schema import artifact correction: RED extend `tests/schema-artifact.test.ts` so every non-empty `indexes` entry is a `CREATE INDEX` statement covering required logical fields (locations: userId,name; services: userId,status,locationId,clientName,invoiceNumber,rut; location_logs: userId,ServiceId,fromLocationId,toLocationId) → RED fails on simple names; GREEN rewrite only `indexes` arrays in `pocketbase/v1.collections.json` to `CREATE INDEX idx_<collection>_<field> ON <collection> (<field>)` (official https://pocketbase.io/docs/js-migrations); TRIANGULATE no simple-name remains + existing schema tests green + exact-byte `collections.import(..., false)` local volume proof
+
+---
+
+## 19. Parent / operator / lifecycle gates — (A) dev vs (B) production final gate
 
 Group after implementation. Create no PRs and collect no secret values in the tasks phase. Bounded review stays opt-in. **(A) Dev:** WU10 dev candidate (draft/no-merge + local/CI) MAY proceed without (B). **(B) Production final gate:** local/production artifact + Dokploy/smoke/explicit acceptance — ONLY before final WU10 merge/deploy, NOT before WU10 code edits or local/CI.
 
 - [ ] After each integrated child PR (1a, 1b, 2a, 2b, 2c, 3–5, 6a–6d, 7–10), start or reuse bounded review for that slice only. <!-- sdd-owner: parent -->
 - [x] At apply start: create draft/no-merge tracker PR from `feat/migrate-appwrite-to-pocketbase` → `main`, then open child PRs in order. WU10 draft may open after WU9 without acceptance; final WU10 merge stays acceptance-gated. <!-- sdd-owner: parent -->
-- [ ] (B) Operator (local, out of band — final gate only, not WU10 dev prerequisite): apply `pocketbase/v1.collections.json` via Admin UI import/transcription. Verify design checklist (four collections, optional `address`, required log `userId`, zero rows, tenant rules, public create, guest denied). Do not flip prod URL. Record “local artifact applied: yes/no”. <!-- sdd-owner: parent -->
+- [x] (B) Operator (local, out of band — final gate only, not WU10 dev prerequisite): apply `pocketbase/v1.collections.json` via Admin UI import/transcription. Verify design checklist (four collections, optional `address`, required log `userId`, zero rows, tenant rules, public create, guest denied). Do not flip prod URL. Record “local artifact applied: yes/no”. <!-- sdd-owner: parent -->
 - [ ] (B) Operator (production — final gate only): apply same artifact to existing Dokploy PocketBase, verify same checklist, record target identity only (no URL secret). `POCKETBASE_URL` flip is separate later step. <!-- sdd-owner: parent -->
 - [ ] (B) Operator — final gate only: confirm prod env `POCKETBASE_URL` presence (set/not set) and absence of Appwrite/`POCKETBASE_ADMIN_*` names; never store URL/secret values. <!-- sdd-owner: parent -->
 - [ ] (B) Operator smoke — final gate only (after deploy, not WU10 dev): register→notice→login→location→service→move→history→logout→second user isolation; on failure redeploy last Appwrite image. <!-- sdd-owner: parent -->

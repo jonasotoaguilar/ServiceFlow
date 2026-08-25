@@ -65,4 +65,40 @@ describe("schema artifact", () => {
     for (const req of ["userId", "ServiceId", "fromLocationId", "toLocationId", "changedAt"])
       expect(llfields).toContain(req);
   });
+  it("indexes are PocketBase CREATE INDEX statements covering required fields", () => {
+    const { cols } = load();
+    const required: Record<string, string[]> = {
+      locations: ["userId", "name"],
+      services: ["userId", "status", "locationId", "clientName", "invoiceNumber", "rut"],
+      location_logs: ["userId", "ServiceId", "fromLocationId", "toLocationId"],
+    };
+    for (const [colName, fields] of Object.entries(required)) {
+      const col = cols.find((c: any) => c.name === colName);
+      expect(col).toBeDefined();
+      const indexes: string[] = col.indexes ?? [];
+      expect(indexes.length).toBeGreaterThan(0);
+      for (const idx of indexes) {
+        expect(idx).toMatch(/^CREATE\s+(UNIQUE\s+)?INDEX\s+\S+\s+ON\s+\S+\s*\(.*\)\s*$/i);
+      }
+      for (const field of fields) {
+        const covers = indexes.some((idx: string) =>
+          idx.includes(`(${field})`) ||
+          idx.includes(`(${field},`) ||
+          idx.includes(`, ${field})`) ||
+          idx.includes(`, ${field},`) ||
+          new RegExp(`\\b${field}\\b`).test(idx)
+        );
+        expect(covers).toBe(true);
+      }
+    }
+  });
+  it("no simple-name index remains", () => {
+    const { cols, raw } = load();
+    const allIndexes: string[] = cols.flatMap((c: any) => c.indexes ?? []);
+    for (const idx of allIndexes) {
+      expect(idx).not.toMatch(/^[A-Za-z0-9_]+$/);
+      expect(idx).toMatch(/^CREATE\s+/i);
+    }
+    expect(raw).toContain("CREATE INDEX");
+  });
 });

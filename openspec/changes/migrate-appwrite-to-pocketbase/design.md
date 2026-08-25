@@ -241,6 +241,8 @@ Indexes: `userId`, `status`, `locationId`, `clientName`, `invoiceNumber`, `rut`.
 
 Indexes: `userId`, `ServiceId`, `fromLocationId`, `toLocationId`.
 
+Indexes in the committed `pocketbase/v1.collections.json` MUST be PocketBase-importable `CREATE INDEX` expressions (e.g. `CREATE INDEX idx_locations_userId ON locations (userId)`) while the logical indexed fields remain those listed above (locations: userId,name; services: userId,status,locationId,clientName,invoiceNumber,rut; location_logs: userId,ServiceId,fromLocationId,toLocationId). Simple names like `"userId"` are rejected by PocketBase 0.40.1 `validation_invalid_index_expression` (see https://pocketbase.io/docs/js-migrations). Keep all fields/rules/types/required/optional/no-rows unchanged; only the `indexes` arrays are CREATE INDEX.
+
 ### Tenant API rules (normative)
 
 For `services`, `locations`, and `location_logs`, every CRUD rule is:
