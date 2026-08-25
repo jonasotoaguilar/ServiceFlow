@@ -4,10 +4,10 @@
 
 | Field | Value |
 |-------|-------|
-| Estimated changed lines | 2200–3400 across 13 implementation PRs + 1 planning node (~150–380 each; WU9 <30; WU10 mostly deletions; planning <100). Provider budgets count additions + deletions of all files including pnpm-lock.yaml, tasks.md, and apply-progress.md. |
-| 400-line budget risk | High (pre-split corrected: old WU2 forecast 574–737 provider lines) |
+| Estimated changed lines | 2400–3600 across 16 implementation PRs + 2 planning nodes (~80–300 each after WU6 split; WU9 <30; WU10 mostly deletions; planning nodes <150). Provider budgets count additions + deletions of all files including pnpm-lock.yaml, tasks.md, and apply-progress.md. |
+| 400-line budget risk | High (old WU6 rejected 864; split 6a–6d with headroom) |
 | Chained PRs recommended | Yes |
-| Suggested split | PR 1a → PR 1b → planning (02-auth-split-plan) → PR 2a → PR 2b → PR 2c → PR 3 → PR 4 → PR 5 → PR 6 → PR 7 → PR 8 → PR 9 → PR 10 (acceptance-gated) |
+| Suggested split | PR 1a → PR 1b → planning (02-auth-split-plan) → PR 2a → PR 2b → PR 2c → PR 3 → PR 4 → PR 5 → planning (06-locations-write) → PR 6a → PR 6b → PR 6c → PR 6d → PR 7 → PR 8 → PR 9 → PR 10 (acceptance-gated) |
 | Delivery strategy | auto-chain |
 | Chain strategy | feature-branch-chain |
 
@@ -15,10 +15,10 @@
 Decision needed before apply: No
 Chained PRs recommended: Yes
 Chain strategy: feature-branch-chain
-400-line budget risk: High (old WU2 574–737, pre-split before acquire)
+400-line budget risk: High (old WU6 rejected 864; split 6a–6d)
 ```
 
-No `size:exception`. If a child PR exceeds 400 provider lines (`additions + deletions` of all files including `pnpm-lock.yaml`, `tasks.md`, and `apply-progress.md`), split that WU further before opening the PR. `01b` owns the `pocketbase` dependency, `pnpm-lock.yaml`, and `pnpm-workspace.yaml`. Do not merge WUs to “save” PRs. Planning-only `feat/migrate-appwrite-to-pocketbase-02-auth-split-plan` (this PR) is a chain node before `…-02a-auth-core` but not an implementation task and not a size exception; it exists solely to correct the budget before acquire. Old WU2 (`…-02-auth-janitor`) was forecast 574–737 provider lines via source-driven preflight before any native attempt and was therefore pre-split into 2a/2b/2c before acquire with no exception.
+No `size:exception`. If a child PR exceeds 400 provider lines (`additions + deletions` of all files including `pnpm-lock.yaml`, `tasks.md`, and `apply-progress.md`), split that WU further before opening the PR. `01b` owns the `pocketbase` dependency, `pnpm-lock.yaml`, and `pnpm-workspace.yaml`. Do not merge WUs to “save” PRs. Planning-only `feat/migrate-appwrite-to-pocketbase-02-auth-split-plan` is a chain node before `…-02a-auth-core` but not an implementation task and not a size exception. Planning-only `feat/migrate-appwrite-to-pocketbase-06-locations-write` is a chain node before `…-06a-location-schemas` after maintainer reset of rejected monolithic WU6 (864 lines); not an implementation task and not a size exception. Old WU6 is split into 6a/6b/6c/6d with headroom, not 392-at-the-edge.
 
 ## Feature-branch chain (plan only — create no PRs in this phase)
 
@@ -36,12 +36,16 @@ main
                                └── feat/migrate-appwrite-to-pocketbase-02c-janitor-notice ← PR 2c base: 02b
                                     └── …-03-locations-read                         ← PR 3 base: 02c
                                          └── …-04-services-read                     ← PR 4 base: 03
-                                              └── …-05-services-write               ← PR 5 base: 04
-                                                   └── …-06-locations-write         ← PR 6 base: 05
-                                                        └── …-07-docs-env           ← PR 7 base: 06
-                                                             └── …-08-prd-arch      ← PR 8 base: 07
-                                                                  └── …-09-hygiene  ← PR 9 base: 08
-                                                                       └── …-10-appwrite-removal  ← PR 10 base: 09; open only after acceptance
+                                              └── …-05-services-write               ← PR 8 base: 04
+                                                   └── …-06-locations-write         ← planning base: 05 (docs-only, no implementation task)
+                                                        └── …-06a-location-schemas  ← PR 9 base: planning
+                                                             └── …-06b-location-crud ← PR 10 base: 06a
+                                                                  └── …-06c-movement-log ← PR 11 base: 06b
+                                                                       └── …-06d-history-read ← PR 12 base: 06c
+                                                                            └── …-07-docs-env           ← PR 13 base: 06d
+                                                                                 └── …-08-prd-arch      ← PR 14 base: 07
+                                                                                      └── …-09-hygiene  ← PR 15 base: 08
+                                                                                           └── …-10-appwrite-removal  ← PR 16 base: 09; open only after acceptance
 ```
 
 | Child | WU | Branch | Base | Starts at | Ends with | Provider budget | Rollback |
@@ -55,13 +59,17 @@ main
 | PR 6 | 3 | `…-03-locations-read` | `…-02c` | Auth works | Empty tenant locations list | 150–220 | revert `getLocations` rewrite |
 | PR 7 | 4 | `…-04-services-read` | `…-03` | Locations read done | GET envelope + LIKE search | 220–320 | revert `getServices` / GET route |
 | PR 8 | 5 | `…-05-services-write` | `…-04` | List works | Service CRUD, no UUID | 250–350 | revert write path |
-| PR 9 | 6 | `…-06-locations-write` | `…-05` | Services writes done | Location/history writes + guards | 280–380 | revert location/log writes |
-| PR 10 | 7 | `…-07-docs-env` | `…-06` | Product path done | `.env.example` / README / guide | 200–350 | revert those docs |
-| PR 11 | 8 | `…-08-prd-arch` | `…-07` | Setup docs done | `PRD.md` + `ARCHITECTURE.md` | 250–380 | revert those two files |
-| PR 12 | 9 | `…-09-hygiene` | `…-08` | Contracts done | `check_or.ts` + `lint_output.txt` gone | <30 | restore the two files |
-| PR 13 | 10 | `…-10-appwrite-removal` | `…-09` | **Acceptance recorded** | Appwrite code/deps/janitor gone | deletions | last Appwrite-backed image + untouched cloud project |
+| — | — | `feat/migrate-appwrite-to-pocketbase-06-locations-write` | `…-05` | WU5 done, old WU6 failed at 864 | Planning docs: split WU6 into 6a/6b/6c/6d | <150 (docs-only, not an implementation WU) | revert planning docs |
+| PR 9 | 6a | `…-06a-location-schemas` | planning `…-06-locations-write` | Planning applied | `lib/schemas.ts` LocationCreate/Update + compact schema tests | 80–160 | revert `lib/schemas.ts` + schema tests |
+| PR 10 | 6b | `…-06b-location-crud` | `…-06a` | Schemas done | Location create/update/toggle/delete + guards | 180–280 | revert `app/actions/locations.ts` writes |
+| PR 11 | 6c | `…-06c-movement-log` | `…-06b` | Location CRUD done | Movement-log create in `updateService` only | 80–160 | revert `lib/storage.ts` movement create |
+| PR 12 | 6d | `…-06d-history-read` | `…-06c` | Movement create done | `getLocationLogs` envelope/sort/filter | 160–280 | revert `app/actions/logs.ts` |
+| PR 13 | 7 | `…-07-docs-env` | `…-06d` | Product path done | `.env.example` / README / guide | 200–350 | revert those docs |
+| PR 14 | 8 | `…-08-prd-arch` | `…-07` | Setup docs done | `PRD.md` + `ARCHITECTURE.md` | 250–380 | revert those two files |
+| PR 15 | 9 | `…-09-hygiene` | `…-08` | Contracts done | `check_or.ts` + `lint_output.txt` gone | <30 | restore the two files |
+| PR 16 | 10 | `…-10-appwrite-removal` | `…-09` | **Acceptance recorded** | Appwrite code/deps/janitor gone | deletions | last Appwrite-backed image + untouched cloud project |
 
-**Tracker integration:** child PR 1 targets the tracker. Later children target the immediate parent branch (including planning → 02a → 02b → 02c chain). After a child is reviewed, integrate it into the tracker by merging that child into its base (or fast-forwarding the tracker through the stack). Keep the tracker draft until PR 13 is integrated. Open PR 13 only after the parent acceptance gate. Merge the tracker to `main` only after PR 13 (or after PR 12 if acceptance is deferred; then PR 13 is a follow-up on `main` still using this chain). Apply creates branches/PRs; this file does not. Planning PR `…-02-auth-split-plan` is an intermediate docs-only chain node, not an implementation WU; its base is `…-01b` and `…-02a` bases on it.
+**Tracker integration:** child PR 1 targets the tracker. Later children target the immediate parent branch (including planning → 02a → 02b → 02c and planning `…-06-locations-write` → 06a → 06b → 06c → 06d). After a child is reviewed, integrate it into the tracker by merging that child into its base (or fast-forwarding the tracker through the stack). Keep the tracker draft until PR 16 is integrated. Open PR 16 only after the parent acceptance gate. Merge the tracker to `main` only after PR 16 (or after PR 15 if acceptance is deferred; then PR 16 is a follow-up on `main` still using this chain). Apply creates branches/PRs; this file does not. Planning PRs `…-02-auth-split-plan` and `…-06-locations-write` are intermediate docs-only chain nodes, not implementation WUs.
 
 **Out of every child PR:** CI workflows, Husky, lint-staged, Dependabot, `CODEOWNERS`, root `SECURITY.md`, `DESIGN.md` / `design/DESIGN.md`, PocketBase hosting/Dokploy compose, admin secret names, data/user import.
 
@@ -71,7 +79,7 @@ main
 
 **TDD:** `strict_tdd: true`. Runner `pnpm test:run` (Vitest). Production PocketBase and Appwrite are never contacted from tests. Mock `createPocketBaseClient` or `vi.mock("pocketbase")`. Sequence every behavior as RED → GREEN → TRIANGULATE → REFACTOR.
 
-**Quality gates:** each code PR runs its focused Vitest file(s) then `pnpm test:run`. Typecheck `pnpm exec tsc --noEmit` and lint `pnpm run lint` on PRs 1a, 1b, 2a–2c, 3–6 and 13. `pnpm run build` at PR 6 (first slice, WU3), PR 9 (product complete, WU6), and PR 13.
+**Quality gates:** each code PR runs its focused Vitest file(s) then `pnpm test:run`. Typecheck `pnpm exec tsc --noEmit` and lint `pnpm run lint` on PRs 1a, 1b, 2a–2c, 3–5, 6a–6d and 16. `pnpm run build` at PR 6 (first slice, WU3), PR 12 (product complete, WU6d), and PR 16.
 
 ---
 
@@ -218,36 +226,74 @@ main
 
 ---
 
-## 9. WU6 / PR 9 — Location mutations, history logs, movement, delete guard
+## 9. WU6a / PR 9 — Location Zod schemas
 
-**Depends on:** WU5. **Specs:** `locations-history` (address, normalize, active, delete guard, movement, history list), `services-lifecycle` (delete removes logs — already ordered in WU5).
+**Depends on:** WU5 and planning `feat/migrate-appwrite-to-pocketbase-06-locations-write` applied (docs-only). **Specs:** `locations-history` (address, name bounds). **Do not** rewrite location actions, storage movement, or history reads. Provider budget 80–160. Base: this planning node.
 
-### 9.1 Location Zod schemas — RED → GREEN
+### Suggested Work Units (WU6 split)
+
+| Unit | Goal | Likely PR | Focused test command | Runtime harness | Rollback boundary |
+|------|------|-----------|----------------------|-----------------|-------------------|
+| 6a | Location Zod schemas only | PR 9 | `pnpm exec vitest run tests/schemas.test.ts` | N/A — schema-only, no UI/runtime path | `lib/schemas.ts`, compact `tests/schemas.test.ts` cases |
+| 6b | Location CRUD + guards | PR 10 | `pnpm exec vitest run tests/locations-history.test.ts tests/schemas.test.ts` | N/A unless local PB already applied (create only) | `app/actions/locations.ts` writes + compact write tests |
+| 6c | Movement-log create | PR 11 | `pnpm exec vitest run tests/locations-history.test.ts tests/services-lifecycle.test.ts` | N/A — mocked `updateService` path | `lib/storage.ts` movement create + compact movement tests |
+| 6d | History read envelope | PR 12 | `pnpm exec vitest run tests/locations-history.test.ts` | `pnpm run build`; local PB only if applied: create → move → history | `app/actions/logs.ts` + compact history tests |
+
+### 9.1 Location Zod schemas — RED → GREEN → TRIANGULATE
 
 - [ ] RED: extend `tests/schemas.test.ts` for `LocationCreateSchema` / `LocationUpdateSchema` in `lib/schemas.ts`: name required after trim; update name 3–100; address optional, trimmed, max 200, blank → omitted. Focused test fails. <!-- sdd-owner: implementation -->
-- [ ] GREEN: add the schemas. Existing `ServiceSchema` cases stay green. TRIANGULATE whitespace-only address and oversized address. <!-- sdd-owner: implementation -->
+- [ ] GREEN: add the schemas. Existing `ServiceSchema` cases stay green. <!-- sdd-owner: implementation -->
+- [ ] TRIANGULATE: whitespace-only address and oversized address. REFACTOR only while green. <!-- sdd-owner: implementation -->
 
-### 9.2 Location writes — RED → GREEN → TRIANGULATE
+### 9.2 WU6a verification
 
-- [ ] RED: extend `tests/locations-history.test.ts` for create/update/toggle/delete in `app/actions/locations.ts`: create `isActive=true`, server `userId`, optional address; `normalizeString` duplicate against **this user only**; update may keep own name; peer mutate fails; unauthenticated mutate writes nothing; delete blocked when any service `locationId` or log `fromLocationId`/`toLocationId` references it, same Spanish history-guard error; unused location deletes. Focused test fails. <!-- sdd-owner: implementation -->
+- [ ] Run `pnpm exec vitest run tests/schemas.test.ts`, then `pnpm test:run`, `pnpm exec tsc --noEmit`, `pnpm run lint`. Runtime harness: N/A (schema-only). <!-- sdd-owner: implementation -->
+
+## 10. WU6b / PR 10 — Location CRUD + guards
+
+**Depends on:** WU6a (`…-06a-location-schemas`). **Specs:** `locations-history` (normalize, active, delete guard, ownership). **Do not** implement movement-log create or `getLocationLogs`. Provider budget 180–280. Base: 06a.
+
+### 10.1 Location writes — RED → GREEN → TRIANGULATE
+
+- [ ] RED: add compact write cases to `tests/locations-history.test.ts` for create/update/toggle/delete in `app/actions/locations.ts`: create `isActive=true`, server `userId`, optional address; `normalizeString` duplicate against **this user only**; update may keep own name; peer mutate fails; unauthenticated mutate writes nothing; delete blocked when any service `locationId` or log `fromLocationId`/`toLocationId` references it, same Spanish history-guard error; unused location deletes. Focused test fails. <!-- sdd-owner: implementation -->
 - [ ] GREEN: rewrite remaining location actions onto PocketBase + Zod. Native ids (omit `id` on create). Focused test passes. <!-- sdd-owner: implementation -->
 - [ ] TRIANGULATE: accent-insensitive duplicate (`Ñuñoa`); same name allowed for another tenant; toggle does not delete history. REFACTOR duplicate check. <!-- sdd-owner: implementation -->
 
-### 9.3 Movement logs + history list — RED → GREEN → TRIANGULATE
+### 10.2 WU6b verification
 
-- [ ] RED: extend `tests/locations-history.test.ts`: `updateService` creates `location_logs` with denormalized `userId`, `ServiceId`, `fromLocationId`, `toLocationId`, `changedAt=now` when `locationId` changes and the write is **not** the transition into `completed`; skip log when completing; no log when location unchanged; `getLocationLogs` in `app/actions/logs.ts` requires auth, binds `userId`, `{ data, total, page, limit }`, sort `-changedAt`, optional from/to `locationId` and date bounds; peer logs excluded. Focused test fails. <!-- sdd-owner: implementation -->
-- [ ] GREEN: implement log create in the service update path (ADR-6: update service, then create log; no invented rollback) and rewrite `getLocationLogs` via `logListBinding`. Keep `app/locationLogs/page.tsx` and `app/dashboard/page.tsx` auth redirects. Focused test passes. <!-- sdd-owner: implementation -->
+- [ ] Run `pnpm exec vitest run tests/locations-history.test.ts tests/schemas.test.ts`, then `pnpm test:run`, `pnpm exec tsc --noEmit`, `pnpm run lint`. Runtime harness: N/A unless local PB already applied (location create only). <!-- sdd-owner: implementation -->
+
+## 11. WU6c / PR 11 — Movement-log create on service update
+
+**Depends on:** WU6b (`…-06b-location-crud`). **Specs:** `locations-history` (movement). **Do not** rewrite `getLocationLogs`. Provider budget 80–160. Base: 06b.
+
+### 11.1 Movement logs — RED → GREEN → TRIANGULATE
+
+- [ ] RED: add compact movement cases in `tests/locations-history.test.ts` or `tests/services-lifecycle.test.ts`: `updateService` in `lib/storage.ts` creates `location_logs` with denormalized `userId`, `ServiceId`, `fromLocationId`, `toLocationId`, `changedAt=now` when `locationId` changes and the write is **not** the transition into `completed`; skip log when completing; no log when location unchanged. Focused test fails. <!-- sdd-owner: implementation -->
+- [ ] GREEN: implement log create in the service update path only (ADR-6: update service, then create log; no invented rollback). Do not rewrite `getLocationLogs`. Focused test passes. <!-- sdd-owner: implementation -->
+- [ ] TRIANGULATE: completing+location change skips log; unchanged location writes no log; non-complete location change writes one log. REFACTOR helper while green. <!-- sdd-owner: implementation -->
+
+### 11.2 WU6c verification
+
+- [ ] Run `pnpm exec vitest run tests/locations-history.test.ts tests/services-lifecycle.test.ts`, then `pnpm test:run`, `pnpm exec tsc --noEmit`, `pnpm run lint`. Runtime harness: N/A (mocked update path). <!-- sdd-owner: implementation -->
+
+## 12. WU6d / PR 12 — History read envelope
+
+**Depends on:** WU6c (`…-06c-movement-log`). **Specs:** `locations-history` (history list). **Do not** widen location CRUD or movement create. Provider budget 160–280. Base: 06c. Product-complete build gate.
+
+### 12.1 getLocationLogs — RED → GREEN → TRIANGULATE
+
+- [ ] RED: add compact history cases to `tests/locations-history.test.ts` for `getLocationLogs` in `app/actions/logs.ts`: requires auth, binds `userId`, `{ data, total, page, limit }`, sort `-changedAt`, optional from/to `locationId` and date bounds; peer logs excluded. Focused test fails. <!-- sdd-owner: implementation -->
+- [ ] GREEN: rewrite `getLocationLogs` via `logListBinding`. Keep `app/locationLogs/page.tsx` and `app/dashboard/page.tsx` auth redirects. Focused test passes. <!-- sdd-owner: implementation -->
 - [ ] TRIANGULATE: from-or-to filter; unauthenticated history returns error without `data`. REFACTOR log mapping. <!-- sdd-owner: implementation -->
 
-### 9.4 WU6 verification
+### 12.2 WU6d verification
 
 - [ ] Run `pnpm exec vitest run tests/locations-history.test.ts tests/services-lifecycle.test.ts tests/schemas.test.ts`, then `pnpm test:run`, `pnpm exec tsc --noEmit`, `pnpm run lint`, `pnpm run build`. Runtime (local PB only if applied): location create → service create/search → move → history → second user sees nothing. <!-- sdd-owner: implementation -->
 
----
+## 13. WU7 / PR 13 — Docs / env contracts (before Appwrite deletion)
 
-## 10. WU7 / PR 10 — Docs / env contracts (before Appwrite deletion)
-
-**Depends on:** WU6. **Specs:** `project-contracts` (env, README, CODEBASE-GUIDE). **Do not** delete Appwrite code.
+**Depends on:** WU6d. **Specs:** `project-contracts` (env, README, CODEBASE-GUIDE). **Do not** delete Appwrite code.
 
 - [ ] Set `.env.example` PocketBase runtime to only `POCKETBASE_URL=http://127.0.0.1:8090`. No secrets. No `POCKETBASE_ADMIN_*`. No `NEXT_PUBLIC_APPWRITE_*` or `APPWRITE_API_KEY` as active config. <!-- sdd-owner: implementation -->
 - [ ] Rewrite `README.md`: PocketBase is the live auth/data backend; local already-running instance at `127.0.0.1:8090`; explicit artifact apply; public self-registration; `pb_auth` httpOnly; tenant `userId` + schema rules; empty start; native 15-char ids; `{ data, total, page, limit }`; LIKE search; optional `address`. Remove Appwrite setup, `scripts/setup-appwrite.ts`, and API-key instructions. No container/Dokploy runbook. Appwrite only as historical rollback. <!-- sdd-owner: implementation -->
@@ -256,7 +302,7 @@ main
 
 ---
 
-## 11. WU8 / PR 11 — PRD and ARCHITECTURE
+## 14. WU8 / PR 14 — PRD and ARCHITECTURE
 
 **Depends on:** WU7. **Specs:** `project-contracts` (PRD + ARCHITECTURE). Keep this PR to those two files so it stays ≤400 lines.
 
@@ -266,7 +312,7 @@ main
 
 ---
 
-## 12. WU9 / PR 12 — Neutral hygiene (Appwrite still present)
+## 15. WU9 / PR 15 — Neutral hygiene (Appwrite still present)
 
 **Depends on:** WU8. **Do not** delete `lib/appwrite.ts`, SDKs, setup script, or the janitor.
 
@@ -274,26 +320,26 @@ main
 
 ---
 
-## 13. WU10 / PR 13 — Appwrite removal (acceptance-gated last slice)
+## 16. WU10 / PR 16 — Appwrite removal (acceptance-gated last slice)
 
-**Depends on:** WU9 integrated **and** parent acceptance (section 14). **Do not** start this slice before that checkbox. **Do not** delete the Appwrite cloud project.
+**Depends on:** WU9 integrated **and** parent acceptance (section 17). **Do not** start this slice before that checkbox. **Do not** delete the Appwrite cloud project.
 
-- [ ] Confirm the parent acceptance gate is checked. If not, stop. <!-- sdd-owner: implementation -->
+- [ ] Confirm the parent acceptance gate is checked. If not, stop. Do not open PR 16 until acceptance. <!-- sdd-owner: implementation -->
 - [ ] Delete `lib/appwrite.ts`, `scripts/setup-appwrite.ts`, leftover `session` helpers, and root janitor `proxy.ts` (leftover-session path is gone). Remove `appwrite` and `node-appwrite` from `package.json` and refresh the lockfile. <!-- sdd-owner: implementation -->
 - [ ] Grep the app (`lib/`, `app/`, `components/`, `.env.example`, in-scope docs) for `node-appwrite`, `NEXT_PUBLIC_APPWRITE`, `APPWRITE_API_KEY`, `SESSION_COOKIE`, and live Appwrite setup. Only historical rollback notes may remain. <!-- sdd-owner: implementation -->
 - [ ] Run `pnpm test:run`, `pnpm exec tsc --noEmit`, `pnpm run lint`, `pnpm run build`. Runtime harness: N/A beyond existing mocked suite (production cutover already proven). <!-- sdd-owner: implementation -->
 
 ---
 
-## 14. Parent / operator / lifecycle gates
+## 17. Parent / operator / lifecycle gates
 
 Group after implementation. Create no PRs and collect no secret values in the tasks phase. Bounded review stays opt-in per repo review mode; start or reuse it only when that mode is enabled.
 
-- [ ] After each integrated child PR (1a, 1b, 2a, 2b, 2c, 3–10), start or reuse bounded review for that slice only. <!-- sdd-owner: parent -->
-- [x] At apply start: create draft/no-merge tracker PR from `feat/migrate-appwrite-to-pocketbase` → `main`, then open child PRs in order with the bases in the chain table. Do not open PR 13 (WU10) until acceptance. <!-- sdd-owner: parent -->
+- [ ] After each integrated child PR (1a, 1b, 2a, 2b, 2c, 3–5, 6a–6d, 7–10), start or reuse bounded review for that slice only. <!-- sdd-owner: parent -->
+- [x] At apply start: create draft/no-merge tracker PR from `feat/migrate-appwrite-to-pocketbase` → `main`, then open child PRs in order with the bases in the chain table. Do not open PR 16 (WU10) until acceptance. <!-- sdd-owner: parent -->
 - [ ] Operator (local, out of band): apply `pocketbase/v1.collections.json` via existing Admin UI import or hand transcription. Verify design checklist (four collections, optional `address`, required log `userId`, zero business rows, tenant rules, public user create, guest list denied). Do not flip production URL. Record only “local artifact applied: yes/no”. <!-- sdd-owner: parent -->
 - [ ] Operator (production, after WU9 and local smoke): apply the same artifact to the **existing Dokploy-managed PocketBase**. Verify the same checklist. Record target identity only (Dokploy PocketBase, not a URL secret). `POCKETBASE_URL` flip is a **separate** later step. <!-- sdd-owner: parent -->
 - [ ] Operator: confirm production ServiceFlow env **presence** of `POCKETBASE_URL` (set / not set) and absence of Appwrite keys and any `POCKETBASE_ADMIN_*` names. Never read or store the URL or other secret values in tickets, PRs, or memory. <!-- sdd-owner: parent -->
 - [ ] Operator smoke after deploy of the PocketBase-backed image: register, notice, login, location create, service create/search, move, history, logout, second user isolation. On failure, redeploy last Appwrite-backed image + Appwrite env. PocketBase rows are not copied back. <!-- sdd-owner: parent -->
-- [ ] Acceptance gate: record cutover accepted (yes/no) without secrets. Only then allow WU10 / PR 13. Deleting the Appwrite cloud project stays outside this change. <!-- sdd-owner: parent -->
+- [ ] Acceptance gate: record cutover accepted (yes/no) without secrets. Only then allow WU10 / PR 16. Deleting the Appwrite cloud project stays outside this change. <!-- sdd-owner: parent -->
 - [ ] Keep tracker draft until the allowed terminal child is integrated; merge tracker only after the chosen terminal slice. <!-- sdd-owner: parent -->
