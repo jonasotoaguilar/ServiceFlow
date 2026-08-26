@@ -10,14 +10,8 @@ const invoice = `INV${uid}`;
 const sku = `SKU${uid}`;
 const client = `Cliente ${uid}`;
 
-async function expectEmptyNotice(page: import("@playwright/test").Page) {
-	const n = page.getByRole("status").filter({ hasText: "PocketBase comienza vacío" });
-	if ((await n.count()) > 0) await expect(n.first()).toBeVisible();
-}
-
 async function register(page: import("@playwright/test").Page, name: string, email: string) {
 	await page.goto("/register");
-	await expectEmptyNotice(page);
 	await page.getByLabel("Nombre Completo").fill(name);
 	await page.getByLabel("Correo Electrónico").fill(email);
 	await page.getByLabel("Contraseña", { exact: true }).fill(pw);

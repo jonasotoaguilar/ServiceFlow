@@ -645,30 +645,35 @@ describe("auth actions WU2b", () => {
 	});
 });
 
-describe("empty-start notice WU2c", () => {
-	const banner = "Este entorno PocketBase comienza vacío.";
-	it("/login renders exact banner and exposes no import/reset/restore wizard", () => {
+describe("auth entry pages do not disclose backend or environment state", () => {
+	it("/login does not expose backend technology or empty environment state", () => {
 		const src = fs.readFileSync(path.join(process.cwd(), "app/login/page.tsx"), "utf8");
-		expect(src).toContain(banner);
-		expect(src.toLowerCase()).not.toMatch(/importar datos|reset.*datos|restaurar datos/);
-		expect(src).not.toMatch(/wizard|migration.*wizard/i);
+		const lower = src.toLowerCase();
+		expect(lower).not.toContain("pocketbase");
+		expect(lower).not.toContain("appwrite");
+		expect(lower).not.toContain("backend");
+		expect(lower).not.toContain("database");
+		expect(lower).not.toContain("storage");
+		expect(lower).not.toContain("entorno");
+		expect(lower).not.toContain("vacío");
+		expect(lower).not.toContain("vacio");
+		expect(lower).not.toContain("comienza");
+		expect(lower).not.toContain("starts empty");
+		expect(lower).not.toContain("environment starts");
 	});
-	it("/register renders same exact banner and no wizard controls", () => {
+	it("/register does not expose backend technology or empty environment state", () => {
 		const src = fs.readFileSync(path.join(process.cwd(), "app/register/page.tsx"), "utf8");
-		expect(src).toContain(banner);
-		expect(src.toLowerCase()).not.toMatch(/importar datos|reset.*datos|restaurar datos/);
-		expect(src).not.toMatch(/wizard|migration.*wizard/i);
-	});
-	it("notice is static communication only — no import/reset/restore controls on either page", () => {
-		const loginSrc = fs.readFileSync(path.join(process.cwd(), "app/login/page.tsx"), "utf8");
-		const regSrc = fs.readFileSync(path.join(process.cwd(), "app/register/page.tsx"), "utf8");
-		for (const s of [loginSrc, regSrc]) {
-			expect(s).toContain(banner);
-			// Ensure no wizard UI controls — check for UI phrases, not JS import keyword
-			const lower = s.toLowerCase();
-			expect(lower).not.toMatch(/wizard|migration.*wizard/);
-			expect(lower).not.toMatch(/restaurar|restablecer|recuperar datos/);
-			expect(lower).not.toMatch(/importar datos|reset.*datos/);
-		}
+		const lower = src.toLowerCase();
+		expect(lower).not.toContain("pocketbase");
+		expect(lower).not.toContain("appwrite");
+		expect(lower).not.toContain("backend");
+		expect(lower).not.toContain("database");
+		expect(lower).not.toContain("storage");
+		expect(lower).not.toContain("entorno");
+		expect(lower).not.toContain("vacío");
+		expect(lower).not.toContain("vacio");
+		expect(lower).not.toContain("comienza");
+		expect(lower).not.toContain("starts empty");
+		expect(lower).not.toContain("environment starts");
 	});
 });

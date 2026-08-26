@@ -111,7 +111,6 @@ Volumes (`pocketbase-data` → `serviceflow-pocketbase-local-data`) persist data
 
 ## Data & Lifecycle
 
-- **Empty start**: this PocketBase environment starts empty (notice on `/login` and `/register`). No import, no dual-write, no id mapping.
 - **Native ids**: PocketBase generates native 15-character ids; no UUID pre-generation and no `$id` preservation.
 - **Pagination**: `{ data, total, page, limit }` via `getList(page, perPage, { filter, sort })`; `total` from `totalItems`; `LIKE` search (`~`) on `clientName`, `invoiceNumber`, `rut`; status allowlist `pending|ready|completed|cancelled`.
 - **Locations**: `address` optional (trim, max 200, blank → omitted); `isActive` toggle; delete blocked by history (`location_logs`).

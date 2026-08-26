@@ -1,6 +1,6 @@
 # PRD: ServiceFlow
 
-Garage and repair-shop service lifecycle management on a PocketBase-only backend. Track incoming repairs, assign them to branches, and monitor status until delivery. Every operator starts from an empty PocketBase.
+Garage and repair-shop service lifecycle management on a PocketBase-only backend. Track incoming repairs, assign them to branches, and monitor status until delivery.
 
 ## Quick Path
 
@@ -28,7 +28,6 @@ Garage and repair-shop service lifecycle management on a PocketBase-only backend
 
 - **Backend**: PocketBase is the only data and auth backend. Next.js uses `POCKETBASE_URL` plus the `pb_auth` user session.
 - **Auth / session**: `pb_auth` is `httpOnly`, `sameSite=lax`, `path=/`, `secure` in production; `expires` from JWT `exp` when parseable, otherwise session cookie. Value is never logged. Validation is server-side via `authRefresh` before returning identity; forged or unreachable → unauthenticated (`null`/`401`) fail-closed.
-- **Empty start**: this PocketBase environment starts empty. Notice on `/login` and `/register` reads: `Este entorno PocketBase comienza vacío.` No import wizard, no dual-write, no id mapping, no password migration.
 - **Tenancy**: every list binds `userId = {:uid}` and collection API rules enforce `userId = @request.auth.id` on all CRUD for `services`, `locations`, and `location_logs`. A second user sees none of the first user's rows. Unauthenticated RSC/actions/API redirect or `401`.
 - **Ids**: PocketBase-native 15-character ids (15-char). Create omits `id`; no `crypto.randomUUID` / `generateId`, no `$id` preservation.
 - **Lists**: `{ data, total, page, limit }` with 1-based `page` (default 1) and `limit` (default 20). `total` is `totalItems`. Empty match returns `{ data: [], total: 0, page, limit }`.
