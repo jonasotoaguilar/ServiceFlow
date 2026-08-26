@@ -102,7 +102,7 @@ export const test = base.extend<{}, { _pbCleanup: void }>({
 				console.error(`[pb-admin] cleanup failed: ${msg}`);
 			}
 		},
-		{ auto: true },
+		{ auto: true, scope: "worker" },
 	],
 });
 
