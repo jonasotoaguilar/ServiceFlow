@@ -160,23 +160,13 @@ describe("locations read WU3 — getLocations PocketBase tenant scope", () => {
     expect((res.data as Array<{ name: string }>).map((r) => r.name)).toEqual(["A1", "A2"]);
   });
 
-  it("source uses PocketBase tenant binding and does not preserve Appwrite read fallback for getLocations", async () => {
+  it("source uses PocketBase tenant binding for getLocations", async () => {
     const src = fs.readFileSync(path.join(process.cwd(), "app/actions/locations.ts"), "utf8");
     expect(src).toContain("createPocketBaseClient");
     expect(src).toContain("locationListBinding");
     expect(src).toContain("applyBinding");
     expect(src).toContain('collection("locations")');
     expect(src).toContain("getList");
-    const getLocationsMatch = src.match(/export async function getLocations[\s\S]*?^}/m);
-    if (getLocationsMatch) {
-      const body = getLocationsMatch[0];
-      expect(body).not.toContain("databases.");
-      expect(body).not.toContain("COLLECTIONS.LOCATIONS");
-      expect(body).not.toContain("Query.equal");
-      expect(body).not.toContain("DB_ID");
-    } else {
-      expect(src).not.toMatch(/databases\.listDocuments.*COLLECTIONS\.LOCATIONS.*getLocations/);
-    }
     expect(src).toMatch(/getAuthUser[\s\S]*?No autenticado/);
     expect(src).toMatch(/id:\s*record\.id|id:\s*doc\.id|\.id/);
     expect(src).not.toMatch(/doc\.\$id/);
@@ -189,9 +179,8 @@ describe("locations read WU3 — getLocations PocketBase tenant scope", () => {
     expect(pageSrc).toContain("getLocations");
   });
 
-  it("no new dependencies and no live PocketBase contact in tests (mocked only)", async () => {
+  it("no live PocketBase contact in tests (mocked only)", async () => {
     const src = fs.readFileSync(path.join(process.cwd(), "app/actions/locations.ts"), "utf8");
-    expect(src).not.toContain("node-appwrite");
     expect(src).not.toContain("loadFromCookie");
     expect(src).not.toMatch(/console\.log.*pb_auth/);
     expect(src).not.toMatch(/console\.log.*token/);
@@ -253,10 +242,18 @@ describe("locations write WU6b — create/update/toggle/delete", () => {
     mockServicesGetList.mockResolvedValue({ items: [], totalItems: 0 }); mockLogsGetList.mockResolvedValue({ items: [{ id: "log1", fromLocationId: "loc1" }], totalItems: 1 }); expect((await deleteLocation("loc1", "Taller")).error).toBe("No se puede eliminar una Sede con historial de servicios o movimientos."); expect(mockLocationsDelete).not.toHaveBeenCalled();
     mockServicesGetList.mockResolvedValue({ items: [], totalItems: 0 }); mockLogsGetList.mockResolvedValue({ items: [], totalItems: 0 }); mockLocationsDelete.mockResolvedValue({}); expect(await deleteLocation("loc1", "Taller")).toEqual(expect.objectContaining({ success: true })); expect(mockLocationsDelete).toHaveBeenCalledWith("loc1");
   });
-  it("source uses PocketBase, Zod, native ids, bound filters, no Appwrite fallback", async () => {
+  it("source uses PocketBase, Zod, native ids, bound filters", async () => {
     const src = fs.readFileSync(path.join(process.cwd(), "app/actions/locations.ts"), "utf8");
-    expect(src).toContain("createPocketBaseClient"); expect(src).toContain("LocationCreateSchema"); expect(src).toContain("LocationUpdateSchema"); expect(src).toContain("normalizeString"); expect(src).toContain('collection("locations")'); expect(src).toContain(".create("); expect(src).toContain(".update("); expect(src).toContain(".delete("); expect(src).toContain("applyBinding"); expect(src).toContain("isActive");
-    expect(src).not.toContain("ID.unique"); expect(src).not.toContain("DB_ID"); expect(src).not.toContain("databases."); expect(src).not.toContain("Query.equal"); expect(src).not.toContain("COLLECTIONS.");
+    expect(src).toContain("createPocketBaseClient");
+    expect(src).toContain("LocationCreateSchema");
+    expect(src).toContain("LocationUpdateSchema");
+    expect(src).toContain("normalizeString");
+    expect(src).toContain('collection("locations")');
+    expect(src).toContain(".create(");
+    expect(src).toContain(".update(");
+    expect(src).toContain(".delete(");
+    expect(src).toContain("applyBinding");
+    expect(src).toContain("isActive");
   });
   it("accent-insensitive duplicate and cross-tenant allowed, toggle keeps history", async () => {
     mockLocationsGetList.mockResolvedValue({ items: [{ id: "loc1", name: "Ñuñoa", userId: "u-owner-1" }], totalItems: 1 });
@@ -364,7 +361,7 @@ describe("history read WU6d — getLocationLogs PocketBase tenant-bound envelope
     expect(withDefaults.limit).toBe(20);
   });
 
-  it("source uses PB logListBinding/applyBinding, no Appwrite, keeps page gates, generic error on throw", async () => {
+  it("source uses PB logListBinding/applyBinding, keeps page gates, generic error on throw", async () => {
     const src = fs.readFileSync(path.join(process.cwd(), "app/actions/logs.ts"), "utf8");
     expect(src).toContain("createPocketBaseClient");
     expect(src).toContain("logListBinding");
@@ -373,10 +370,6 @@ describe("history read WU6d — getLocationLogs PocketBase tenant-bound envelope
     expect(src).toContain("getList");
     expect(src).toContain("getAuthUser");
     expect(src).toContain("No autenticado");
-    expect(src).not.toContain("databases.");
-    expect(src).not.toContain("COLLECTIONS.");
-    expect(src).not.toContain("Query.equal");
-    expect(src).not.toContain("DB_ID");
     const logsPage = fs.readFileSync(path.join(process.cwd(), "app/locationLogs/page.tsx"), "utf8");
     expect(logsPage).toContain("getAuthUser");
     expect(logsPage).toContain('redirect("/login")');

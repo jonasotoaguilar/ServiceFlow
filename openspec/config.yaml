@@ -1,10 +1,10 @@
 schema: spec-driven
 
 context: |
-  Tech stack: Next.js 16 (App Router), React 19, TypeScript 5.9 (strict), Tailwind CSS 4, Appwrite (node-appwrite 14), pnpm 11 workspace.
-  Architecture: App Router pages under app/, shared lib/ (appwrite client, schemas, auth), components/ UI kit (Radix + cva + shadcn-style), zod schemas for validation.
-  Testing: Vitest 4 + Testing Library (jsdom) in tests/; 17 unit/component tests passing; no E2E layer; coverage provider not installed.
-  Style: ESLint 9 flat config (eslint-config-next), tsc --noEmit typecheck, husky + lint-staged (eslint --fix); no formatter.
+  Tech stack: Next.js 16 (App Router), React 19, TypeScript 5.9 (strict), Tailwind CSS 4, PocketBase 0.28.0, pnpm 11 workspace.
+  Architecture: App Router pages under app/, shared lib/ (pocketbase client, pocketbase-filter, env, schemas, auth, storage), components/ UI kit (Radix + cva + shadcn-style), zod schemas for validation.
+  Testing: Vitest 4 + Testing Library (jsdom) in tests/ + Playwright E2E in e2e/ (local compose); coverage via @vitest/coverage-v8.
+  Style: Biome 2.5 (biome check/lint/format), tsc --noEmit typecheck, husky + lint-staged (biome lint --write); no ESLint.
   Conventions: PRD.md / ARCHITECTURE.md / DESIGN.md at repo root; PR review budget 400 lines; conventional commits.
 
 strict_tdd: true
@@ -14,14 +14,14 @@ testing:
   layers:
     unit: vitest
     integration: "@testing-library/react + jsdom"
-    e2e: null
+    e2e: Playwright (pnpm test:e2e, compose local)
   coverage:
-    available: false
-    command: pnpm coverage (requires installing @vitest/coverage-v8)
+    available: true
+    command: pnpm coverage (vitest run --coverage, provider v8)
   quality:
-    linter: pnpm run lint (eslint .)
+    linter: pnpm check (biome check --formatter-enabled=false) / pnpm lint (biome lint)
     typecheck: pnpm exec tsc --noEmit
-    formatter: null
+    formatter: biome format (pnpm format)
 
 rules:
   proposal:

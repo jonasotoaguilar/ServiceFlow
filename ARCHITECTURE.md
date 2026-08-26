@@ -34,7 +34,7 @@ Start paths: `docs/CODEBASE-GUIDE.md` → `lib/pocketbase.ts` → `lib/pocketbas
 
 | Area | File | Boundary |
 |------|------|----------|
-| Env | `lib/env.ts` | Zod `PocketBaseEnvSchema`; `getPocketBaseUrl()` validates `POCKETBASE_URL` as absolute `http`/`https`, fail-closed, no default, no `POCKETBASE_ADMIN_*` or Appwrite vars |
+| Env | `lib/env.ts` | Zod `PocketBaseEnvSchema`; `getPocketBaseUrl()` validates `POCKETBASE_URL` as absolute `http`/`https`, fail-closed, no default |
 | Request client | `lib/pocketbase.ts` | `createPocketBaseClient()` per request: `await cookies()`, read `pb_auth` only, `authStore.save(token, record)` after `JSON.parse`; `saveAuthCookie`/`clearAuthCookie` set `httpOnly`, `sameSite=lax`, `path=/`, `secure` in prod, `expires` from JWT `exp` |
 | Filters | `lib/pocketbase-filter.ts` | Pure templates `serviceListBinding`, `locationListBinding`, `logListBinding` + `applyBinding` sole `pb.filter` site; LIKE `~` on `clientName`/`invoiceNumber`/`rut`, status allowlist `pending|ready|completed|cancelled` |
 | Auth identity | `lib/auth.ts` | `getAuthUser()` → `await cookies()` + `createPocketBaseClient()` + `await pb.collection("users").authRefresh()` before returning `{ id, email, name }`; forged/invalid signature or unreachable → `null` fail-closed; never reads legacy cookies for identity |
@@ -44,7 +44,6 @@ Start paths: `docs/CODEBASE-GUIDE.md` → `lib/pocketbase.ts` → `lib/pocketbas
 | History | `app/actions/logs.ts` + `lib/storage.ts` movement | `getLocationLogs` via `logListBinding` (`fromLocationId = {:lid} || toLocationId = {:lid}`, `changedAt` bounds, sort `-changedAt`); movement `location_logs` created in `updateService` when `locationId` changes and not completing |
 | Validation | `lib/schemas.ts` | `ServiceSchema`, `LocationCreateSchema`/`LocationUpdateSchema` (address optional trimmed max 200), `loginSchema`/`registerSchema` |
 | Schema artifact | `pocketbase/v1.collections.json` | Versioned collections `users` (auth), `services`, `locations` (`address` optional), `location_logs` (`userId` required); text FKs not relations; tenant rules `userId = @request.auth.id`; no seed rows |
-| Legacy janitor (historical) | `proxy.ts` (deleted in WU10a) | Previously a root `export function proxy` that expired legacy `session`; removed — current code has no `proxy.ts` and no legacy cookie handling; Appwrite rewrite never live in PocketBase era |
 
 No hosting, no container, no PocketBase Admin UI operation, and no schema apply from the Next.js process belong to this repository.
 
@@ -100,7 +99,7 @@ sequenceDiagram
 
 ## Key Decisions and ADRs
 
-Durable choices live in `openspec/changes/migrate-appwrite-to-pocketbase/design.md` ADRs and are linked here per repo convention (`PRD.md`/`ARCHITECTURE.md` at root, no parallel `docs/adr` scheme).
+Durable choices live in the migration design ADRs and are linked here per repo convention (`PRD.md`/`ARCHITECTURE.md` at root, no parallel `docs/adr` scheme).
 
 | Decision | Rationale | ADR |
 |----------|-----------|-----|
@@ -119,15 +118,10 @@ No ADR is deleted; supersession would be recorded explicitly if needed.
 
 | Failure | Impact | Mitigation |
 |---------|--------|------------|
-| PocketBase unreachable | Reads/writes fail | Fail closed `null`/`401`/generic error; no anonymous success; no Appwrite fallback |
+| PocketBase unreachable | Reads/writes fail | Fail closed `null`/`401`/generic error; no anonymous success |
 | Forged `pb_auth` (future `exp`, tampered `id`, bad sig) | Impersonation attempt | `authRefresh` rejects → `null`/`401`; RSC verifies, Action/Route may persist refreshed cookie only when valid |
 | Schema not applied on target PocketBase | Missing collections/rules | Checklist before flipping `POCKETBASE_URL`: 4 collections, `address` optional, `location_logs.userId` required, 0 business rows, tenant rules present, `users` create public + list/delete locked |
 | Wrong tenant id in client payload | Ownership hijack | Server ignores client `userId`; uses `getAuthUser().id` |
-| Cutover smoke fails | Users cannot register/list | Redeploy last Appwrite-backed image with prior env; PocketBase rows not copied back; `pb_auth` invalid for Appwrite — expected |
-
-## Historical Transition
-
-Appwrite (Admin SDK, `lib/appwrite.ts`, `node-appwrite`/`appwrite`, `scripts/setup-appwrite.ts`, `DB_ID`/`COLLECTIONS`/`Query`/`ID`, and the unauthenticated Appwrite proxy rewrite) was the live backend before this change. It was left untouched on its cloud project until acceptance — no data import, no dual-write, no `session` bridge. After product slices WU1–WU6d, docs WU7 and contracts WU8, hygiene WU9, **WU10a deleted the legacy `proxy.ts` janitor and `clearLegacySessionCookie` path and WU10b deleted `lib/appwrite.ts`/`scripts/setup-appwrite.ts` and `appwrite`/`node-appwrite` deps** (verified `rg` 0 live Appwrite refs). WU10 is completed historical context; do not configure Appwrite for new work and do not describe the old proxy rewrite as live.
 
 ## Reading Path and Operational Boundaries
 
@@ -143,4 +137,4 @@ Operational boundaries: no PocketBase binary/image/volume/TLS/backup/Dokploy spe
 
 - Operator applies wrong tenant rules — mitigated by artifact tests (`tests/schema-artifact.test.ts`) and app-level `userId` filters with two-tenant tests.
 - `LIKE` `~` is not full-text ranking — accepted for personal scale.
-- Test coverage is Vitest unit only; no E2E.
+- Test coverage is Vitest unit + Playwright E2E against local compose.

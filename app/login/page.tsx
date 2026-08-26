@@ -12,7 +12,7 @@ export default function LoginPage() {
 					role="status"
 					className="w-full max-w-[450px] rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-100"
 				>
-					Este entorno PocketBase comienza vacío. Los tickets y sedes anteriores de Appwrite no aparecerán.
+					Este entorno PocketBase comienza vacío.
 				</div>
 				<LoginForm />
 			</div>

@@ -108,15 +108,10 @@ Volumes (`pocketbase-data` → `serviceflow-pocketbase-local-data`) persist data
 - **Public registration**: any user can register without an invite; `users` create `""`.
 - **Session**: `pb_auth` cookie with `httpOnly`, `sameSite=lax`, `path=/`, `secure` in production, `expires` from JWT `exp`; value is never logged. Server validation via `authRefresh` before returning identity; forged/unreachable → `null`/401 fail-closed.
 - **Tenancy**: every list binds `userId = {:uid}` and collection rules enforce `userId = @request.auth.id`; a second tenant sees no foreign rows.
-- **Legacy (historical)**: the Appwrite `session` cookie handling was removed in WU10 (deleted `proxy.ts`/`clearLegacySessionCookie`); current code uses `pb_auth` only.
 
 ## Data & Lifecycle
 
-- **Empty start**: this PocketBase environment starts empty. Previous Appwrite tickets and locations do not appear (temporary notice on `/login` and `/register`). No import, no dual-write, no id mapping.
+- **Empty start**: this PocketBase environment starts empty (notice on `/login` and `/register`). No import, no dual-write, no id mapping.
 - **Native ids**: PocketBase generates native 15-character ids; no UUID pre-generation and no `$id` preservation.
 - **Pagination**: `{ data, total, page, limit }` via `getList(page, perPage, { filter, sort })`; `total` from `totalItems`; `LIKE` search (`~`) on `clientName`, `invoiceNumber`, `rut`; status allowlist `pending|ready|completed|cancelled`.
 - **Locations**: `address` optional (trim, max 200, blank → omitted); `isActive` toggle; delete blocked by history (`location_logs`).
-
-## Historical Rollback
-
-Appwrite was left untouched until acceptance and was not imported. On cutover failure, redeploy the last Appwrite-backed image with the previous env; PocketBase rows are not copied back. The Appwrite mention here is historical only — do not configure Appwrite for new work or run Appwrite setup scripts.

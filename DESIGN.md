@@ -1,6 +1,6 @@
 # DESIGN.md — ServiceFlow Visual System
 
-> **Status**: Active | **Last updated**: 2026-08-25 | **Source**: `design/DESIGN.md` (canonical, moved to root per WU10c) | **Stack**: Tailwind CSS v4, dark glass, no new tokens
+> **Status**: Active | **Last updated**: 2026-08-25 | **Stack**: Tailwind CSS v4, dark glass, no new tokens
 
 Ground reference: current dark glass UI verified from `app/` and `components/` (Inter, obsidian/electric-blue, glass-white, emerald, muted-slate). No redesign in this remediation.
 

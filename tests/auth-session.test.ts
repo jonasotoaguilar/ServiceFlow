@@ -257,16 +257,14 @@ describe("auth-session WU2a", () => {
 			await expect(getAuthUser()).resolves.toBeNull();
 			expect(mockAuthRefresh).not.toHaveBeenCalled();
 		});
-		it("uses createPocketBaseClient and authRefresh, not Appwrite", async () => {
+		it("uses createPocketBaseClient and authRefresh", async () => {
 			const src = fs.readFileSync(path.join(process.cwd(), "lib/auth.ts"), "utf8");
 			expect(src).toContain("createPocketBaseClient");
 			expect(src).toContain("authRefresh");
 			expect(src).toContain('collection("users")');
-			expect(src).not.toContain("createSessionClient");
-			expect(src).not.toContain("node-appwrite");
-			expect(src).not.toContain("account.get");
 			const src2 = fs.readFileSync(path.join(process.cwd(), "lib/pocketbase.ts"), "utf8");
-			expect(src2).not.toContain("node-appwrite");
+			expect(src2).toContain("createPocketBaseClient");
+			expect(src2).toContain("pb_auth");
 		});
 		it("no logging of token/pb_auth in lib/auth", async () => {
 			const src = fs.readFileSync(path.join(process.cwd(), "lib/auth.ts"), "utf8");
@@ -486,14 +484,14 @@ describe("auth actions WU2b", () => {
 		res = await login(fdLogin("exists@example.com", "WrongPass123"));
 		expect(res.error).toBe("Credenciales inválidas");
 	});
-	it("Appwrite-only credentials with no PB user same invalid result", async () => {
+	it("unknown-user credentials with no PB user same invalid result", async () => {
 		mockAuthWithPassword.mockRejectedValueOnce(
 			Object.assign(new Error("Failed to authenticate."), { status: 400 }),
 		);
 		vi.resetModules();
 		const { login } = await import("../app/actions/auth");
 		cookiesMock.mockResolvedValue({ get: mockGet, set: mockSet, delete: mockDel });
-		const res = await login(fdLogin("legacy@appwrite.com", "LegacyPass123"));
+		const res = await login(fdLogin("unknown@example.com", "UnknownPass123"));
 		expect(res.error).toBe("Credenciales inválidas");
 		expect(mockAuthWithPassword).toHaveBeenCalledTimes(1);
 	});
@@ -632,12 +630,10 @@ describe("auth actions WU2b", () => {
 		expect(cred.error).toBe("Credenciales inválidas");
 		expect(bad.error).not.toBe(cred.error);
 	});
-	it("app/actions/auth uses PocketBase not node-appwrite and no raw logs", async () => {
+	it("app/actions/auth uses PocketBase and no raw logs", async () => {
 		const src = fs.readFileSync(path.join(process.cwd(), "app/actions/auth.ts"), "utf8");
 		expect(src).toContain("createPocketBaseClient");
-		expect(src).not.toContain("node-appwrite");
-		expect(src).not.toContain("createPublicClient");
-		expect(src).not.toContain("SESSION_COOKIE");
+		expect(src).toContain("saveAuthCookie");
 		expect(src).not.toContain("console.error");
 		expect(src).not.toContain("console.log");
 	});
@@ -650,8 +646,7 @@ describe("auth actions WU2b", () => {
 });
 
 describe("empty-start notice WU2c", () => {
-	const banner =
-		"Este entorno PocketBase comienza vacío. Los tickets y sedes anteriores de Appwrite no aparecerán.";
+	const banner = "Este entorno PocketBase comienza vacío.";
 	it("/login renders exact banner and exposes no import/reset/restore wizard", () => {
 		const src = fs.readFileSync(path.join(process.cwd(), "app/login/page.tsx"), "utf8");
 		expect(src).toContain(banner);
