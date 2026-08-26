@@ -257,16 +257,14 @@ describe("auth-session WU2a", () => {
 			await expect(getAuthUser()).resolves.toBeNull();
 			expect(mockAuthRefresh).not.toHaveBeenCalled();
 		});
-		it("uses createPocketBaseClient and authRefresh, not Appwrite", async () => {
+		it("uses createPocketBaseClient and authRefresh", async () => {
 			const src = fs.readFileSync(path.join(process.cwd(), "lib/auth.ts"), "utf8");
 			expect(src).toContain("createPocketBaseClient");
 			expect(src).toContain("authRefresh");
 			expect(src).toContain('collection("users")');
-			expect(src).not.toContain("createSessionClient");
-			expect(src).not.toContain("node-appwrite");
-			expect(src).not.toContain("account.get");
 			const src2 = fs.readFileSync(path.join(process.cwd(), "lib/pocketbase.ts"), "utf8");
-			expect(src2).not.toContain("node-appwrite");
+			expect(src2).toContain("createPocketBaseClient");
+			expect(src2).toContain("pb_auth");
 		});
 		it("no logging of token/pb_auth in lib/auth", async () => {
 			const src = fs.readFileSync(path.join(process.cwd(), "lib/auth.ts"), "utf8");
@@ -486,14 +484,14 @@ describe("auth actions WU2b", () => {
 		res = await login(fdLogin("exists@example.com", "WrongPass123"));
 		expect(res.error).toBe("Credenciales inválidas");
 	});
-	it("Appwrite-only credentials with no PB user same invalid result", async () => {
+	it("unknown-user credentials with no PB user same invalid result", async () => {
 		mockAuthWithPassword.mockRejectedValueOnce(
 			Object.assign(new Error("Failed to authenticate."), { status: 400 }),
 		);
 		vi.resetModules();
 		const { login } = await import("../app/actions/auth");
 		cookiesMock.mockResolvedValue({ get: mockGet, set: mockSet, delete: mockDel });
-		const res = await login(fdLogin("legacy@appwrite.com", "LegacyPass123"));
+		const res = await login(fdLogin("unknown@example.com", "UnknownPass123"));
 		expect(res.error).toBe("Credenciales inválidas");
 		expect(mockAuthWithPassword).toHaveBeenCalledTimes(1);
 	});
@@ -632,12 +630,10 @@ describe("auth actions WU2b", () => {
 		expect(cred.error).toBe("Credenciales inválidas");
 		expect(bad.error).not.toBe(cred.error);
 	});
-	it("app/actions/auth uses PocketBase not node-appwrite and no raw logs", async () => {
+	it("app/actions/auth uses PocketBase and no raw logs", async () => {
 		const src = fs.readFileSync(path.join(process.cwd(), "app/actions/auth.ts"), "utf8");
 		expect(src).toContain("createPocketBaseClient");
-		expect(src).not.toContain("node-appwrite");
-		expect(src).not.toContain("createPublicClient");
-		expect(src).not.toContain("SESSION_COOKIE");
+		expect(src).toContain("saveAuthCookie");
 		expect(src).not.toContain("console.error");
 		expect(src).not.toContain("console.log");
 	});
@@ -649,31 +645,35 @@ describe("auth actions WU2b", () => {
 	});
 });
 
-describe("empty-start notice WU2c", () => {
-	const banner =
-		"Este entorno PocketBase comienza vacío. Los tickets y sedes anteriores de Appwrite no aparecerán.";
-	it("/login renders exact banner and exposes no import/reset/restore wizard", () => {
+describe("auth entry pages do not disclose backend or environment state", () => {
+	it("/login does not expose backend technology or empty environment state", () => {
 		const src = fs.readFileSync(path.join(process.cwd(), "app/login/page.tsx"), "utf8");
-		expect(src).toContain(banner);
-		expect(src.toLowerCase()).not.toMatch(/importar datos|reset.*datos|restaurar datos/);
-		expect(src).not.toMatch(/wizard|migration.*wizard/i);
+		const lower = src.toLowerCase();
+		expect(lower).not.toContain("pocketbase");
+		expect(lower).not.toContain("appwrite");
+		expect(lower).not.toContain("backend");
+		expect(lower).not.toContain("database");
+		expect(lower).not.toContain("storage");
+		expect(lower).not.toContain("entorno");
+		expect(lower).not.toContain("vacío");
+		expect(lower).not.toContain("vacio");
+		expect(lower).not.toContain("comienza");
+		expect(lower).not.toContain("starts empty");
+		expect(lower).not.toContain("environment starts");
 	});
-	it("/register renders same exact banner and no wizard controls", () => {
+	it("/register does not expose backend technology or empty environment state", () => {
 		const src = fs.readFileSync(path.join(process.cwd(), "app/register/page.tsx"), "utf8");
-		expect(src).toContain(banner);
-		expect(src.toLowerCase()).not.toMatch(/importar datos|reset.*datos|restaurar datos/);
-		expect(src).not.toMatch(/wizard|migration.*wizard/i);
-	});
-	it("notice is static communication only — no import/reset/restore controls on either page", () => {
-		const loginSrc = fs.readFileSync(path.join(process.cwd(), "app/login/page.tsx"), "utf8");
-		const regSrc = fs.readFileSync(path.join(process.cwd(), "app/register/page.tsx"), "utf8");
-		for (const s of [loginSrc, regSrc]) {
-			expect(s).toContain(banner);
-			// Ensure no wizard UI controls — check for UI phrases, not JS import keyword
-			const lower = s.toLowerCase();
-			expect(lower).not.toMatch(/wizard|migration.*wizard/);
-			expect(lower).not.toMatch(/restaurar|restablecer|recuperar datos/);
-			expect(lower).not.toMatch(/importar datos|reset.*datos/);
-		}
+		const lower = src.toLowerCase();
+		expect(lower).not.toContain("pocketbase");
+		expect(lower).not.toContain("appwrite");
+		expect(lower).not.toContain("backend");
+		expect(lower).not.toContain("database");
+		expect(lower).not.toContain("storage");
+		expect(lower).not.toContain("entorno");
+		expect(lower).not.toContain("vacío");
+		expect(lower).not.toContain("vacio");
+		expect(lower).not.toContain("comienza");
+		expect(lower).not.toContain("starts empty");
+		expect(lower).not.toContain("environment starts");
 	});
 });

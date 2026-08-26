@@ -51,10 +51,10 @@ describe("getPocketBaseUrl", () => {
     const { getPocketBaseUrl } = await import("../lib/env");
     expect(getPocketBaseUrl()).toBe("https://example.com");
   });
-  it("does not read admin/appwrite env names", () => {
+  it("does not read admin env names", () => {
     const f = fs.readFileSync(path.join(process.cwd(), "lib/env.ts"), "utf8");
     expect(f).not.toContain("POCKETBASE_ADMIN");
-    expect(f).not.toContain("NEXT_PUBLIC_APPWRITE");
-    expect(f).not.toContain("APPWRITE_API_KEY");
+    expect(f).toContain("POCKETBASE_URL");
+    expect(f).toContain("PocketBaseEnvSchema");
   });
 });

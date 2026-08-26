@@ -8,12 +8,6 @@ export default function RegisterPage() {
 			<div className="absolute bottom-[-150px] right-[-100px] w-[400px] h-[400px] glow-orb pointer-events-none animation-delay-4000" />
 
 			<div className="relative w-full flex flex-col items-center justify-center gap-4 p-4 z-10">
-				<div
-					role="status"
-					className="w-full max-w-[450px] rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-100"
-				>
-					Este entorno PocketBase comienza vacío. Los tickets y sedes anteriores de Appwrite no aparecerán.
-				</div>
 				<RegisterForm />
 			</div>
 

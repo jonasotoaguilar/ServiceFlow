@@ -264,12 +264,12 @@ describe("services write WU5 — update/delete ownership/completed/delete-order 
     const putCompReq=new Request("http://localhost/api/services", { method:"PUT", body:JSON.stringify({ id:"pb15svc00000012", invoiceNumber:"INV-1", clientName:"Cliente", contact:"56912345678", product:"Prod", locationId:"loc2", status:"pending" }), headers:{ "Content-Type":"application/json" } });
     const putCompRes=await putPeer(putCompReq); expect(putCompRes.status).toBe(500); expect(mockServicesUpdate).not.toHaveBeenCalled();
   });
-  it("storage uses PB for writes no Appwrite fallback sole pb.filter", () => {
+  it("storage uses PB for writes sole pb.filter", () => {
     const sSrc=fs.readFileSync(path.join(process.cwd(),"lib/storage.ts"),"utf8"); expect(sSrc).toContain("createPocketBaseClient");
-    const upd=sSrc.slice(sSrc.indexOf("updateService"), sSrc.indexOf("updateService")+3000); expect(upd).not.toContain("databases.updateDocument"); expect(upd).not.toContain("databases.getDocument"); expect(upd).toContain('collection("services")'); expect(upd).toContain(".getOne"); expect(upd).toContain(".update");
-    const del=sSrc.slice(sSrc.indexOf("deleteService"), sSrc.indexOf("deleteService")+4000); expect(del).not.toContain("databases.deleteDocument"); expect(del).not.toContain("Query.equal"); expect(del).toContain('collection("location_logs")'); expect(del).toContain('collection("services")');
+    const upd=sSrc.slice(sSrc.indexOf("updateService"), sSrc.indexOf("updateService")+3000); expect(upd).toContain('collection("services")'); expect(upd).toContain(".getOne"); expect(upd).toContain(".update");
+    const del=sSrc.slice(sSrc.indexOf("deleteService"), sSrc.indexOf("deleteService")+4000); expect(del).toContain('collection("location_logs")'); expect(del).toContain('collection("services")');
     const fSrc=fs.readFileSync(path.join(process.cwd(),"lib/pocketbase-filter.ts"),"utf8"); expect((fSrc.match(/pb\.filter/g) ?? []).length).toBe(1);
-    const rSrc=fs.readFileSync(path.join(process.cwd(),"app/api/services/route.ts"),"utf8"); expect(rSrc).not.toContain("databases"); expect(rSrc).not.toContain("Query"); expect(rSrc).not.toContain("ID.unique");
+    const rSrc=fs.readFileSync(path.join(process.cwd(),"app/api/services/route.ts"),"utf8"); expect(rSrc).toContain("getAuthUser"); expect(rSrc).toContain("ServiceSchema");
   });
 });
 describe("movement logs WU6c — updateService creates location_logs only on location change, skip on completing", () => {

@@ -8,7 +8,7 @@ Contributors and agents who need the right file without rereading the repo.
 
 ## 90-second mental model
 
-ServiceFlow is a Next.js 16 App Router app. Every request builds a request-scoped `PocketBase` client from `POCKETBASE_URL` and the `pb_auth` cookie, validates via `authRefresh`, and enforces tenant isolation with bound `userId = {:uid}` plus collection rules `userId = @request.auth.id`. Schema lives in `pocketbase/v1.collections.json` and is applied out of band; the app never hosts PocketBase and never imports Appwrite data.
+ServiceFlow is a Next.js 16 App Router app. Every request builds a request-scoped `PocketBase` client from `POCKETBASE_URL` and the `pb_auth` cookie, validates via `authRefresh`, and enforces tenant isolation with bound `userId = {:uid}` plus collection rules `userId = @request.auth.id`. Schema lives in `pocketbase/v1.collections.json` and is applied out of band; the app never hosts PocketBase.
 
 ## Seams — where to look
 
@@ -34,13 +34,11 @@ ServiceFlow is a Next.js 16 App Router app. Every request builds a request-scope
 - Cookie: `pb_auth` (`JSON { token, record }`), never logged, `httpOnly` + `sameSite=lax`.
 - Validation: `getAuthUser` `authRefresh` before identity; RSC validates, Action/Route may persist refreshed cookie.
 - Isolation: every list binds `userId = {:uid}`; API rules enforce `userId = @request.auth.id` on all CRUD for `services`/`locations`/`location_logs`; unauthenticated → `401`/redirect.
-- Legacy (historical): Appwrite `session` handling and `proxy.ts` janitor were removed in WU10a; current code uses `pb_auth` only and has no legacy cookie handling.
 
 ## What is NOT current
 
-- `lib/appwrite.ts` and `node-appwrite` / `appwrite` SDK are deleted (WU10b) — historical rollback only; do not use for new work.
-- Appwrite collection setup is not the live setup; the PocketBase artifact `pocketbase/v1.collections.json` is.
-- The old unauthenticated Appwrite proxy rewrite is not live and `proxy.ts` is deleted; no janitor remains (WU10a).
+- No in-repo PocketBase provisioning; the PocketBase artifact `pocketbase/v1.collections.json` is applied out of band.
+- No proxy or janitor remains; current auth is `pb_auth` only.
 
 ## Reading path
 
@@ -53,7 +51,7 @@ ServiceFlow is a Next.js 16 App Router app. Every request builds a request-scope
 ## Checklist
 
 - [ ] Every linked path above exists
-- [ ] No new work imports `node-appwrite` or reads legacy `session` for auth
+- [ ] No new work reads legacy `session` for auth
 - [ ] Filters use `applyBinding` with `{:param}` only
 
 ## Next step

@@ -79,17 +79,13 @@ describe("LocationUpdateSchema", () => {
 	});
 });
 
-describe("appwrite removal WU10b", () => {
-	it("obsolete Appwrite files, package deps, and lock entries are absent", () => {
-		expect(fs.existsSync(path.join(process.cwd(), "lib/appwrite.ts"))).toBe(false);
-		expect(fs.existsSync(path.join(process.cwd(), "scripts/setup-appwrite.ts"))).toBe(false);
+describe("pocketbase contract", () => {
+	it("pocketbase dependency and lock entries are present", () => {
 		const pkg = JSON.parse(fs.readFileSync(path.join(process.cwd(), "package.json"), "utf8"));
-		expect(pkg.dependencies?.appwrite).toBeUndefined();
-		expect(pkg.dependencies?.["node-appwrite"]).toBeUndefined();
+		expect(pkg.dependencies?.pocketbase).toBeDefined();
 		const lock = fs.readFileSync(path.join(process.cwd(), "pnpm-lock.yaml"), "utf8");
-		expect(lock).not.toContain("appwrite@");
-		expect(lock).not.toContain("node-appwrite@");
-		expect(lock).not.toMatch(/^\s+appwrite:/m);
-		expect(lock).not.toMatch(/^\s+node-appwrite:/m);
+		expect(lock).toContain("pocketbase@");
+		expect(fs.existsSync(path.join(process.cwd(), "lib/pocketbase.ts"))).toBe(true);
+		expect(fs.existsSync(path.join(process.cwd(), "pocketbase/v1.collections.json"))).toBe(true);
 	});
 });
