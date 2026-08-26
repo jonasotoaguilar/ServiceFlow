@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { differenceInBusinessDays, parseISO } from "date-fns";
 import { getLocations } from "@/app/actions/locations";
 import { Service, ServiceStatus } from "@/lib/types";
@@ -60,6 +60,10 @@ export function ServiceDashboard({ initialData, user }: Readonly<ServiceDashboar
 	const [viewingService, setViewingService] = useState<Service | null>(null);
 	const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 	const [locations, setLocations] = useState<any[]>([]);
+	const availableLocations = useMemo(
+		() => locations.map((l) => ({ id: l.id, name: l.name })),
+		[locations],
+	);
 	const [locationFilter, setLocationFilter] = useState<string>("");
 	const [deleteConfirm, setDeleteConfirm] = useState<{
 		isOpen: boolean;
@@ -572,10 +576,7 @@ export function ServiceDashboard({ initialData, user }: Readonly<ServiceDashboar
         isOpen={isModalOpen}
         onClose={handleCloseModal}
         ServiceToEdit={editingService}
-        availableLocations={locations.map((l) => ({
-          id: l.id,
-          name: l.name,
-        }))}
+        availableLocations={availableLocations}
         onSuccess={() => {
           fetchServices();
         }}

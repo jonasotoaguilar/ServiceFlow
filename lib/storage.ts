@@ -26,8 +26,12 @@ export async function getServices(params?: {
 	userId?: string;
 	sortOrder?: "asc" | "desc";
 }): Promise<{ data: Service[]; total: number; page: number; limit: number }> {
-	const page = params?.page && Number.isFinite(params.page) && params.page > 0 ? Math.floor(params.page) : 1;
-	const limit = params?.limit && Number.isFinite(params.limit) && params.limit > 0 ? Math.floor(params.limit) : 20;
+	const page =
+		params?.page && Number.isFinite(params.page) && params.page > 0 ? Math.floor(params.page) : 1;
+	const limit =
+		params?.limit && Number.isFinite(params.limit) && params.limit > 0
+			? Math.floor(params.limit)
+			: 20;
 	const sort = params?.sortOrder === "desc" ? "-entryDate" : "entryDate";
 	const userId = params?.userId ?? "";
 	const binding = serviceListBinding({
@@ -43,9 +47,10 @@ export async function getServices(params?: {
 			filter,
 			sort,
 		});
-		const total = typeof (result as { totalItems?: number }).totalItems === "number"
-			? (result as { totalItems: number }).totalItems
-			: 0;
+		const total =
+			typeof (result as { totalItems?: number }).totalItems === "number"
+				? (result as { totalItems: number }).totalItems
+				: 0;
 		if (!result.items || result.items.length === 0) {
 			return { data: [], total, page, limit };
 		}
@@ -68,6 +73,67 @@ export async function getServices(params?: {
 			locMap = new Map((locRes.items as Array<{ id: string }>).map((l) => [l.id, l]));
 		}
 		const data = (result.items as any[]).map((doc) => mapToService(doc, locMap));
+		// Attach locationLogs for history in details modal (best-effort)
+		try {
+			const serviceIds = (result.items as Array<{ id: string }>).map((s) => s.id);
+			if (serviceIds.length > 0) {
+				const logParts = serviceIds.map((_, i) => `ServiceId = {:sid${i}}`).join(" || ");
+				const logParams: Record<string, unknown> = { uid: userId };
+				serviceIds.forEach((id, i) => {
+					logParams[`sid${i}`] = id;
+				});
+				const logFilter = applyBinding(pb, {
+					filter: `userId = {:uid} && (${logParts})`,
+					params: logParams,
+				});
+				const logsRes = await pb.collection("location_logs").getList(1, 200, {
+					filter: logFilter,
+					sort: "changedAt",
+				});
+				const logsByService = new Map<string, Array<any>>();
+				for (const log of (logsRes.items as any[]) ?? []) {
+					const sid = (log as { ServiceId?: string }).ServiceId;
+					if (!sid) continue;
+					if (!logsByService.has(sid)) logsByService.set(sid, []);
+					logsByService.get(sid)!.push(log);
+				}
+				// Resolve location names for logs if not in locMap
+				const logLocationIds = new Set<string>();
+				for (const logs of logsByService.values()) {
+					for (const l of logs as Array<{ fromLocationId?: string; toLocationId?: string }>) {
+						if (l.fromLocationId) logLocationIds.add(l.fromLocationId);
+						if (l.toLocationId) logLocationIds.add(l.toLocationId);
+					}
+				}
+				const missingIds = Array.from(logLocationIds).filter((id) => !locMap.has(id));
+				if (missingIds.length > 0) {
+					const mParts = missingIds.map((_, i) => `id = {:mid${i}}`).join(" || ");
+					const mParams: Record<string, unknown> = {};
+					missingIds.forEach((id, i) => {
+						mParams[`mid${i}`] = id;
+					});
+					const mFilter = applyBinding(pb, { filter: mParts, params: mParams });
+					const mRes = await pb.collection("locations").getList(1, 100, { filter: mFilter });
+					for (const loc of mRes.items as Array<{ id: string }>) {
+						locMap.set(loc.id, loc);
+					}
+				}
+				for (const svc of data) {
+					const logs = logsByService.get(svc.id) ?? [];
+					(svc as Service).locationLogs = logs.map((l: any) => ({
+						id: l.id,
+						ServiceId: l.ServiceId,
+						fromLocationId: l.fromLocationId,
+						toLocationId: l.toLocationId,
+						changedAt: l.changedAt,
+						fromLocation: locMap.get(l.fromLocationId)?.name || l.fromLocationId,
+						toLocation: locMap.get(l.toLocationId)?.name || l.toLocationId,
+					}));
+				}
+			}
+		} catch {
+			// logs are optional for list view
+		}
 		return { data, total, page, limit };
 	} catch (error) {
 		console.error("Error fetching Services:", error);
@@ -138,14 +204,18 @@ export async function updateService(updatedService: Service, userId?: string): P
 		failureDescription: updatedService.failureDescription,
 		sku: updatedService.sku,
 		locationId: updatedService.locationId,
-		entryDate: updatedService.entryDate ? new Date(updatedService.entryDate).toISOString() : current.entryDate,
-		deliveryDate: updatedService.deliveryDate ? new Date(updatedService.deliveryDate).toISOString() : null,
+		entryDate: updatedService.entryDate
+			? new Date(updatedService.entryDate).toISOString()
+			: current.entryDate,
+		deliveryDate: updatedService.deliveryDate
+			? new Date(updatedService.deliveryDate).toISOString()
+			: null,
 		readyDate: updatedService.readyDate ? new Date(updatedService.readyDate).toISOString() : null,
 		cancellationDate: updatedService.cancellationDate
 			? new Date(updatedService.cancellationDate).toISOString()
 			: updatedService.status === "cancelled" && !current.cancellationDate
 				? now
-				: current.cancellationDate ?? null,
+				: (current.cancellationDate ?? null),
 		status: updatedService.status,
 		repairCost: updatedService.repairCost,
 		notes: updatedService.notes,

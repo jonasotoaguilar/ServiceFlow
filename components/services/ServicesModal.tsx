@@ -132,12 +132,17 @@ export function ServiceModal({
 		},
 	});
 
+	const prevIsOpenRef = useRef(false);
+
 	useEffect(() => {
 		if (!isOpen) {
 			setAlert(null);
 			setLoading(false);
+			prevIsOpenRef.current = false;
 			return;
 		}
+		if (prevIsOpenRef.current) return;
+		prevIsOpenRef.current = true;
 		setLoading(false);
 
 		if (ServiceToEdit) {
@@ -176,6 +181,15 @@ export function ServiceModal({
 		}
 		setShowLocationDropdown(false);
 	}, [ServiceToEdit, isOpen, LOCATIONS, form]);
+
+	useEffect(() => {
+		if (!isOpen || ServiceToEdit) return;
+		if (LOCATIONS.length === 0) return;
+		const current = form.getValues("locationId");
+		if (!current) {
+			form.setValue("locationId", LOCATIONS[0].id, { shouldDirty: false });
+		}
+	}, [isOpen, LOCATIONS, ServiceToEdit, form]);
 
 	const performSubmit = async (data: ServiceFormData) => {
 		setLoading(true);

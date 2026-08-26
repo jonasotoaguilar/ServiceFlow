@@ -7,15 +7,12 @@ import { register } from "@/app/actions/auth";
 import Link from "next/link";
 import { Loader2, Mail, Lock, User, Eye, EyeOff } from "lucide-react";
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 export function RegisterForm() {
 	const [isPending, startTransition] = useTransition();
 	const [error, setError] = useState<string | null>(null);
 	const [showPassword, setShowPassword] = useState(false);
-	const router = useRouter();
-
 	const form = useForm<RegisterValues>({
 		resolver: zodResolver(registerSchema),
 		defaultValues: {
@@ -38,7 +35,7 @@ export function RegisterForm() {
 			if (result?.error) {
 				setError(result.error);
 			} else {
-				router.push("/");
+				window.location.assign("/dashboard");
 			}
 		});
 	};
@@ -62,31 +59,20 @@ export function RegisterForm() {
 						/>
 					</svg>
 				</div>
-				<h1 className="text-2xl font-bold text-foreground">
-					ServiceFlow
-				</h1>
-				<p className="text-muted-foreground text-sm mt-1">
-					Gestión de servicios técnicos
-				</p>
+				<h1 className="text-2xl font-bold text-foreground">ServiceFlow</h1>
+				<p className="text-muted-foreground text-sm mt-1">Gestión de servicios técnicos</p>
 			</div>
 
 			{/* Title */}
 			<div className="mb-6">
-				<h2 className="text-xl font-semibold text-foreground">
-					Crear Cuenta
-				</h2>
-				<p className="text-sm text-muted-foreground">
-					Completa tus datos para empezar
-				</p>
+				<h2 className="text-xl font-semibold text-foreground">Crear Cuenta</h2>
+				<p className="text-sm text-muted-foreground">Completa tus datos para empezar</p>
 			</div>
 
 			<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
 				{/* Name Field */}
 				<div>
-					<label
-						htmlFor="name"
-						className="block text-sm font-medium text-foreground mb-1.5"
-					>
+					<label htmlFor="name" className="block text-sm font-medium text-foreground mb-1.5">
 						Nombre Completo
 					</label>
 					<div className="relative group">
@@ -102,23 +88,18 @@ export function RegisterForm() {
 								"block w-full pl-10 pr-3 py-2.5 bg-surface border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-sm",
 								form.formState.errors.name
 									? "border-destructive focus:ring-destructive"
-									: "border-input"
+									: "border-input",
 							)}
 						/>
 					</div>
 					{form.formState.errors.name && (
-						<p className="text-xs text-destructive mt-1">
-							{form.formState.errors.name.message}
-						</p>
+						<p className="text-xs text-destructive mt-1">{form.formState.errors.name.message}</p>
 					)}
 				</div>
 
 				{/* Email Field */}
 				<div>
-					<label
-						htmlFor="email"
-						className="block text-sm font-medium text-foreground mb-1.5"
-					>
+					<label htmlFor="email" className="block text-sm font-medium text-foreground mb-1.5">
 						Correo Electrónico
 					</label>
 					<div className="relative group">
@@ -134,23 +115,18 @@ export function RegisterForm() {
 								"block w-full pl-10 pr-3 py-2.5 bg-surface border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-sm",
 								form.formState.errors.email
 									? "border-destructive focus:ring-destructive"
-									: "border-input"
+									: "border-input",
 							)}
 						/>
 					</div>
 					{form.formState.errors.email && (
-						<p className="text-xs text-destructive mt-1">
-							{form.formState.errors.email.message}
-						</p>
+						<p className="text-xs text-destructive mt-1">{form.formState.errors.email.message}</p>
 					)}
 				</div>
 
 				{/* Password Field */}
 				<div>
-					<label
-						htmlFor="password"
-						className="block text-sm font-medium text-foreground mb-1.5"
-					>
+					<label htmlFor="password" className="block text-sm font-medium text-foreground mb-1.5">
 						Contraseña
 					</label>
 					<div className="relative group">
@@ -166,7 +142,7 @@ export function RegisterForm() {
 								"block w-full pl-10 pr-3 py-2.5 bg-surface border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all text-sm",
 								form.formState.errors.password
 									? "border-destructive focus:ring-destructive"
-									: "border-input"
+									: "border-input",
 							)}
 						/>
 						<button
@@ -174,11 +150,7 @@ export function RegisterForm() {
 							onClick={() => setShowPassword(!showPassword)}
 							className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground hover:text-foreground transition-colors"
 						>
-							{showPassword ? (
-								<EyeOff className="w-5 h-5" />
-							) : (
-								<Eye className="w-5 h-5" />
-							)}
+							{showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
 						</button>
 					</div>
 					{form.formState.errors.password && (
@@ -186,7 +158,7 @@ export function RegisterForm() {
 							{form.formState.errors.password.message}
 						</p>
 					)}
-        </div>
+				</div>
 
 				{error && (
 					<div className="p-3 text-sm text-destructive bg-destructive/10 rounded-lg flex items-center justify-center animate-shake border border-destructive/20">
@@ -204,12 +176,7 @@ export function RegisterForm() {
 					) : (
 						<>
 							<span>Registrarse</span>
-							<svg
-								className="w-5 h-5"
-								fill="none"
-								stroke="currentColor"
-								viewBox="0 0 24 24"
-							>
+							<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 								<path
 									strokeLinecap="round"
 									strokeLinejoin="round"
