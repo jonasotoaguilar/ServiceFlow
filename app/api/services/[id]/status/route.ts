@@ -3,6 +3,11 @@ import { getAuthUser } from "@/lib/auth";
 import { createPocketBaseClient } from "@/lib/pocketbase";
 import { canTransition, transitionDates } from "@/lib/status";
 import type { ServiceStatus } from "@/lib/types";
+import {
+	sendLifecycleBatch,
+	OPERATION_KEY_REGEX,
+	LifecycleBatchError,
+} from "@/lib/lifecycle-batch";
 
 async function resolveId(ctx: unknown): Promise<string> {
 	const p = (ctx as any)?.params;
@@ -12,6 +17,13 @@ async function resolveId(ctx: unknown): Promise<string> {
 		return String(r.id ?? r?.id ?? "");
 	}
 	return String(p.id ?? "");
+}
+
+function resolveOperationKey(request: Request, body: any): string | null {
+	const h = request.headers.get("Idempotency-Key") ?? request.headers.get("idempotency-key");
+	if (h && h.length > 0) return h;
+	if (body?.operationKey && typeof body.operationKey === "string") return body.operationKey;
+	return null;
 }
 
 async function handle(request: Request, ctx: unknown) {
@@ -32,6 +44,17 @@ async function handle(request: Request, ctx: unknown) {
 			{ status: 400 },
 		);
 	}
+	let operationKey = resolveOperationKey(request, body);
+	if (operationKey !== null && operationKey !== "") {
+		if (!OPERATION_KEY_REGEX.test(operationKey)) {
+			return NextResponse.json(
+				{ error: "Clave de operación no válida", code: "INVALID_OPERATION_KEY" },
+				{ status: 400 },
+			);
+		}
+	} else {
+		operationKey = crypto.randomUUID();
+	}
 	const pb = await createPocketBaseClient();
 	let current: any;
 	try {
@@ -39,7 +62,7 @@ async function handle(request: Request, ctx: unknown) {
 	} catch {
 		return NextResponse.json(
 			{ error: "Servicio no encontrado", code: "NOT_FOUND" },
-			{ status: 404 },
+			{ status: 403 },
 		);
 	}
 	if (current.userId !== user.id)
@@ -60,74 +83,45 @@ async function handle(request: Request, ctx: unknown) {
 		);
 	const now = new Date().toISOString();
 	const dates = transitionDates(current, next, now);
-	const payload: Record<string, unknown> = {
+	const servicePatch: Record<string, unknown> = {
 		status: next,
 		readyDate: dates.readyDate,
 		deliveryDate: dates.deliveryDate,
 		cancellationDate: dates.cancellationDate,
 	};
-	const canBatch = false; // batch disabled per PocketBase 0.40.1 Batch requests are not allowed
-	if (canBatch) {
-		try {
-			const batch: any = (pb as any).createBatch();
-			batch.collection("services").update(id, payload);
-			batch.collection("service_events").create({
-				userId: user.id,
-				ServiceId: id,
-				kind: "status_changed",
-				fromStatus: from,
-				toStatus: next,
-				actorId: user.id,
-				changedAt: now,
-				fromLocationId: current.locationId ?? "",
-				toLocationId: current.locationId ?? "",
-			});
-			await batch.send();
-		} catch (e) {
-			console.error(e);
+	try {
+		await sendLifecycleBatch({
+			pb,
+			userId: user.id,
+			serviceId: id,
+			operationKey,
+			kind: "status_changed",
+			fromStatus: from,
+			toStatus: next,
+			fromLocationId: current.locationId ?? null,
+			toLocationId: current.locationId ?? null,
+			servicePatch,
+		});
+	} catch (e: any) {
+		if (e instanceof LifecycleBatchError) {
+			const map: Record<string, string> = {
+				INVALID_OPERATION_KEY: "Clave de operación no válida",
+				NOT_FOUND: "Servicio no encontrado",
+				OPERATION_KEY_REUSED: "Clave de operación ya utilizada",
+				BATCH_UNAVAILABLE: "Operación no disponible — habilite Batch en PocketBase",
+				TRANSITION_CONFLICT: "Conflicto de transición — reintente",
+				VALIDATION_ERROR: "Datos de transición no válidos",
+				INTERNAL: "Error interno al cambiar estado",
+			};
 			return NextResponse.json(
-				{ error: "No se pudo cambiar el estado", code: "STATUS_FAILED" },
-				{ status: 500 },
+				{ error: map[e.code] ?? e.message, code: e.code },
+				{ status: e.status },
 			);
 		}
-	} else {
-		try {
-			await pb.collection("services").update(id, payload);
-		} catch (e) {
-			console.error(e);
-			return NextResponse.json(
-				{ error: "No se pudo cambiar el estado", code: "STATUS_FAILED" },
-				{ status: 500 },
-			);
-		}
-		try {
-			await pb.collection("service_events").create({
-				userId: user.id,
-				ServiceId: id,
-				kind: "status_changed",
-				fromStatus: from,
-				toStatus: next,
-				actorId: user.id,
-				changedAt: now,
-				fromLocationId: current.locationId ?? "",
-				toLocationId: current.locationId ?? "",
-			});
-		} catch (e) {
-			console.error(e);
-			// rollback status to avoid unlogged successful mutation
-			try {
-				await pb.collection("services").update(id, {
-					status: from,
-					readyDate: current.readyDate ?? null,
-					deliveryDate: current.deliveryDate ?? null,
-					cancellationDate: current.cancellationDate ?? null,
-				});
-			} catch {}
-			return NextResponse.json(
-				{ error: "No se pudo registrar el evento de cambio de estado", code: "EVENT_FAILED" },
-				{ status: 500 },
-			);
-		}
+		return NextResponse.json(
+			{ error: "No se pudo cambiar el estado", code: "STATUS_FAILED" },
+			{ status: 500 },
+		);
 	}
 	return NextResponse.json({ id, status: next, ...dates }, { status: 200 });
 }

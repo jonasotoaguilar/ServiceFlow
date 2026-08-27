@@ -49,10 +49,10 @@ Chain strategy: stacked-to-main
 
 ## Phase 4: Batch (WU4)
 
-- [ ] 4.1 RED 401/403 `uid+sid+key`+`getAuthUser`; invalid `^[A-Za-z0-9_-]{16,64}$`→400 reuse→422 second-op 4xx→0 writes 403 no retry timeout→re-lookup races 200/409
-- [ ] 4.2 Create `lib/lifecycle-batch.ts` `sendLifecycleBatch` (validate lookup reconcile 200/422/409/500 never sequential)
-- [ ] 4.3 Integrate `app/api/services/[id]/status/route.ts`+`transfer/route.ts`+`lib/storage.ts`+`ServicesDashboard.tsx` UUID map 400/403/409/422/500
-- [ ] 4.4 GREEN `tests/unit/lifecycle-batch.test.ts` rollback+one event; `test:run` green
+- [x] 4.1 RED 401/403 `uid+sid+key`+`getAuthUser`; invalid `^[A-Za-z0-9_-]{16,64}$`→400 reuse→422 second-op 4xx→0 writes 403 no retry timeout→re-lookup races 200/409
+- [x] 4.2 Create `lib/lifecycle-batch.ts` `sendLifecycleBatch` (validate lookup reconcile 200/422/409/500 never sequential)
+- [x] 4.3 Integrate `app/api/services/[id]/status/route.ts`+`transfer/route.ts`+`lib/storage.ts`+`ServicesDashboard.tsx` UUID map 400/403/409/422/500
+- [x] 4.4 GREEN `tests/unit/lifecycle-batch.test.ts` rollback+one event; `test:run` green
 
 ## Phase 5: Registro Filters (WU5)
 

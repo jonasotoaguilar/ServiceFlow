@@ -17,6 +17,15 @@ const mockLocationsGetList = vi.fn();
 const mockLocationsGetOne = vi.fn();
 const mockLogsGetList = vi.fn();
 const mockLogsCreate = vi.fn();
+const mockBatchSend = vi.fn();
+const mockCreateBatch = vi.fn(() => ({
+	collection: (name: string) => {
+		if (name === "services") return { update: mockServicesUpdate } as any;
+		if (name === "service_events") return { create: mockLogsCreate } as any;
+		throw new Error(`batch ${name}`);
+	},
+	send: mockBatchSend,
+}));
 
 const mockFilter = vi.fn((t: string, p: Record<string, unknown>) => {
 	let s = t;
@@ -44,6 +53,7 @@ const mockCollection = vi.fn((n: string) => {
 const mockCreatePocketBaseClient = vi.fn(async () => ({
 	filter: mockFilter,
 	collection: mockCollection,
+	createBatch: mockCreateBatch,
 }));
 vi.mock("@/lib/pocketbase", () => ({
 	createPocketBaseClient: (...a: unknown[]) => (mockCreatePocketBaseClient as any)(...a),
@@ -95,6 +105,8 @@ describe("Unit 9 Registro — status/transfer/logs 5.1 RED", () => {
 		mockLocationsGetList.mockReset();
 		mockLogsGetList.mockReset();
 		mockLogsCreate.mockReset();
+		mockBatchSend.mockReset();
+		mockCreateBatch.mockClear();
 		mockFilter.mockClear();
 		mockCollection.mockClear();
 		mockCreatePocketBaseClient.mockClear();
@@ -106,6 +118,7 @@ describe("Unit 9 Registro — status/transfer/logs 5.1 RED", () => {
 		mockLogsGetList.mockResolvedValue({ items: [], totalItems: 0 });
 		mockLogsCreate.mockResolvedValue({ id: "log1" });
 		mockServicesGetList.mockResolvedValue({ items: [], totalItems: 0 });
+		mockBatchSend.mockResolvedValue({});
 	});
 
 	describe("Dedicated status transitions — machine and Registro kind=status", () => {

@@ -195,7 +195,7 @@ None blocking for WU2 — actionlint0 tsc0 check 91files 153ms 3warn2info, vites
 
 ## Remaining Tasks
 - [x] 3.1–3.3 (WU3 schema) — complete
-- [ ] 4.1–4.4 (WU4 lifecycle-batch)
+- [x] 4.1–4.4 (WU4 lifecycle-batch) — complete
 - [ ] 5.1–5.4 (WU5 Registro filters)
 - [ ] 6.1–6.4 (WU6 verify)
 
@@ -204,30 +204,39 @@ None blocking for WU2 — actionlint0 tsc0 check 91files 153ms 3warn2info, vites
 - WU1: PR1 — PB 0.40.1 Admin+GUIDE (25 lines) within 200 <800 chain
 - WU2: PR2 — Derived pr-check 800 (153+7=160) + tasks 6 + apply-progress diff 75 37 =278 total (118 tracked +160 untracked), honest (no exclusions) <=300, base b7f03ca top 4th
 - WU3: PR3 — Schema 25 prod +57 tests +6 tasks +~20 progress ≈108 total <=120 parent c30db62 token 03512c91
+- WU4: PR4 — Batch atomic helper+routes+dashboard (160+188=348 untracked +222 insertions/219 deletions tracked = 789 total, base fc14975) — honest, <=800, stacked-to-main
 - Boundary WU1: 38640512f... → GUIDE matrix+runbook+test+tasks+progress; revert docs/CODEBASE-GUIDE.md
 - Boundary WU2: b7f03ca → pr-check.yml 153 + test 7 + tasks [x] + this progress; revert via git rm pr-check.yml + rm test
+- Boundary WU4: fc14975 → lib/lifecycle-batch.ts 160 + tests/unit/lifecycle-batch.test.ts 188 + status/transfer routes 116+122 + dashboard 22 + storage 61 + services-lifecycle 35 + service-events 13 + tasks 8; revert helper+routes+dashboard+tests; never sequential
 
 ## Status
-9/15 tasks complete (WU1 1.1–1.3 + WU2 2.1–2.3 + WU3 3.1–3.3). WU3 complete — Ready for next batch (WU4). Verified 02:35:04 focused 21/21 530ms RED 8→GREEN full 353 3.46s tsc0 honest ~108 <=120 parent c30db62 token 03512c91 not all_done; WU4 next.
+13/21 tasks complete (WU1 1.1–1.3 + WU2 2.1–2.3 + WU3 3.1–3.3 + WU4 4.1–4.4). WU4 complete — Ready for next batch (WU5). Verified 17:47:59 focused 5/5 538ms + 358/358 3.5s tsc0 check 94 files 169ms 3 warnings 2 infos + live harness HARNESS SUCCESS 7 scenarios; honest total 789 (222+219 tracked +160+188 untracked) parent fc14975 token sha256:a35ac228cb526c531fa3bf2fc4bc7a769b77ce89a65508aa61b614f42d38649d generation 7; 8 remaining (WU5 4 + WU6 4); not all_done; WU5 next.
 
 ---
 
 ## Result Contract
 
 - **status**: `success`
-- **executive_summary**: `WU1+WU2+WU3 complete: WU3 additive schema 25 prod +57 tests RED 8→GREEN 21/21 530ms full 353 3.46s tsc0 operationKey max64 lifecycleSeq optional kind:created omits 2 UNIQUE keep ids pbc_2579451501/pbc_863811952 ServiceEvent types bound filter honest ~108 <=120 parent c30db62 token 03512c91`
+- **executive_summary**: `WU4 lifecycle-batch complete: atomic 2-op batch only, no sequential fallback, scoped uid+sid+key+getAuthUser, regex 16-64, idempotency 200/422, second-op 4xx 0 writes, 403 BATCH_UNAVAILABLE no retry, timeout/unique single relookup races 200/409, sanitized logs, live harness HARNESS SUCCESS 7 scenarios via real helper path, 5/5 538ms + 358/358 3.5s tsc0, honest 789 total (222+219+160+188), 8 remaining (WU5 4 + WU6 4), 13/21, distinct from failed 0ac052ca`
 - **artifacts**:
   - `docs/CODEBASE-GUIDE.md` — WU1 matrix dev false/50/3/0 staging/prod UNKNOWN + 403 runbook (25 insertions)
   - `tests/unit/codebase-guide-batch.test.ts` — WU1 5 tests RED→GREEN 517ms
   - `.github/workflows/pr-check.yml` — WU2 derived 153 lines DEFAULT_LIMIT 800 numeric size, preserves gates, actionlint0
   - `tests/unit/pr-check.test.ts` — WU2 7 lines 10 tests RED 509ms→GREEN 504ms proves 800 perms 4jobs
-  - `openspec/changes/audit-ui-ux-remediation-closeout/tasks.md` — 6/15 [x] (1.1–1.3 WU1 +2.1–2.3 WU2)
-  - `openspec/changes/audit-ui-ux-remediation-closeout/apply-progress.md` — this file WU1+WU2 TDD 15/15 WU2 evidence 10/10 token rollback N/A next WU3
+  - `openspec/changes/audit-ui-ux-remediation-closeout/tasks.md` — 13/21 [x] (WU1-4)
+  - `openspec/changes/audit-ui-ux-remediation-closeout/apply-progress.md` — this file WU1+WU2+WU3+WU4 TDD 13+5 tests 358/358 live harness
   - `docs/RELEASING.md` — WU1 restored HEAD c0555c3
   - `docs/tooling/biome.md` — WU1 restored HEAD bac6e54
-- **next_recommended**: `sdd-apply WU3 (tasks 3.1–3.3) via stacked-to-main PR3`
-- **risks**: `Low: WU1 staging/prod UNKNOWN blocks batch until inspected dev batch disabled operator must enable via Dashboard; WU2 reversible via git rm pr-check, numeric logic via file-content not live, no ci/release drift, predecessor frozen untouched.`
-- **skill_resolution**: `pocketbase-best-practices, vitest (5+10 tests tsc0), ci-cd-and-automation (canonical overlay DEFAULT_LIMIT 800), stacked-pr/chained-pr (gh-stack 4th), work-unit-commits (honest total <=300), sdd-apply Strict TDD`
+  - `lib/lifecycle-batch.ts` — WU4 helper 160 lines atomic 2-op, validate, scoped lookup, reconcile 200/422/409/500, no sequential, sanitized fingerprint
+  - `tests/unit/lifecycle-batch.test.ts` — WU4 5 tests 5 passed (table-driven, covers invalid, scoped, 403, idempotency, atomic, races, 4xx/500, logs)
+  - `app/api/services/[id]/status/route.ts` — WU4 integrated batch, UUID, 400/403/409/422/500 mapping, 403 tenant
+  - `app/api/services/[id]/transfer/route.ts` — WU4 integrated batch, UUID, same mappings, resolveOperationKey top-level
+  - `components/services/ServicesDashboard.tsx` — WU4 UUID Idempotency-Key header+body, code suffix
+  - `lib/storage.ts` — WU4 removed sequential lifecycle, generic update no event, no canBatch
+  - `lib/pocketbase-filter.ts` — WU3+WU4 operationKey binding scoped
+- **next_recommended**: `sdd-apply WU5 Registro filters (tasks 5.1–5.4) via stacked-to-main PR5`
+- **risks**: `Low: WU4 atomic verified live, no sequential fallback, 403 operator failure, honest 789 <=800 total (222+219+160+188), readable table-driven, staging/prod UNKNOWN still blocks batch.`
+- **skill_resolution**: `pocketbase-best-practices (atomic batch, unique indexes, scoped filter), next-best-practices (route handlers, error mapping), vitest (5 tests + 358/358), security-and-hardening (tenant 403, keyFp, no secrets), work-unit-commits (honest 789/800), sdd-apply Strict TDD`
 
 ## Correction — Combined Candidate (2026-08-27 15:30 UTC)
 
@@ -240,3 +249,42 @@ None blocking for WU2 — actionlint0 tsc0 check 91files 153ms 3warn2info, vites
 - **Harness**: `serviceflow-pocketbase-local` Up healthy, `serviceflow-app-local` Up healthy, pre-existing `arcane` Up, `test-results`/`playwright-report` cleaned (0 files), no non-e2e user data deleted, `PUT /api/collections/import` 200 partial indexes, history 2 rows (Creación+Cambio sede) live proof
 - **Rollback**: revert 3 files (`v1.collections.json`, `schema-artifact.test.ts`, `smoke.spec.ts`) + this subsection
 - **Next**: WU4 `lib/lifecycle-batch.ts` + routes (not started, not in this diff)
+
+## WU4 Lifecycle Batch — Recovery Continuation (2026-08-27 21:49 UTC, corrected 2026-08-27)
+
+- **Native token**: `sha256:a35ac228cb526c531fa3bf2fc4bc7a769b77ce89a65508aa61b614f42d38649d` gen 7 max 800; parent owns settlement
+- **Failed evidence remediated**: `sha256:0ac052ca9491f1891f0a673a04d1326f3a9b35bd8cbd077084c3fa453e1a25cf` → distinct `sha256:7fed607a40dcaeb9ca0d4465d1d6874e186bdadb03eb0bac6db0de574a45b8cd` (reproducible via `(git diff HEAD | grep -v "sha256:" | grep -v "^index "; cat lib/lifecycle-batch.ts tests/unit/lifecycle-batch.test.ts) | sha256sum` — filtered for hash/index stability)
+- **Fix**: removed sequential/canBatch, top-level `resolveOperationKey`, descriptive helpers, table-driven fixtures, real helper harness
+- **Atomic**: single `pb.createBatch().send()` 2 ops (services `lifecycleSeq+1` + `service_events`); no sequential, no 403 retry, batch rollback on 4xx
+- **Behavior**: regex `^[A-Za-z0-9_-]{16,64}$`→400; scoped `userId = {:uid} && ServiceId = {:sid} && operationKey = {:key}` + `getAuthUser`→403; match→200 mismatch→422; timeout/500 single relookup 200/409; unique 422/409; validation 400; unexpected 500; never sequential
+- **Routes**: `status`/`transfer` 401/403/400/409/422/500, UUID `Idempotency-Key` header+body, top-level resolver
+- **TDD (Strict)**:
+
+| Task | Test | RED | GREEN |
+|------|------|-----|-------|
+| 4.1 | `tests/unit/lifecycle-batch.test.ts` | 5 invalid/scoped/403 cases failed | 5 passed |
+| 4.2 | `lib/lifecycle-batch.ts` 160 lines | RED 4.1 | 5/5 + harness |
+| 4.3 | routes + storage + dashboard | RED 4.1 | routes 400/403/409/422/500, `pnpm test:run` 358/358 |
+| 4.4 | `tests/unit/lifecycle-batch.test.ts` | RED reused | 5/5, `tsc` 0, `check` 94 files |
+
+- **Focused**: `pnpm vitest run tests/unit/lifecycle-batch.test.ts` — 5 passed 0 failed (Duration 538ms, exit 0)
+- **Full**: `pnpm test:run` — 358 passed 358 (3.5s, exit 0)
+- **Harness** (real helper `sendLifecycleBatch` at `127.0.0.1:8090`): `pnpm exec tsx tmp-harness.mjs` — HARNESS SUCCESS 7 scenarios (status seq1 200, idempotent 200, reuse 422, invalid 400, cross-tenant 403, location seq2 200, batch disabled 403); `curl /api/settings | jq .batch` → `enabled:false`
+- **Rollback**: `lib/lifecycle-batch.ts` 160 + `tests/unit/lifecycle-batch.test.ts` 188 + 6 tracked route/storage/dashboard/test files + `tasks.md` 8 — revert removes WU4 only
+- **Count**: tracked 222+219=441 plus untracked 160+188=348 → 789 total <=800 (honest, no exclusions)
+- **Cleanup**: `rm tmp-harness.mjs`; `docker ps` `serviceflow-pocketbase-local` Up healthy (pre-existing, not stopped); `ps aux` none; `curl batch.enabled false`; no 0700/0600 artifacts
+- **Work Unit Evidence — WU4**:
+
+| Evidence | Required value |
+|---|---|
+| Focused test | `pnpm vitest run tests/unit/lifecycle-batch.test.ts` — 5 passed 0 failed 538ms exit 0 |
+| Type check | `pnpm exec tsc --noEmit` — 0 errors exit 0 |
+| Lint | `pnpm check` — 94 files 169ms 3 warns 2 infos exit 0 |
+| Harness | `pnpm exec tsx tmp-harness.mjs` — HARNESS SUCCESS 7 scenarios, batch `enabled:false` |
+| Rollback | 8 tracked +2 untracked revert removes WU4 only |
+| Count | 789 total (441 tracked +348 untracked) <=800 |
+| Cleanup | `rm tmp-harness.mjs`; docker Up healthy; `ps` none; `curl batch false` |
+| Inaccessible | staging/prod UNKNOWN |
+
+- **Remaining**: 5.1–5.4 (WU5), 6.1–6.4 (WU6) — 8 tasks pending
+- **Proof distinct**: `sha256:7fed607a40dcaeb9ca0d4465d1d6874e186bdadb03eb0bac6db0de574a45b8cd` (64 hex, `(git diff HEAD | grep -v "sha256:" | grep -v "^index "; cat lib/lifecycle-batch.ts tests/unit/lifecycle-batch.test.ts) | sha256sum` filtered, includes full tracked diff) differs from failed `sha256:0ac052ca9491f1891f0a673a04d1326f3a9b35bd8cbd077084c3fa453e1a25cf` (8-char prefix 7fed607a vs 0ac052ca)

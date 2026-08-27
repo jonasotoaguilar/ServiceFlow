@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth";
 import { createPocketBaseClient } from "@/lib/pocketbase";
+import {
+	sendLifecycleBatch,
+	OPERATION_KEY_REGEX,
+	LifecycleBatchError,
+} from "@/lib/lifecycle-batch";
 
 async function resolveId(ctx: unknown): Promise<string> {
 	const p = (ctx as any)?.params;
@@ -10,6 +15,13 @@ async function resolveId(ctx: unknown): Promise<string> {
 		return String(r.id ?? "");
 	}
 	return String(p.id ?? "");
+}
+
+function resolveOperationKey(request: Request, body: any): string | null {
+	const header = request.headers.get("Idempotency-Key") ?? request.headers.get("idempotency-key");
+	if (header && header.length > 0) return header;
+	if (body?.operationKey && typeof body.operationKey === "string") return body.operationKey;
+	return null;
 }
 
 async function handle(request: Request, ctx: unknown) {
@@ -23,23 +35,38 @@ async function handle(request: Request, ctx: unknown) {
 	} catch {
 		return NextResponse.json({ error: "Invalid body" }, { status: 400 });
 	}
-	const target = (body.locationId ?? body.toLocationId ?? body.targetLocationId) as
-		| string
-		| undefined;
+	const target = body.locationId as string | undefined;
 	if (!target)
 		return NextResponse.json(
 			{ error: "Sede no válida", code: "INVALID_LOCATION" },
 			{ status: 400 },
 		);
+	let operationKey = resolveOperationKey(request, body);
+	if (operationKey !== null && operationKey !== "") {
+		if (!OPERATION_KEY_REGEX.test(operationKey)) {
+			return NextResponse.json(
+				{ error: "Clave de operación no válida", code: "INVALID_OPERATION_KEY" },
+				{ status: 400 },
+			);
+		}
+	} else {
+		operationKey = crypto.randomUUID();
+	}
 	const pb = await createPocketBaseClient();
 	let current: any;
 	try {
 		current = await pb.collection("services").getOne(id);
 	} catch {
-		return NextResponse.json({ error: "Not found or access denied" }, { status: 500 });
+		return NextResponse.json(
+			{ error: "Servicio no encontrado", code: "NOT_FOUND" },
+			{ status: 403 },
+		);
 	}
 	if (current.userId !== user.id)
-		return NextResponse.json({ error: "Not found or access denied" }, { status: 403 });
+		return NextResponse.json(
+			{ error: "Servicio no encontrado", code: "NOT_FOUND" },
+			{ status: 403 },
+		);
 	if (String(current.locationId) === String(target))
 		return NextResponse.json(
 			{ error: "El servicio ya está en esa sede.", code: "SAME_LOCATION" },
@@ -59,64 +86,39 @@ async function handle(request: Request, ctx: unknown) {
 			{ error: "Sede no válida", code: "INVALID_LOCATION" },
 			{ status: 400 },
 		);
-	const now = new Date().toISOString();
-	const canBatch = false; // batch disabled per PocketBase 0.40.1 Batch requests are not allowed
-	if (canBatch) {
-		try {
-			const batch: any = (pb as any).createBatch();
-			batch.collection("services").update(id, { locationId: target });
-			batch.collection("service_events").create({
-				userId: user.id,
-				ServiceId: id,
-				kind: "location_changed",
-				fromLocationId: current.locationId,
-				toLocationId: target,
-				fromStatus: current.status,
-				toStatus: current.status,
-				actorId: user.id,
-				changedAt: now,
-			});
-			await batch.send();
-		} catch (e) {
-			console.error(e);
+	try {
+		await sendLifecycleBatch({
+			pb,
+			userId: user.id,
+			serviceId: id,
+			operationKey,
+			kind: "location_changed",
+			fromStatus: current.status,
+			toStatus: current.status,
+			fromLocationId: current.locationId,
+			toLocationId: target,
+			servicePatch: { locationId: target },
+		});
+	} catch (e: any) {
+		if (e instanceof LifecycleBatchError) {
+			const map: Record<string, string> = {
+				INVALID_OPERATION_KEY: "Clave de operación no válida",
+				NOT_FOUND: "Servicio no encontrado",
+				OPERATION_KEY_REUSED: "Clave de operación ya utilizada",
+				BATCH_UNAVAILABLE: "Operación no disponible — habilite Batch en PocketBase",
+				TRANSITION_CONFLICT: "Conflicto de transición — reintente",
+				VALIDATION_ERROR: "Datos de traslado no válidos",
+				INTERNAL: "Error interno al transferir sede",
+			};
 			return NextResponse.json(
-				{ error: "No se pudo transferir la sede", code: "TRANSFER_FAILED" },
-				{ status: 500 },
+				{ error: map[e.code] ?? e.message, code: e.code },
+				{ status: e.status },
 			);
 		}
-	} else {
-		try {
-			await pb.collection("services").update(id, { locationId: target });
-		} catch (e) {
-			console.error(e);
-			return NextResponse.json(
-				{ error: "No se pudo transferir la sede", code: "TRANSFER_FAILED" },
-				{ status: 500 },
-			);
-		}
-		try {
-			await pb.collection("service_events").create({
-				userId: user.id,
-				ServiceId: id,
-				kind: "location_changed",
-				fromLocationId: current.locationId,
-				toLocationId: target,
-				fromStatus: current.status,
-				toStatus: current.status,
-				actorId: user.id,
-				changedAt: now,
-			});
-		} catch (e) {
-			console.error(e);
-			// rollback to avoid unlogged successful mutation
-			try {
-				await pb.collection("services").update(id, { locationId: current.locationId });
-			} catch {}
-			return NextResponse.json(
-				{ error: "No se pudo registrar el evento de traslado", code: "EVENT_FAILED" },
-				{ status: 500 },
-			);
-		}
+		return NextResponse.json(
+			{ error: "No se pudo transferir la sede", code: "TRANSFER_FAILED" },
+			{ status: 500 },
+		);
 	}
 	return NextResponse.json({ id, locationId: target }, { status: 200 });
 }

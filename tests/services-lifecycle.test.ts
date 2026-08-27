@@ -850,8 +850,9 @@ describe("movement logs WU6c — updateService creates service_events only on lo
 		mockLogsGetList.mockResolvedValue({ items: [], totalItems: 0 });
 	});
 	it("non-completing location change writes one log with denormalized userId/ServiceId/from/to/changedAt", async () => {
+		// WU4: generic updateService must NOT silently mutate lifecycle or create sequential event;
+		// location change now goes via lifecycle-batch helper (status/transfer routes).
 		const { updateService } = await import("@/lib/storage");
-		const before = Date.now();
 		await updateService(
 			{
 				id: "pb15svcWU6c00001",
@@ -869,28 +870,22 @@ describe("movement logs WU6c — updateService creates service_events only on lo
 			"owner-1",
 		);
 		expect(mockServicesUpdate).toHaveBeenCalledTimes(1);
-		expect(mockLogsCreate).toHaveBeenCalledTimes(1);
-		const payload = mockLogsCreate.mock.calls[0][0] as Record<string, unknown>;
-		expect(payload.userId).toBe("owner-1");
-		expect(payload.ServiceId).toBe("pb15svcWU6c00001");
-		expect(payload.fromLocationId).toBe("locA");
-		expect(payload.toLocationId).toBe("locB");
-		expect(typeof payload.changedAt).toBe("string");
-		expect(new Date(payload.changedAt as string).getTime()).toBeGreaterThanOrEqual(before);
-		expect(payload.changedAt).not.toBe("");
-		// ensure create uses PocketBase service_events collection
-		expect(mockCollection).toHaveBeenCalledWith("service_events");
+		// generic update must have no sequential lifecycle event
+		expect(mockLogsCreate).not.toHaveBeenCalled();
+		// ensure storage does not contain sequential service_events creation for location change
 		const sSrc = fs.readFileSync(path.join(process.cwd(), "lib/storage.ts"), "utf8");
 		const updSlice = sSrc.slice(
-			sSrc.indexOf("updateService"),
-			sSrc.indexOf("updateService") + 3500,
+			sSrc.indexOf("export async function updateService"),
+			sSrc.indexOf("export async function updateService") + 3500,
 		);
-		expect(updSlice).toContain('collection("service_events")');
-		expect(updSlice).toContain(".create(");
-		expect(updSlice).toContain("fromLocationId");
-		expect(updSlice).toContain("toLocationId");
-		expect(updSlice).toContain("changedAt");
-		expect(updSlice).toContain("ServiceId");
+		expect(updSlice).not.toContain('collection("service_events").create');
+		expect(updSlice).not.toContain("fromLocationId");
+		// but direct services update remains
+		expect(updSlice).toContain('collection("services").update');
+		// lifecycle batch helper owns atomic location_changed
+		const batchSrc = fs.readFileSync(path.join(process.cwd(), "lib/lifecycle-batch.ts"), "utf8");
+		expect(batchSrc).toContain("location_changed");
+		expect(batchSrc).toContain("lifecycleSeq");
 	});
 	it("completing with a location change skips the log", async () => {
 		mockServicesGetOne.mockResolvedValue(

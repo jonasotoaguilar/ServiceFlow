@@ -264,7 +264,7 @@ export async function updateService(updatedService: Service, userId?: string): P
 	if (current.status === "completed") {
 		throw new Error("Cannot modify a completed Service");
 	}
-	const now = new Date().toISOString();
+	// Generic update must not silently mutate lifecycle fields; no sequential lifecycle event
 	const payload: Record<string, unknown> = {
 		invoiceNumber: updatedService.invoiceNumber,
 		clientName: updatedService.clientName,
@@ -274,70 +274,13 @@ export async function updateService(updatedService: Service, userId?: string): P
 		product: updatedService.product,
 		failureDescription: updatedService.failureDescription,
 		sku: updatedService.sku,
-		locationId: updatedService.locationId,
 		entryDate: updatedService.entryDate
 			? new Date(updatedService.entryDate).toISOString()
 			: current.entryDate,
-		deliveryDate: updatedService.deliveryDate
-			? new Date(updatedService.deliveryDate).toISOString()
-			: null,
-		readyDate: updatedService.readyDate ? new Date(updatedService.readyDate).toISOString() : null,
-		cancellationDate: updatedService.cancellationDate
-			? new Date(updatedService.cancellationDate).toISOString()
-			: updatedService.status === "cancelled" && !current.cancellationDate
-				? now
-				: (current.cancellationDate ?? null),
-		status: updatedService.status,
 		repairCost: updatedService.repairCost,
 		notes: updatedService.notes,
 	};
-	const fromLocationId = current.locationId as string | undefined;
-	const toLocationId = updatedService.locationId as string | undefined;
-	const isLocationChanged = !!fromLocationId && !!toLocationId && fromLocationId !== toLocationId;
-	const isCompleting = current.status !== "completed" && updatedService.status === "completed";
-	// Atomicity: prefer batch if available, otherwise explicit rollback to avoid unlogged mutation
-	const canBatch = false; // batch disabled per PocketBase 0.40.1 Batch requests are not allowed
-	if (isLocationChanged && !isCompleting) {
-		if (canBatch) {
-			const batch: any = (pb as any).createBatch();
-			batch.collection("services").update(updatedService.id, payload);
-			batch.collection("service_events").create({
-				userId: current.userId,
-				ServiceId: updatedService.id,
-				kind: "location_changed",
-				fromLocationId,
-				toLocationId,
-				fromStatus: current.status,
-				toStatus: updatedService.status,
-				actorId: current.userId,
-				changedAt: now,
-			});
-			await batch.send();
-		} else {
-			await pb.collection("services").update(updatedService.id, payload);
-			try {
-				await pb.collection("service_events").create({
-					userId: current.userId,
-					ServiceId: updatedService.id,
-					kind: "location_changed",
-					fromLocationId,
-					toLocationId,
-					fromStatus: current.status,
-					toStatus: updatedService.status,
-					actorId: current.userId,
-					changedAt: now,
-				});
-			} catch (e) {
-				// rollback location to avoid unlogged successful mutation
-				try {
-					await pb.collection("services").update(updatedService.id, { locationId: fromLocationId });
-				} catch {}
-				throw e;
-			}
-		}
-	} else {
-		await pb.collection("services").update(updatedService.id, payload);
-	}
+	await pb.collection("services").update(updatedService.id, payload);
 }
 
 export async function deleteService(id: string, userId?: string): Promise<void> {

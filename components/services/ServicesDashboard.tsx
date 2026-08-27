@@ -241,10 +241,11 @@ export function ServiceDashboard({ initialData, user }: Readonly<ServiceDashboar
 		if (!statusDialog.service) return;
 		setActionError(null);
 		try {
+			const operationKey = crypto.randomUUID();
 			const res = await fetch(`/api/services/${statusDialog.service.id}/status`, {
 				method: "PATCH",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ status: nextStatus }),
+				headers: { "Content-Type": "application/json", "Idempotency-Key": operationKey },
+				body: JSON.stringify({ status: nextStatus, operationKey }),
 			});
 			if (res.ok) {
 				setStatusDialog({ isOpen: false, service: null });
@@ -252,7 +253,9 @@ export function ServiceDashboard({ initialData, user }: Readonly<ServiceDashboar
 				fetchStats();
 			} else {
 				const j = await res.json().catch(() => ({}));
-				setActionError((j as any).error || "No se pudo Cambiar estado");
+				const msg = (j as any).error || "No se pudo Cambiar estado";
+				const code = (j as any).code ? ` (${(j as any).code})` : "";
+				setActionError(`${msg}${code}`);
 			}
 		} catch {
 			setActionError("Error de red al Cambiar estado");
@@ -262,17 +265,20 @@ export function ServiceDashboard({ initialData, user }: Readonly<ServiceDashboar
 		if (!transferDialog.service) return;
 		setActionError(null);
 		try {
+			const operationKey = crypto.randomUUID();
 			const res = await fetch(`/api/services/${transferDialog.service.id}/transfer`, {
 				method: "PATCH",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ locationId: targetLocation }),
+				headers: { "Content-Type": "application/json", "Idempotency-Key": operationKey },
+				body: JSON.stringify({ locationId: targetLocation, operationKey }),
 			});
 			if (res.ok) {
 				setTransferDialog({ isOpen: false, service: null });
 				fetchServices();
 			} else {
 				const j = await res.json().catch(() => ({}));
-				setActionError((j as any).error || "No se pudo Transferir sede");
+				const msg = (j as any).error || "No se pudo Transferir sede";
+				const code = (j as any).code ? ` (${(j as any).code})` : "";
+				setActionError(`${msg}${code}`);
 			}
 		} catch {
 			setActionError("Error de red al Transferir sede");
@@ -686,7 +692,9 @@ export function ServiceDashboard({ initialData, user }: Readonly<ServiceDashboar
 				<div className="space-y-4">
 					<p className="text-sm text-foreground-muted">
 						Servicio #{statusDialog.service?.invoiceNumber} — actual{" "}
-						<span className="font-medium">{statusDialog.service ? getStatusLabel(statusDialog.service.status) : ""}</span>
+						<span className="font-medium">
+							{statusDialog.service ? getStatusLabel(statusDialog.service.status) : ""}
+						</span>
 					</p>
 					<select
 						value={nextStatus}
