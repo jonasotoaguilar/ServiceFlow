@@ -54,7 +54,6 @@ export default function ServiceEventsManager({
 	const [locationFilter, setLocationFilter] = useState("");
 	const [kindFilter, setKindFilter] = useState("");
 	const [statusFilter, setStatusFilter] = useState("");
-	const [showFilters, setShowFilters] = useState(false);
 	const [showLocationDropdown, setShowLocationDropdown] = useState(false);
 	const [showKindDropdown, setShowKindDropdown] = useState(false);
 	const [showStatusDropdown, setShowStatusDropdown] = useState(false);
@@ -141,209 +140,206 @@ export default function ServiceEventsManager({
 			</header>
 
 			<div className="bg-surface border border-border shadow-sm p-6 mb-8">
-				<button
-					onClick={() => setShowFilters(!showFilters)}
-					className="flex items-center gap-2 text-primary font-semibold text-sm mb-4 hover:text-blue-400 transition-colors"
-				>
-					<ChevronDown
-						className={`w-4 h-4 transition-transform ${showFilters ? "rotate-180" : ""}`}
-					/>
+				<h2 className="flex items-center gap-2 text-primary font-semibold text-sm mb-4">
 					FILTROS DE BÚSQUEDA
-				</button>
+				</h2>
 
-				{showFilters && (
-					<div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-						<div>
-							<label htmlFor="startDate" className="block text-sm font-medium text-foreground mb-2">
-								Desde
-							</label>
-							<input
-								id="startDate"
-								type="date"
-								value={startDate}
-								max={endDate || undefined}
-								onChange={(e) => setStartDate(e.target.value)}
-								className="w-full bg-surface border border-border rounded-lg px-4 py-2.5 text-foreground focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none"
-							/>
+				<div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+					<div>
+						<label htmlFor="startDate" className="block text-sm font-medium text-foreground mb-2">
+							Desde
+						</label>
+						<input
+							id="startDate"
+							type="date"
+							value={startDate}
+							max={endDate || undefined}
+							onChange={(e) => setStartDate(e.target.value)}
+							className="w-full bg-surface border border-border rounded-lg px-4 py-2.5 text-foreground focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none"
+						/>
+					</div>
+					<div>
+						<label htmlFor="endDate" className="block text-sm font-medium text-foreground mb-2">
+							Hasta
+						</label>
+						<input
+							id="endDate"
+							type="date"
+							value={endDate}
+							min={startDate || undefined}
+							onChange={(e) => setEndDate(e.target.value)}
+							className="w-full bg-surface border border-border rounded-lg px-4 py-2.5 text-foreground focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none"
+						/>
+					</div>
+					<div>
+						<label className="block text-sm font-medium text-foreground mb-2">Tipo</label>
+						<div className="relative" ref={kindDropdownRef}>
+							<button
+								onClick={() => setShowKindDropdown(!showKindDropdown)}
+								aria-expanded={showKindDropdown}
+								aria-haspopup="listbox"
+								className="w-full flex items-center gap-2 px-4 py-2.5 rounded-lg bg-surface border border-border text-foreground hover:bg-surface-muted transition-all justify-between"
+							>
+								<span className="text-sm font-medium">
+									{kindFilter
+										? kindFilter === "created"
+											? "Creación"
+											: kindFilter === "location_changed"
+												? "Cambio sede"
+												: "Cambio estado"
+										: "Todos"}
+								</span>
+								<ChevronDown
+									className={`w-4 h-4 transition-transform ${showKindDropdown ? "rotate-180" : ""}`}
+								/>
+							</button>
+							{showKindDropdown && (
+								<div className="absolute top-full mt-2 w-full bg-surface border border-border rounded-lg shadow-xl z-50 overflow-hidden">
+									<button
+										onClick={() => {
+											setKindFilter("");
+											setShowKindDropdown(false);
+										}}
+										className={`w-full px-4 py-2.5 text-left text-sm ${kindFilter === "" ? "bg-primary text-foreground" : "text-foreground hover:bg-surface-muted"}`}
+									>
+										Todos
+									</button>
+									<button
+										onClick={() => {
+											setKindFilter("created");
+											setShowKindDropdown(false);
+										}}
+										className={`w-full px-4 py-2.5 text-left text-sm ${kindFilter === "created" ? "bg-primary text-foreground" : "text-foreground hover:bg-surface-muted"}`}
+									>
+										Creación
+									</button>
+									<button
+										onClick={() => {
+											setKindFilter("location_changed");
+											setShowKindDropdown(false);
+										}}
+										className={`w-full px-4 py-2.5 text-left text-sm ${kindFilter === "location_changed" ? "bg-primary text-foreground" : "text-foreground hover:bg-surface-muted"}`}
+									>
+										Cambio sede
+									</button>
+									<button
+										onClick={() => {
+											setKindFilter("status_changed");
+											setShowKindDropdown(false);
+										}}
+										className={`w-full px-4 py-2.5 text-left text-sm ${kindFilter === "status_changed" ? "bg-primary text-foreground" : "text-foreground hover:bg-surface-muted"}`}
+									>
+										Cambio estado
+									</button>
+								</div>
+							)}
 						</div>
-						<div>
-							<label htmlFor="endDate" className="block text-sm font-medium text-foreground mb-2">
-								Hasta
-							</label>
-							<input
-								id="endDate"
-								type="date"
-								value={endDate}
-								min={startDate || undefined}
-								onChange={(e) => setEndDate(e.target.value)}
-								className="w-full bg-surface border border-border rounded-lg px-4 py-2.5 text-foreground focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none"
-							/>
-						</div>
-						<div>
-							<label className="block text-sm font-medium text-foreground mb-2">Tipo</label>
-							<div className="relative" ref={kindDropdownRef}>
-								<button
-									onClick={() => setShowKindDropdown(!showKindDropdown)}
-									className="w-full flex items-center gap-2 px-4 py-2.5 rounded-lg bg-surface border border-border text-foreground hover:bg-surface-muted transition-all justify-between"
-								>
-									<span className="text-sm font-medium">
-										{kindFilter
-											? kindFilter === "created"
-												? "Creación"
-												: kindFilter === "location_changed"
-													? "Cambio sede"
-													: "Cambio estado"
-											: "Todos"}
-									</span>
-									<ChevronDown
-										className={`w-4 h-4 transition-transform ${showKindDropdown ? "rotate-180" : ""}`}
-									/>
-								</button>
-								{showKindDropdown && (
-									<div className="absolute top-full mt-2 w-full bg-surface border border-border rounded-lg shadow-xl z-50 overflow-hidden">
+					</div>
+					<div>
+						<label className="block text-sm font-medium text-foreground mb-2">Estado</label>
+						<div className="relative" ref={statusDropdownRef}>
+							<button
+								onClick={() => setShowStatusDropdown(!showStatusDropdown)}
+								aria-expanded={showStatusDropdown}
+								aria-haspopup="listbox"
+								className="w-full flex items-center gap-2 px-4 py-2.5 rounded-lg bg-surface border border-border text-foreground hover:bg-surface-muted transition-all justify-between"
+							>
+								<span className="text-sm font-medium">
+									{statusFilter ? displayStatus(statusFilter) : "Todos Estado"}
+								</span>
+								<ChevronDown
+									className={`w-4 h-4 transition-transform ${showStatusDropdown ? "rotate-180" : ""}`}
+								/>
+							</button>
+							{showStatusDropdown && (
+								<div className="absolute top-full mt-2 w-full bg-surface border border-border rounded-lg shadow-xl z-50 overflow-hidden">
+									<button
+										onClick={() => {
+											setStatusFilter("");
+											setShowStatusDropdown(false);
+										}}
+										className={`w-full px-4 py-2.5 text-left text-sm ${statusFilter === "" ? "bg-primary text-foreground" : "text-foreground hover:bg-surface-muted"}`}
+									>
+										Todos
+									</button>
+									{["pending", "ready", "completed", "cancelled"].map((s) => (
 										<button
+											key={s}
 											onClick={() => {
-												setKindFilter("");
-												setShowKindDropdown(false);
-											}}
-											className={`w-full px-4 py-2.5 text-left text-sm ${kindFilter === "" ? "bg-primary text-foreground" : "text-foreground hover:bg-surface-muted"}`}
-										>
-											Todos
-										</button>
-										<button
-											onClick={() => {
-												setKindFilter("created");
-												setShowKindDropdown(false);
-											}}
-											className={`w-full px-4 py-2.5 text-left text-sm ${kindFilter === "created" ? "bg-primary text-foreground" : "text-foreground hover:bg-surface-muted"}`}
-										>
-											Creación
-										</button>
-										<button
-											onClick={() => {
-												setKindFilter("location_changed");
-												setShowKindDropdown(false);
-											}}
-											className={`w-full px-4 py-2.5 text-left text-sm ${kindFilter === "location_changed" ? "bg-primary text-foreground" : "text-foreground hover:bg-surface-muted"}`}
-										>
-											Cambio sede
-										</button>
-										<button
-											onClick={() => {
-												setKindFilter("status_changed");
-												setShowKindDropdown(false);
-											}}
-											className={`w-full px-4 py-2.5 text-left text-sm ${kindFilter === "status_changed" ? "bg-primary text-foreground" : "text-foreground hover:bg-surface-muted"}`}
-										>
-											Cambio estado
-										</button>
-									</div>
-								)}
-							</div>
-						</div>
-						<div>
-							<label className="block text-sm font-medium text-foreground mb-2">Estado</label>
-							<div className="relative" ref={statusDropdownRef}>
-								<button
-									onClick={() => setShowStatusDropdown(!showStatusDropdown)}
-									className="w-full flex items-center gap-2 px-4 py-2.5 rounded-lg bg-surface border border-border text-foreground hover:bg-surface-muted transition-all justify-between"
-								>
-									<span className="text-sm font-medium">
-										{statusFilter ? displayStatus(statusFilter) : "Todos Estado"}
-									</span>
-									<ChevronDown
-										className={`w-4 h-4 transition-transform ${showStatusDropdown ? "rotate-180" : ""}`}
-									/>
-								</button>
-								{showStatusDropdown && (
-									<div className="absolute top-full mt-2 w-full bg-surface border border-border rounded-lg shadow-xl z-50 overflow-hidden">
-										<button
-											onClick={() => {
-												setStatusFilter("");
+												setStatusFilter(s);
 												setShowStatusDropdown(false);
 											}}
-											className={`w-full px-4 py-2.5 text-left text-sm ${statusFilter === "" ? "bg-primary text-foreground" : "text-foreground hover:bg-surface-muted"}`}
+											className={`w-full px-4 py-2.5 text-left text-sm ${statusFilter === s ? "bg-primary text-foreground" : "text-foreground hover:bg-surface-muted"}`}
 										>
-											Todos
+											{displayStatus(s)}
 										</button>
-										{["pending", "ready", "completed", "cancelled"].map((s) => (
+									))}
+								</div>
+							)}
+						</div>
+					</div>
+					<div className="flex gap-2">
+						<div className="flex-1">
+							<label
+								htmlFor="locationFilter"
+								className="block text-sm font-medium text-foreground mb-2"
+							>
+								Sede
+							</label>
+							<div className="relative" ref={locationDropdownRef}>
+								<button
+									onClick={() => setShowLocationDropdown(!showLocationDropdown)}
+									aria-expanded={showLocationDropdown}
+									aria-haspopup="listbox"
+									className="w-full flex items-center gap-2 px-4 py-2.5 rounded-lg bg-surface border border-border text-foreground hover:bg-surface-muted transition-all justify-between"
+								>
+									<span className="text-sm font-medium">
+										{locations.find((l) => l.id === locationFilter)?.name || "Todas las sedes"}
+									</span>
+									<ChevronDown
+										className={`w-4 h-4 transition-transform ${showLocationDropdown ? "rotate-180" : ""}`}
+									/>
+								</button>
+								{showLocationDropdown && (
+									<div className="absolute top-full mt-2 w-full bg-surface-muted border border-border rounded-lg shadow-xl z-50 overflow-hidden">
+										<button
+											onClick={() => {
+												setLocationFilter("");
+												setShowLocationDropdown(false);
+											}}
+											className={`w-full px-4 py-2.5 text-left text-sm transition-colors ${locationFilter === "" ? "bg-primary text-foreground" : "text-foreground hover:bg-surface-muted"}`}
+										>
+											Todas las sedes
+										</button>
+										{locations.map((loc) => (
 											<button
-												key={s}
+												key={loc.id}
 												onClick={() => {
-													setStatusFilter(s);
-													setShowStatusDropdown(false);
+													setLocationFilter(loc.id);
+													setShowLocationDropdown(false);
 												}}
-												className={`w-full px-4 py-2.5 text-left text-sm ${statusFilter === s ? "bg-primary text-foreground" : "text-foreground hover:bg-surface-muted"}`}
+												className={`w-full px-4 py-2.5 text-left text-sm transition-colors ${locationFilter === loc.id ? "bg-primary text-foreground" : "text-foreground hover:bg-surface-muted"}`}
 											>
-												{displayStatus(s)}
+												{loc.name}
 											</button>
 										))}
 									</div>
 								)}
 							</div>
 						</div>
-						<div className="flex gap-2">
-							<div className="flex-1">
-								<label
-									htmlFor="locationFilter"
-									className="block text-sm font-medium text-foreground mb-2"
-								>
-									Sede
-								</label>
-								<div className="relative" ref={locationDropdownRef}>
-									<button
-										onClick={() => setShowLocationDropdown(!showLocationDropdown)}
-										className="w-full flex items-center gap-2 px-4 py-2.5 rounded-lg bg-surface border border-border text-foreground hover:bg-surface-muted transition-all justify-between"
-									>
-										<span className="text-sm font-medium">
-											{locations.find((l) => l.id === locationFilter)?.name || "Todas las sedes"}
-										</span>
-										<ChevronDown
-											className={`w-4 h-4 transition-transform ${showLocationDropdown ? "rotate-180" : ""}`}
-										/>
-									</button>
-									{showLocationDropdown && (
-										<div className="absolute top-full mt-2 w-full bg-surface-muted border border-border rounded-lg shadow-xl z-50 overflow-hidden">
-											<button
-												onClick={() => {
-													setLocationFilter("");
-													setShowLocationDropdown(false);
-												}}
-												className={`w-full px-4 py-2.5 text-left text-sm transition-colors ${locationFilter === "" ? "bg-primary text-foreground" : "text-foreground hover:bg-surface-muted"}`}
-											>
-												Todas las sedes
-											</button>
-											{locations.map((loc) => (
-												<button
-													key={loc.id}
-													onClick={() => {
-														setLocationFilter(loc.id);
-														setShowLocationDropdown(false);
-													}}
-													className={`w-full px-4 py-2.5 text-left text-sm transition-colors ${locationFilter === loc.id ? "bg-primary text-foreground" : "text-foreground hover:bg-surface-muted"}`}
-												>
-													{loc.name}
-												</button>
-											))}
-										</div>
-									)}
-								</div>
-							</div>
-							<div className="flex items-end">
-								<button
-									onClick={clearFilters}
-									disabled={
-										!startDate && !endDate && !locationFilter && !kindFilter && !statusFilter
-									}
-									className="p-2.5 rounded-lg border border-border text-foreground-muted hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-									title="Limpiar filtros"
-								>
-									<X className="w-5 h-5" />
-								</button>
-							</div>
+						<div className="flex items-end">
+							<button
+								onClick={clearFilters}
+								disabled={!startDate && !endDate && !locationFilter && !kindFilter && !statusFilter}
+								className="min-h-11 min-w-11 p-2.5 rounded-lg border border-border text-foreground-muted hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+								title="Limpiar filtros"
+								aria-label="Limpiar filtros"
+							>
+								<X className="w-5 h-5" />
+							</button>
 						</div>
 					</div>
-				)}
+				</div>
 			</div>
 
 			<div className="bg-surface border border-border shadow-sm rounded-xl overflow-hidden mb-8">
@@ -509,8 +505,7 @@ export default function ServiceEventsManager({
 					<p className="text-sm text-foreground-muted">
 						Mostrando{" "}
 						<span className="text-foreground font-medium">
-							{logs.length === 0 ? 0 : (page - 1) * limit + 1}-
-							{Math.min(page * limit, total)}
+							{logs.length === 0 ? 0 : (page - 1) * limit + 1}-{Math.min(page * limit, total)}
 						</span>{" "}
 						de <span className="text-foreground font-medium">{total}</span> resultados
 					</p>

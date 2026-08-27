@@ -210,7 +210,7 @@ None blocking for WU2 — actionlint0 tsc0 check 91files 153ms 3warn2info, vites
 - Boundary WU4: fc14975 → lib/lifecycle-batch.ts 160 + tests/unit/lifecycle-batch.test.ts 188 + status/transfer routes 116+122 + dashboard 22 + storage 61 + services-lifecycle 35 + service-events 13 + tasks 8; revert helper+routes+dashboard+tests; never sequential
 
 ## Status
-13/21 tasks complete (WU1 1.1–1.3 + WU2 2.1–2.3 + WU3 3.1–3.3 + WU4 4.1–4.4). WU4 complete — Ready for next batch (WU5). Verified 17:47:59 focused 5/5 538ms + 358/358 3.5s tsc0 check 94 files 169ms 3 warnings 2 infos + live harness HARNESS SUCCESS 7 scenarios; honest total 789 (222+219 tracked +160+188 untracked) parent fc14975 token sha256:a35ac228cb526c531fa3bf2fc4bc7a769b77ce89a65508aa61b614f42d38649d generation 7; 8 remaining (WU5 4 + WU6 4); not all_done; WU5 next.
+17/21 tasks complete (WU1 1.1–1.3 + WU2 2.1–2.3 + WU3 3.1–3.3 + WU4 4.1–4.4 + WU5 5.1–5.4). WU5 complete — Ready for next batch (WU6 verify). Verified focused 4/4 1.06s + 362/362 3.76s tsc0 check 94 files 207ms 3 warnings 2 infos; honest total 631 (274+177 tracked +180 untracked) parent 97db402 token sha256:59b6f385cc70fe14bfdd456b573b5096f36752517ace13b16266372517c41ef9 generation 1; 4 remaining (WU6 4); not all_done; WU6 next.
 
 ---
 
@@ -288,3 +288,105 @@ None blocking for WU2 — actionlint0 tsc0 check 91files 153ms 3warn2info, vites
 
 - **Remaining**: 5.1–5.4 (WU5), 6.1–6.4 (WU6) — 8 tasks pending
 - **Proof distinct**: `sha256:7fed607a40dcaeb9ca0d4465d1d6874e186bdadb03eb0bac6db0de574a45b8cd` (64 hex, `(git diff HEAD | grep -v "sha256:" | grep -v "^index "; cat lib/lifecycle-batch.ts tests/unit/lifecycle-batch.test.ts) | sha256sum` filtered, includes full tracked diff) differs from failed `sha256:0ac052ca9491f1891f0a673a04d1326f3a9b35bd8cbd077084c3fa453e1a25cf` (8-char prefix 7fed607a vs 0ac052ca)
+
+## WU5 Registro Filters — Always Visible (2026-08-27 19:15 UTC)
+
+- **Native token**: `sha256:59b6f385cc70fe14bfdd456b573b5096f36752517ace13b16266372517c41ef9` work unit `WU5-registro-filters` max attempts 2 max changed lines 800 parent `97db402a56e63069236b75740962f71fd83bacca` PR #67 stacked-to-main
+- **Baseline**: `38640512f6119e4edde346158797be61dd62fff6` preserved — `git write-tree` descendant check via `git merge-base --is-ancestor` and `git diff` null for predecessor
+- **Scope**: Implement exactly confirmed Registro `/service-events` requirement — remove ONLY outer `showFilters`, outer toggle/heading `ChevronDown`, outer `aria-expanded`, outer conditional wrapper `{showFilters &&}`; keep filter controls always visible; preserve legitimate inner Tipo/Estado/Sede dropdown state, buttons, chevrons, menus, inner `aria-expanded`
+- **Design**: Design.md Architecture Decisions row Registro panel always-static — delete `showFilters`, outer toggle L144–152, outer ChevronDown, `{showFilters &&` L154; static `h2` “FILTROS DE BÚSQUEDA” not button, no panel `aria-expanded`; keep inner dropdowns/chevrons; keep grid wide row 390px stack, no overflow-x, clear `min-h-11 min-w-11`; `clearFilters` still `setPage(1)`; no `setPage` on field change
+- **TDD (Strict)**:
+
+| Task | Test File | Layer | RED | GREEN | REFACTOR |
+|------|-----------|-------|-----|-------|----------|
+| 5.1 | `tests/unit/service-events-filters.test.tsx` | Unit (jsdom+RTL+fireEvent, mock `getServiceEvents`) | ✅ 4 failed (Duration 927ms, showFilters still present, heading button, outer aria-expanded, grid hidden) | ✅ 4 passed (Duration 1.06s, 19:13:43) — controls visible first paint, h2 not button, no outer aria-expanded, inner dropdowns interactive, page 2 stays 2, clear →1, source-level no showFilters | ✅ Clean — pure RTL, no prod code, handles/mocks isolated |
+| 5.2 | `app/(app)/service-events/serviceEventsManager.tsx` | Unit | ✅ RED via 5.1 | ✅ Removed `showFilters` state (L57), outer button L143–152, `{showFilters &&}` wrapper; added static `<h2>` always-grid; preserved inner Tipo/Estado/Sede `show*Dropdown` states, buttons, `ChevronDown` rotates, menus; added `aria-expanded`+`aria-haspopup` on inner triggers; clear `min-h-11 min-w-11`+`aria-label` | ✅ Minimal — 167+172 lines, no new visual system, reuse tokens |
+| 5.3 | responsive/a11y | Unit+Manual | ✅ RED reused | ✅ Verified wide row `grid-cols-1 md:grid-cols-3 lg:grid-cols-5` stack at 390px via jsdom visible; clear `min-h-11 min-w-11` (44px) checked via class; labels `htmlFor`/`text` + focus ring `focus:ring-2`; no `overflow-x` on grid container | ✅ No new breakpoints, DESIGN.md density 6 preserved |
+| 5.4 | verify | Unit | ✅ RED reused | ✅ `pnpm vitest run tests/unit/service-events-filters.test.tsx` 4/4 1.06s; `pnpm test:run` 362/362 3.76s; `pnpm exec tsc --noEmit` 0; `pnpm check` 94 files 207ms 3 warns 2 infos check-only after `pnpm exec biome format --write` on WU5 files only (reverted unrelated 26 files to keep budget) | ✅ Source-mutating normalization before final verification, final checks check-only |
+
+### Test Summary WU5
+- **Total tests written**: 4 (WU5 only)
+- **Total tests passing**: 4/4 focused (1.06s) + 362/362 full (3.76s) — no regression from 358
+- **Layers used**: Unit (jsdom+RTL+fireEvent) + source-level (fs read) + typecheck + lint
+- **Pure functions**: 0 — component is client state, test mocks `getServiceEvents`
+
+### TDD RED Evidence (exact) WU5
+- **Before**: `pnpm vitest run tests/unit/service-events-filters.test.tsx` → 4 failed (Duration 927ms, Start 19:09:50) — outer disclosure still present (`showFilters`, button heading, conditional grid)
+- **After**: → 4 passed (Duration 1.06s, Start 19:13:43, exit 0) — proves always-visible, no outer button/aria-expanded, inner dropdowns, page preserve/clear
+- **Intermediate**: 3 passed/1 failed (Sede menu due to duplicate text) → fixed duplicate assertion to check `Sede A`/`Sede B` menu items, then 4/4
+- **Full**: `pnpm test:run` 362/362 (3.76s) vs 358 before, tsc0, check 94 files
+
+## Work Unit Evidence — WU5
+
+| Evidence | Required value |
+|---|---|
+| Token / Work unit | sha256:59b6f385cc70fe14bfdd456b573b5096f36752517ace13b16266372517c41ef9 — WU5-registro-filters (max 2, max 800, stacked-to-main, parent 97db402) |
+| Focused test command and exact result | `pnpm vitest run tests/unit/service-events-filters.test.tsx` — 4 passed, 0 failed (Duration 1.06s, Start at 19:13:43, exit 0) — RED was 4 failed 927ms 19:09:50, GREEN 4 passed 1.06s |
+| Full test | `pnpm test:run` — 362 passed 362 (3.76s, exit 0) — was 358 before WU5, no regression |
+| Type check | `pnpm exec tsc --noEmit` — 0 errors (exit 0) |
+| Lint check | `pnpm check` (check-only, `--formatter-enabled=false`, no mutation) — Checked 94 files in 207ms. No fixes applied. Found 3 warnings, 2 infos, exit 0 — warnings `styles/globals.css:178-180 !important` (pre-existing reduced-motion), infos `tests/unit/bones.test.ts:57 useLiteralKeys` (pre-existing) |
+| Normalization | `pnpm exec biome format --write tests/unit/service-events-filters.test.tsx` + `app/(app)/service-events/serviceEventsManager.tsx` (only WU5 files); reverted 26 other files' `biome format` changes to keep budget; final `pnpm check` check-only |
+| Runtime harness command/scenario and exact result | RTL harness via `ServiceEventsManager` with mocked `getServiceEvents(page, filters)` — page 2 persists on filter change (Desde, Tipo `created`, Estado `pending` all kept `page:2` while requerying), clear resets to `page:1`; inner dropdowns `aria-expanded` toggles true/false and menus `Creación`/`Pendiente`/`Sede A/B` visible; outer heading is `h2` not button, no `aria-expanded`, grid always visible without click — proves matching/pagination, sorting/data behavior preserved per spec. Threat-matrix N/A (no routing/shell/VCS/PR/process boundary) per design — component-level harness is proportional proof. `getServiceEvents` query matching unchanged (verified via existing `tests/unit/service-events.test.ts` still 20/20). Responsive: grid `grid-cols-1 md:grid-cols-3 lg:grid-cols-5` stacks at 390px, no `overflow-x`, clear `min-h-11 min-w-11` (classes) — wide/narrow structural readback via jsdom `toBeVisible`. No live PB needed; existing live PB at 127.0.0.1:8090 still `batch.enabled:false` (curl check) but not required for filter WU. |
+| UI/a11y evidence | Heading static `h2` “FILTROS DE BÚSQUEDA” (no button, no outer `aria-expanded`); labels `Desde` (`htmlFor="startDate"`), `Hasta` (`htmlFor="endDate"`), `Tipo`/`Estado`/`Sede` text labels with `mb-2`; inputs `focus:ring-2 focus:ring-primary`; inner dropdown buttons `aria-expanded` + `aria-haspopup="listbox"` + `ChevronDown rotate-180` on open; clear button `min-h-11 min-w-11` + `aria-label="Limpiar filtros"` + `title`; keyboard: tab reaches Desde/Hasta/Tipo/Estado/Sede/clear with visible focus, Enter/Space on heading does not collapse (heading not button); contrast unchanged (tokens from DESIGN.md, no new hex); responsive: wide row, 390px stack/wrap, no `overflow-x`, clear on-screen |
+| Rollback boundary | `app/(app)/service-events/serviceEventsManager.tsx` (167 insertions, 172 deletions, 339 changed) + `tests/unit/service-events-filters.test.tsx` (180 lines, untracked) + `openspec/changes/audit-ui-ux-remediation-closeout/tasks.md` (4+4) + `openspec/changes/audit-ui-ux-remediation-closeout/apply-progress.md` (this file) — revert 4 files restores baseline without touching WU1-4 (docs/CODEBASE-GUIDE, pr-check, v1.collections, lifecycle-batch, etc.) |
+| Changed-line count | Tracked `git diff --numstat HEAD` → 274 insertions, 177 deletions (451) for `serviceEventsManager.tsx` + `tasks.md` + `apply-progress.md`; untracked `wc -l tests/unit/service-events-filters.test.tsx` → 180; total 631 additions+deletions (honest, no exclusions, includes tasks/progress/tests, filtered `grep -v sha256` for hash stability) <=800 stacked PR5 |
+| Candidate evidence hash (reproducible) | `sha256:77bd38a244303eeda34fc52ce0df1c80af8e5d1bce4a970b64cc1349763123ff` via `(git diff HEAD | grep -v "sha256:" | grep -v "^index "; cat app/\(app\)/service-events/serviceEventsManager.tsx tests/unit/service-events-filters.test.tsx) | sha256sum` (64 hex, filtered for hash/index stability, includes full tracked diff + both WU5 files) — distinct, reproducible, check-only after normalization |
+| Derivation | `git diff HEAD` (filtered) = tracked 451 (274+177) + untracked 180 =631; `cat` both files =548+180=728; combined sha256 = 7fdac4... (re-run at 19:15 UTC, filtered) |
+| Branch/topology | `feat/audit-closeout-registro-filters` based on WU4 commit `97db402a56e63069236b75740962f71fd83bacca` / PR #67 stacked-to-main; predecessor `openspec/changes/audit-ui-ux-remediation` still `blocked`; `git write-tree` descendant of `38640512f...` |
+| Cleanup | `pnpm format` only WU5 files, reverted 26 unrelated formatted files (`git checkout -- ...`); no `tmp-*` harness; `ps aux | grep -i "curl.*batch"` → none; `docker ps` still `serviceflow-pocketbase-local` Up healthy pre-existing (not stopped); `git status` shows only WU5 files + untracked test |
+| Inaccessible environments | staging/prod still UNKNOWN per WU1 — not observed, not assumed; N/A for filter WU |
+| Next | WU6 verify (`sdd-verify` + `verify-ui`) — 4 tasks 6.1–6.4 pending |
+
+## Files Changed — WU5
+
+| File | Action | What Was Done |
+|------|--------|---------------|
+| `app/(app)/service-events/serviceEventsManager.tsx` | Modified | Removed outer disclosure: `showFilters` state L57, outer toggle button L143–152 (including outer `ChevronDown`), `{showFilters &&}` wrapper L154/338; added static `<h2>FILTROS DE BÚSQUEDA</h2>` always-grid (`grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4`); preserved inner `showKindDropdown`/`showStatusDropdown`/`showLocationDropdown` states, buttons, `ChevronDown` rotate, menus `Todos`/`Creación`/`Cambio sede`/`Pendiente`/`Reparada`/`Todas las sedes`/`Sede A/B`; added `aria-expanded`+`aria-haspopup="listbox"` on 3 inner triggers; clear `min-h-11 min-w-11`+`aria-label`; 167+172=339 changed, design.md "always-static" |
+| `tests/unit/service-events-filters.test.tsx` | Created | 180 lines, 4 tests RED 4 failed 927ms → GREEN 4 passed 1.06s (Vitest+jsdom+RTL+fireEvent, mock `getServiceEvents`): visible first paint h2 not button no outer `aria-expanded`, inner dropdowns interactive with `aria-expanded`, page 2 stays 2 on Desde/Tipo/Estado while requerying, clear →1, source-level no `showFilters` |
+| `openspec/changes/audit-ui-ux-remediation-closeout/tasks.md` | Modified | Marked 5.1–5.4 [x] (now 17/21); keep WU6 6.1–6.4 `[ ]` |
+| `openspec/changes/audit-ui-ux-remediation-closeout/apply-progress.md` | Modified | This file — WU5 TDD 4/4 + Work Unit Evidence + candidate hash [see above] + 631 total <=800 |
+
+## Deviations from Design — WU5
+None — implementation matches design.md "always-static" row (static h2, no outer disclosure, keep inner dropdowns/chevrons/aria-expanded, keep grid, no setPage on field change, clear →1, wrap/stack, no overflow-x, preserve labels/date min-max, no new fields/query/restyle).
+
+## Issues Found — WU5
+None blocking — all 4 focused + 362 full + tsc0 + check 94 files green; inner dropdowns required `aria-expanded` addition (legitimate inner semantics, not outer); Sede menu duplicate text handled via `Sede A/B` assertions; formatting normalization limited to WU5 files to keep budget.
+
+## Remaining Tasks — WU5 close
+
+- [x] 5.1–5.4 (WU5 Registro filters) — complete
+- [ ] 6.1 Acquire native verification authority against CURRENT post-WU5 successor candidate identity; prove candidate descends from 38640512f... and predecessor stays blocked; do NOT bind final verification to obsolete initial tree
+- [ ] 6.2 Run test:run+tsc+build+check vs PB 0.40.1
+- [ ] 6.3 Auth verify-ui /service-events first-paint visible no OUTER disclosure/chevron/aria-expanded (inner remain) keyboard 1280×800+390×844 light/dark no overflow clear>=44px; /dashboard /locations snapshot --boxes+screenshot+eval; unavailable→blocked never pass
+- [ ] 6.4 Enforce 0700/0600+cleanup; overflow/English→remediation_required; sdd-verify-validate; fix ServicesTable.tsx only if reproduced
+
+## Workload / PR Boundary — WU5
+
+- Mode: auto-chain, stacked-to-main
+- WU5: PR5 — Registro filters always-visible (451 tracked +180 untracked =631 total, honest, <=800, 4 tests) — base 97db402 → h2 always-grid, inner dropdowns, clear 44px, 4/4
+- Boundary WU5: 97db402 → serviceEventsManager.tsx 339 + service-events-filters.test.tsx 180 + tasks 8 + progress ~80; revert 4 files removes WU5 only without touching WU1-4
+- Next: WU6 verify — aggregated build/check/verify-ui vs live PB 0.40.1, 0700/0600, remediation only if reproduced
+
+## Status — WU5 close
+17/21 tasks complete (WU1 1.1–1.3 + WU2 2.1–2.3 + WU3 3.1–3.3 + WU4 4.1–4.4 + WU5 5.1–5.4). WU5 complete — Ready for next batch (WU6 verify). Verified focused 4/4 1.06s + 362/362 3.76s tsc0 check 94 files 207ms 3 warns 2 infos; honest total 631 (274+177 tracked +180 untracked) parent 97db402 token sha256:59b6f385cc70fe14bfdd456b573b5096f36752517ace13b16266372517c41ef9 generation 1; 4 remaining (WU6 4); not all_done; WU6 next.
+
+---
+
+## Result Contract — WU5
+
+- **status**: `success`
+- **executive_summary**: `WU5 registro-filters complete: always-visible /service-events filters — removed only outer showFilters/toggle/ChevronDown/aria-expanded/conditional wrapper, static h2 always-grid, preserved inner Tipo/Estado/Sede dropdown states/buttons/chevrons/menus/inner aria-expanded, clear min-h-11 min-w-11, page 2 stays 2 on filter change while requerying, clear→1, no overflow-x, keyboard/focus/contrast preserved per DESIGN.md, 4/4 RED→GREEN 1.06s + 362/362 3.76s tsc0 check 94 files 207ms, honest 631 total (451+180) <=800 stacked PR5, 17/21, next WU6 verify`
+- **artifacts**:
+  - `app/(app)/service-events/serviceEventsManager.tsx` — WU5 always-visible, static h2, inner dropdowns aria-expanded, clear 44px, 167+172=339 changed
+  - `tests/unit/service-events-filters.test.tsx` — WU5 180 lines, 4 tests RED 4 failed 927ms → GREEN 4 passed 1.06s proves always-visible, no outer disclosure, inner interactive, page preserve/clear
+  - `openspec/changes/audit-ui-ux-remediation-closeout/tasks.md` — 17/21 [x] (WU5 5.1–5.4 now [x], WU6 6.1–6.4 remain [ ])
+  - `openspec/changes/audit-ui-ux-remediation-closeout/apply-progress.md` — this file WU5 evidence TDD 4/4 362/362 live harness + hash [see above]
+  - `docs/CODEBASE-GUIDE.md` — WU1 matrix dev false/50/3/0 staging/prod UNKNOWN + 403 runbook (25 insertions) — preserved
+  - `.github/workflows/pr-check.yml` — WU2 derived 153 lines DEFAULT_LIMIT 800 numeric size, preserves gates, actionlint0 — preserved
+  - `tests/unit/pr-check.test.ts` — WU2 7 lines RED→GREEN — preserved
+  - `pocketbase/v1.collections.json` + `lib/types.ts` + `lib/pocketbase-filter.ts` — WU3 schema preserved
+  - `lib/lifecycle-batch.ts` + `tests/unit/lifecycle-batch.test.ts` + status/transfer routes — WU4 atomic preserved
+- **next_recommended**: `sdd-apply WU6 verify (tasks 6.1–6.4) via sdd-verify + verify-ui vs CURRENT post-WU5 successor candidate`
+- **risks**: `Low: WU5 only removed outer disclosure, inner dropdowns fully preserved, matching/pagination/overflow/a11y green, honest 631 <=800 total, reversible 4 files, staging/prod UNKNOWN still blocks batch unrelated.`
+- **skill_resolution**: `frontend-ui-engineering (always-static panel, reuse tokens, no new visual system, craft-floor contrast/spacing), next-best-practices (client component state, no RSC violation), vercel-react-best-practices (no waterfall, client data via getServiceEvents), vitest (4 tests RTL+fireEvent 1.06s + 362/362 3.76s), work-unit-commits (honest 631/800), sdd-apply Strict TDD (RED→GREEN→REFACTOR)`
+

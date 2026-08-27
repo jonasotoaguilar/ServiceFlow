@@ -56,10 +56,10 @@ Chain strategy: stacked-to-main
 
 ## Phase 5: Registro Filters (WU5)
 
-- [ ] 5.1 RED `tests/unit/service-events-filters.test.tsx` (Vitest+jsdom+RTL+fireEvent mock `getServiceEvents`): controls visible first paint heading is static `h2` not button no outer `aria-expanded` inner dropdowns interactive filter changes preserve current page (e.g. page 2 remains page 2 while requerying) and clear resets to page 1
-- [ ] 5.2 Implement `app/(app)/service-events/serviceEventsManager.tsx`: remove ONLY outer disclosure `showFilters`, outer toggle button, outer heading `ChevronDown`, and outer conditional wrapper `{showFilters &&}`; static `h2` always grid; preserve inner Tipo/Estado/Sede dropdown states, buttons, chevrons, menus, and legitimate inner `aria-expanded` semantics
-- [ ] 5.3 GREEN responsive/a11y: wide row 390px stack/wrap no overflow-x clear >=44px `min-h-11 min-w-11` labels/focus
-- [ ] 5.4 Verify `pnpm vitest run tests/unit/service-events-filters.test.tsx`+`tsc`+`check`; rollback manager+test only
+- [x] 5.1 RED `tests/unit/service-events-filters.test.tsx` (Vitest+jsdom+RTL+fireEvent mock `getServiceEvents`): controls visible first paint heading is static `h2` not button no outer `aria-expanded` inner dropdowns interactive filter changes preserve current page (e.g. page 2 remains page 2 while requerying) and clear resets to page 1
+- [x] 5.2 Implement `app/(app)/service-events/serviceEventsManager.tsx`: remove ONLY outer disclosure `showFilters`, outer toggle button, outer heading `ChevronDown`, and outer conditional wrapper `{showFilters &&}`; static `h2` always grid; preserve inner Tipo/Estado/Sede dropdown states, buttons, chevrons, menus, and legitimate inner `aria-expanded` semantics
+- [x] 5.3 GREEN responsive/a11y: wide row 390px stack/wrap no overflow-x clear >=44px `min-h-11 min-w-11` labels/focus
+- [x] 5.4 Verify `pnpm vitest run tests/unit/service-events-filters.test.tsx`+`tsc`+`check`; rollback manager+test only
 
 ## Phase 6: Verification (WU6)
 
