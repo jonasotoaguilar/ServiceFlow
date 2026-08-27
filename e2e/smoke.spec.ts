@@ -157,7 +157,7 @@ test("smoke: register → location → service → move → history → isolatio
 			.catch(async () => {
 				await page.keyboard.press("Escape");
 			});
-		await page.goto("/locationLogs");
+		await page.goto("/service-events");
 		await expect(page.getByRole("heading", { name: "Historial de Movimientos" })).toBeVisible();
 		const logRow = page.locator("tr").filter({ hasText: invoice }).first();
 		await expect(logRow).toBeVisible({ timeout: 10000 });
@@ -182,7 +182,7 @@ test("smoke: register → location → service → move → history → isolatio
 		await expect(page.getByText("No se encontraron registros"))
 			.toBeVisible({ timeout: 5000 })
 			.catch(async () => {});
-		await page.goto("/locationLogs");
+		await page.goto("/service-events");
 		await expect(page.locator("tr").filter({ hasText: invoice })).toBeHidden({ timeout: 5000 });
 	});
 });

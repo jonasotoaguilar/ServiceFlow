@@ -36,9 +36,9 @@ describe("pocketbase-filter", () => {
     expect(all.filter).not.toContain("isActive");
     expect(active.filter).toContain("isActive = true");
   });
-  it("log from/to and date bounds", async () => {
-    const { logListBinding } = await import("../lib/pocketbase-filter");
-    const r = logListBinding({ userId: "u1", locationId: "l1", startDate: "2024-01-01", endDate: "2024-12-31" });
+  it("service event from/to and date bounds", async () => {
+    const { serviceEventListBinding } = await import("../lib/pocketbase-filter");
+    const r = serviceEventListBinding({ userId: "u1", locationId: "l1", startDate: "2024-01-01", endDate: "2024-12-31" });
     expect(r.filter).toContain("fromLocationId = {:lid} || toLocationId = {:lid}");
     expect(r.filter).toContain("changedAt >=");
     expect(r.params.lid).toBe("l1");

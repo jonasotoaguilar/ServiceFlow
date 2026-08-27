@@ -20,17 +20,22 @@ export interface Service {
 	repairCost?: number;
 	notes?: string;
 	userId: string;
-	locationLogs?: LocationLog[];
+	serviceEvents?: ServiceEvent[];
 }
 
-export interface LocationLog {
+export interface ServiceEvent {
 	id: string;
 	ServiceId: string;
-	fromLocationId: string;
-	toLocationId: string;
+	fromLocationId?: string;
+	toLocationId?: string;
 	changedAt: string; // ISO Date
-	fromLocation?: string; // Nombre opcional
-	toLocation?: string; // Nombre opcional
+	fromLocation?: string;
+	toLocation?: string;
+	userId?: string;
+	kind?: "created" | "location_changed" | "status_changed";
+	fromStatus?: ServiceStatus;
+	toStatus?: ServiceStatus;
+	actorId?: string;
 }
 
 export type NewServicePayload = Omit<Service, "id" | "status"> & {

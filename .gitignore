@@ -32,6 +32,7 @@ tsconfig.tsbuildinfo
 next-env.d.ts
 
 # Coverage & mutation
+.codegraph/
 coverage/
 .reports/
 reports/

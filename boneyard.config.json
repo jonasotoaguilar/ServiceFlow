@@ -1,0 +1,11 @@
+{
+  "breakpoints": [375, 768, 1280],
+  "out": "./bones",
+  "color": "var(--color-skeleton-base)",
+  "shimmerColor": "var(--color-skeleton-shimmer)",
+  "darkColor": "var(--color-skeleton-base)",
+  "darkShimmerColor": "var(--color-skeleton-shimmer)",
+  "animate": "shimmer",
+  "select": "container",
+  "wait": 800
+}

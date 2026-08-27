@@ -41,7 +41,7 @@ export function RegisterForm() {
 	};
 
 	return (
-		<div className="w-full max-w-[450px] glass-card rounded-xl p-8 shadow-2xl animate-fade-in relative z-10 mx-auto">
+		<div className="w-full max-w-[450px] bg-surface border border-border shadow-sm rounded-xl p-8 shadow-2xl animate-fade-in relative z-10 mx-auto">
 			{/* Logo Section */}
 			<div className="flex flex-col items-center mb-8">
 				<div className="bg-primary p-3 rounded-lg mb-4 flex items-center justify-center shadow-lg shadow-primary/20">
@@ -189,8 +189,8 @@ export function RegisterForm() {
 				</button>
 			</form>
 
-			<div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700 text-center">
-				<p className="text-sm text-gray-500 dark:text-gray-400">
+			<div className="mt-8 pt-6 border-t border-border border-border text-center">
+				<p className="text-sm text-foreground-muted">
 					¿Ya tienes cuenta?{" "}
 					<Link
 						href="/login"
