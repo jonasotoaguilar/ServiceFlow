@@ -35,6 +35,31 @@ ServiceFlow is a Next.js 16 App Router app. Every request builds a request-scope
 - Validation: `getAuthUser` `authRefresh` before identity; RSC validates, Action/Route may persist refreshed cookie.
 - Isolation: every list binds `userId = {:uid}`; API rules enforce `userId = @request.auth.id` on all CRUD for `services`/`locations`/`location_logs`; unauthenticated → `401`/redirect.
 
+## PocketBase Batch (0.40.1) — live enablement matrix and 403 runbook
+
+Bounded live inspection via available local/trusted runtime only. No credentials read or exposed. `staging`/`prod` inaccessible — every unobserved value stays UNKNOWN per spec; evidence gap recorded.
+
+### Enablement matrix
+
+| Environment | Dashboard path | batch.enabled | batch.maxRequests | batch.timeout | batch.maxBodySize | Observed (UTC) | Source |
+|---|---|---|---|---|---|---|---|
+| dev | Settings → Application → Batch Web API | false | 50 | 3 | 0 (Default to 128MB) | 2026-08-27 | live superuser GET /api/settings at 127.0.0.1:8090 — PocketBase 0.40.1 |
+| staging | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | inaccessible — no trusted runtime access; evidence gap — not observed |
+| prod | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | inaccessible — no trusted runtime access; evidence gap — not observed |
+
+Field IDs observed: `batch.enabled` (checkbox Enable (experimental)), `batch.maxRequests` (Max requests in a batch), `batch.timeout` (Max processing time in seconds), `batch.maxBodySize` (Max body size in bytes, placeholder Default to 128MB). Admin accordion `batchApiAccordion` (`ri-archive-stack-line` Batch Web API) inside Settings → Application (`pageApplicationSettings`). API: `GET/PATCH /api/settings` with `batch` object; `POST /api/batch` returns `403` `Batch requests are not allowed` when `batch.enabled` is `false`, and `400` when enabled with empty requests.
+
+### Gate — block where UNKNOWN
+
+If any of Dashboard path, `batch.enabled`, `batch.maxRequests`, `batch.timeout`, or `batch.maxBodySize` is UNKNOWN for the target environment, the system MUST NOT send `POST /api/batch`. UNKNOWN enablement MUST NOT send batch — treat as unavailable. No `pb.createBatch().send()` until that environment row is documented after live inspection. UNKNOWN rows blocked where undocumented — never send batch.
+
+### 403 Runbook (operator)
+
+- Symptom: `POST /api/batch` → `403` `Batch requests are not allowed`.
+- Cause: batch not enabled/configured on that PocketBase 0.40.1 deployment (`batch.enabled` is `false`).
+- Operator action: Enable via Dashboard at Settings → Application → Batch Web API: check Enable (experimental), confirm `Max requests in a batch`, `Max processing time`, `Max body size`, Save. Re-inspect via `GET /api/settings` as superuser; verify `batch.enabled` is `true` before retry. No credentials in code or logs.
+- System behavior on 403: operator-facing failure `BATCH_UNAVAILABLE` with runbook link. The system MUST NOT retry on 403 and MUST NOT fall back to sequential writes. The system MUST NOT retry and MUST NOT sequential — never send `services` update then `service_events` create as fallback; no silent sequential fallback.
+
 ## What is NOT current
 
 - No in-repo PocketBase provisioning; the PocketBase artifact `pocketbase/v1.collections.json` is applied out of band.
