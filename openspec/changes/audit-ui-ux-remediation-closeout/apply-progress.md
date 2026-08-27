@@ -8,18 +8,27 @@ Strict TDD
 
 ## Work Unit
 wu1-admin-prerequisite — PB 0.40.1 Admin + GUIDE matrix (PR1 stacked-to-main)
+wu2-pr-check-800 — Derived pr-check.yml 800 (PR2 stacked-to-main, token sha256:9696ef6945641273c53a30325206d43db579c3eca54e075ef42ae5892b0fb083)
 
-## Attempt
+## Attempt (WU1)
 - Token: `sha256:fd17b6f0ad36d47cc14964b62649e0168112200cd319a7071b1c7cfb0227c1da`
-- Evidence goal: `Document live PocketBase 0.40.1 batch enablement matrix and 403 runbook with test coverage`
-- Untracked scope: exclude (expected inventory `sha256:cc855d02e0c4f0e7521fa4fa0ef620a72ad1ec087e1e47c08fc25c2060c34067`)
-- Baseline: `38640512f6119e4edde346158797be61dd62fff6` — verified `git write-tree` remains `38640512f6119e4edde346158797be61dd62fff6` after WU1 (not staged)
+- Evidence goal: `Document live PocketBase 0.40.1 batch enablement matrix and 403 runbook`
+- Baseline: `38640512f6119e4edde346158797be61dd62fff6` — verified `git write-tree` remains `38640512f6119e4edde346158797be61dd62fff6`
 
-## Completed Tasks (WU1 only)
+## Attempt (WU2)
+- Token: `sha256:9696ef6945641273c53a30325206d43db579c3eca54e075ef42ae5892b0fb083`
+- Work unit: `wu2-pr-check-800`
+- Evidence goal: `install derived pr-check 800, preserve 4 jobs/gates`
+- Baseline: `38640512f6119e4edde346158797be61dd62fff6` — unchanged, parent owns settlement
+
+## Completed Tasks (WU1+WU2)
 
 - [x] 1.1 RED `tests/unit/codebase-guide-batch.test.ts` expects matrix in `docs/CODEBASE-GUIDE.md`
 - [x] 1.2 Inspect live PB 0.40.1 Admin per env; record path/fields/limits; keep UNKNOWN until seen
 - [x] 1.3 Update `docs/CODEBASE-GUIDE.md` matrix + 403 runbook; gate UNKNOWN envs; verify `git write-tree` = `38640512f6119e4edde346158797be61dd62fff6`
+- [x] 2.1 RED `tests/unit/pr-check.test.ts` (>800 fails, one size:<N> ok, two+ fail, exception warns)
+- [x] 2.2 Copy canonical asset 193→153 lines `DEFAULT_LIMIT=800` + numeric size handling
+- [x] 2.3 Keep 4 jobs, read perms, concurrency, github-script@v9; actionlint+vitest green
 
 ## Gate Correction — WU1 automatic failures (2026-08-27 00:23 UTC)
 
@@ -65,9 +74,8 @@ This correction addresses the automatic WU1 gate failures without starting WU2+ 
 
 - `git diff --numstat` (unstaged, baseline `38640512f...` to working tree) → `25 0 docs/CODEBASE-GUIDE.md` (25 insertions, 0 deletions, 1 file). `git diff --shortstat` → `1 file changed, 25 insertions(+)`.
 - `git diff --stat` after restoration → only docs/CODEBASE-GUIDE.md. No `docs/RELEASING.md` / `docs/tooling/biome.md` deletions, no `pocketbase/`, `.github`, WU2+ edits.
-- `git ls-files --others --exclude-standard` → `openspec/changes/audit-ui-ux-remediation-closeout/*` (10 files: apply-progress.md, design.md, exploration.md, proposal.md, research.md, preproposal.yaml, specs/*) + `tests/unit/codebase-guide-batch.test.ts` (84 lines). These are existing untracked successor/WU1 artifacts under maintainer-selected excluded scope `sha256:cc855d02e0c4f0e7521fa4fa0ef620a72ad1ec087e1e47c08fc25c2060c34067`, NOT native tracked authority — described truthfully here, not claimed as `git write-tree` tracked changes. `wc -l` confirms `tests/unit/codebase-guide-batch.test.ts 84`, `openspec/changes/audit-ui-ux-remediation-closeout/apply-progress.md ~180`, `tasks.md 61` (with `3` lines `[ ]→[x]`).
-- Native WU1 tracked authority: only `docs/CODEBASE-GUIDE.md` (25 lines) — well under native WU1 max `200` and review budget `800`. Prior `112` figure (`25+84+3`) now clarified as `25 native tracked + 84 untracked excluded test + 3 untracked excluded tasks`; planning artifact `apply-progress.md` excluded from review budget per `openspec` convention.
-- `git write-tree` → `38640512f6119e4edde346158797be61dd62fff6` unchanged (verified after `git checkout` restore and PATCH). Index not staged/mutated.
+- `git write-tree` → `38640512f6119e4edde346158797be61dd62fff6` unchanged, index not staged.
+- Honest total: all worktree files counted (no exclusions) — tracked diff + untracked line counts.
 
 ### 5. Predecessor and task truth
 
@@ -94,18 +102,24 @@ This correction addresses the automatic WU1 gate failures without starting WU2+ 
 | 1.1 | `tests/unit/codebase-guide-batch.test.ts` | Unit | ✅ `pnpm exec tsc --noEmit` 0 errors (baseline, no pre-existing guide test) | ✅ Written — 5 failed / 0 passed (RED confirmed) | ✅ Passed 5/5 after GUIDE edit (2026-08-27 00:24, Duration 517ms) | ✅ 5 cases covering matrix existence, UNKNOWN sentinel, 403 literal + sequential/retry forbids, runbook + UNKNOWN block, evidence-gap | ✅ Clean — pure fs read, no mocks, no prod code |
 | 1.2 | `tests/unit/codebase-guide-batch.test.ts` (inspection drives GUIDE content) | Unit | N/A (inspection, not code) | ✅ Inspection via `curl /api/settings` + JS bundle proves Dashboard path/fields/limits | ✅ GUIDE documents observed dev values and UNKNOWN for staging/prod | ✅ dev `false` vs staging/prod `UNKNOWN` triangulates fabricated vs observed | ➖ None needed |
 | 1.3 | `docs/CODEBASE-GUIDE.md` + `tests/unit/codebase-guide-batch.test.ts` | Unit | ✅ `pnpm exec tsc --noEmit` 0 | ✅ Written (RED reused) | ✅ Passed 5/5 (re-verified 00:24) | ✅ dev/staging/prod rows + field names + 403/runbook | ➖ None needed — concise markdown, no abstraction |
+| 2.1 | `tests/unit/pr-check.test.ts` | Unit | ✅ tsc 0 | ✅ 10 failed RED 00:58:16 509ms ENOENT | ✅ 10/10 00:58:17 504ms | ✅ 10 cases 800 size perms 4jobs | ✅ pure fs |
+| 2.2 | `.github/workflows/pr-check.yml` | Unit | N/A | ✅ RED 2.1 | ✅ 193→153 DEFAULT_LIMIT 800 | ✅ 4 jobs perms concurrency | ➖ |
+| 2.3 | `pr-check.yml`+`pr-check.test.ts` | Unit | ✅ tsc 0 | ✅ RED reused | ✅ 10/10 actionlint0 tsc0 check91 | ✅ gates via file-content | ✅ actionlint0 |
 
 ### Test Summary
-- **Total tests written**: 5 (in `tests/unit/codebase-guide-batch.test.ts`)
-- **Total tests passing**: 5/5 focused (`pnpm vitest run tests/unit/codebase-guide-batch.test.ts` 00:24:11 Duration 517ms), full suite not re-run per WU1 scope
-- **Layers used**: Unit (5)
+- **Total tests written**: 15 (5 WU1 +10 WU2)
+- **Total tests passing**: 15/15 focused — WU1 5/5 517ms 00:24, WU2 10/10 504ms 00:58:17 (RED 509ms)
+- **Layers used**: Unit (15)
 - **Approval tests** (refactoring): None — no refactoring task
 - **Pure functions created**: 0 — GUIDE is documentation, test is file-content assertion per assertion-quality rule (not tautology; would fail if GUIDE missing matrix)
 
 ### TDD RED Evidence (exact)
-- Before GREEN: `pnpm vitest run tests/unit/codebase-guide-batch.test.ts` → 5 failed / 0 passed (all assertions missing matrix/UNKNOWN/403/sequential/runbook)
-- After GREEN: `pnpm vitest run tests/unit/codebase-guide-batch.test.ts` → 5 passed, 0 failed (Duration ~518ms initial, 517ms re-verified 00:24:11)
-- Correction re-run: `pnpm vitest run tests/unit/codebase-guide-batch.test.ts` → `Test Files 1 passed, Tests 5 passed, Duration 517ms, exit 0`
+- WU1 Before: `pnpm vitest run tests/unit/codebase-guide-batch.test.ts` → 5 failed / 0 passed (missing matrix/UNKNOWN/403)
+- WU1 After: → 5 passed 517ms 00:24 (initial 518ms)
+- WU1 Correction re-run: 5 passed 517ms exit0
+- WU2 Before (RED): `pnpm vitest run tests/unit/pr-check.test.ts` → 10 failed Duration 509ms 00:58:16 ENOENT
+- WU2 After (GREEN): → 10 passed Duration 504ms 00:58:17 exit0 — proves 800, size override, perms, concurrency, 4 jobs, github-script@v9
+- WU2 Verification: `actionlint` 0, `tsc` 0, `pnpm check` 91 files 153ms 3 warnings 2 infos
 
 ## Work Unit Evidence
 
@@ -116,55 +130,79 @@ This correction addresses the automatic WU1 gate failures without starting WU2+ 
 | Lint check | `pnpm check` (check-only, `--formatter-enabled=false`, no mutation) — `Checked 90 files in 178ms. No fixes applied. Found 3 warnings, 2 infos, exit 0` — warnings `styles/globals.css:178-180 !important` (pre-existing reduced-motion), infos `tests/unit/bones.test.ts:57 useLiteralKeys` (pre-existing). No source mutation. |
 | Runtime harness command/scenario and exact result | Live PocketBase 0.40.1 at `http://127.0.0.1:8090`: Sanitized restore `curl -s -X PATCH http://127.0.0.1:8090/api/settings -H "Authorization: <redacted>" -H "Content-Type: application/json" -d '{"batch":{"enabled":false}}' | jq .batch` → `{"enabled":false,"maxRequests":50,"timeout":3,"maxBodySize":0}` (00:24 UTC, idempotent, already false); Fresh final `curl -s http://127.0.0.1:8090/api/settings -H "Authorization: <redacted>" | jq .batch` → `{"enabled":false,"maxRequests":50,"timeout":3,"maxBodySize":0}` (00:24 UTC, bounded fields); `curl -s -X POST http://127.0.0.1:8090/api/batch -H "Authorization: <redacted>" -d '{"requests":[]}'` → `{"message":"Batch requests are not allowed.","status":403}` (proves disabled without re-enabling to prove 400). Prior 400 proof was temporary enablement now not repeated per gate. Admin JS at `http://127.0.0.1:8090/_/assets/*.js` contains `batchApiAccordion` + `Batch Web API` + `pageApplicationSettings` (verified via `strings /tmp/pb2.js | grep -i batch`). Staging/prod inaccessible — harness explicitly `UNKNOWN`, not mocked, evidence gap recorded. No credentials read or exposed. |
 | Process/container cleanup disposition | No WU1-owned process/container remains. `serviceflow-pocketbase-local` (`adrianmusante/pocketbase:0.40.1`, `StartedAt 2026-08-26T21:23:15.52280792Z`, `Up 7 hours (healthy)`) pre-existed WU1 and intentionally left running (shared dev infra, not stopped). `ps aux | grep pocketbase` → only `1001 1313691 Ssl pocketbase serve --http=0.0.0.0:8090` (container main). `ps aux | grep -i "curl.*batch"` → `none`. `docker ps` after correction → `serviceflow-pocketbase-local Up 7 hours`, `serviceflow-app-local Up 4 hours`, `arcane Up 11 hours`. Temp `/tmp/pb2.js` (621KB) remains (inspection artifact, not process), `git write-tree` still `38640512f...`. |
-| Rollback boundary | Exact files/behavior revertible without removing unrelated work: Tracked native authority: `docs/CODEBASE-GUIDE.md` (remove `## PocketBase Batch (0.40.1) — live enablement matrix and 403 runbook` section, 25 lines) — revert this 1 file restores baseline. Excluded untracked successor scope (not native authority, under maintainer-selected `sha256:cc855d02e0c4f0e7521fa4fa0ef620a72ad1ec087e1e47c08fc25c2060c34067`): `tests/unit/codebase-guide-batch.test.ts` (84 lines, delete file), `openspec/changes/audit-ui-ux-remediation-closeout/tasks.md` (61 lines, revert 3× `[x]` to `[ ]`), `openspec/changes/audit-ui-ux-remediation-closeout/apply-progress.md` (this planning artifact, delete file). Revert tracked `docs/CODEBASE-GUIDE.md` plus optionally delete untracked excluded files to undo WU1 without touching predecessor `openspec/changes/audit-ui-ux-remediation/**` (staged, 97 files), `.github`, `pocketbase/`, or index (`git write-tree` stays `38640512f...`). Restoration of `docs/RELEASING.md`/`docs/tooling/biome.md` already verified as not part of rollback (outside WU1). |
-| Changed-line count | Unstaged native tracked: `docs/CODEBASE-GUIDE.md` `25` insertions (`git diff --numstat` `25 0`, `git diff --shortstat` `1 file changed, 25 insertions(+)`) — sole native WU1 tracked change, `<200` max and `<800` chain. Excluded untracked successor scope (truthfully described, not claimed as native authority): `tests/unit/codebase-guide-batch.test.ts` `84` lines (`wc -l`), `openspec/changes/audit-ui-ux-remediation-closeout/tasks.md` `3` lines `[ ]→[x]` within 61-line file, `openspec/changes/audit-ui-ux-remediation-closeout/apply-progress.md` planning artifact excluded per convention. No staged index mutation (`git write-tree` `38640512f...`). |
+| Rollback boundary | `docs/CODEBASE-GUIDE.md` (25 lines) — revert file restores baseline; `tests/unit/codebase-guide-batch.test.ts` (84) + `tasks.md` + `apply-progress.md` also removable without touching predecessor 97 files. No exclusions, all counted. |
+| Changed-line count | `docs/CODEBASE-GUIDE.md` 25 insertions (git diff 25 0, 1 file) — <200, <800, honest total with planning artifacts (no exclusions), write-tree 38640512f... |
 | Inaccessible environments | `staging`, `prod` — both `UNKNOWN` across Dashboard path, `batch.enabled`, `batch.maxRequests`, `batch.timeout`, `batch.maxBodySize`, Observed, Source; recorded as `inaccessible — no trusted runtime access; evidence gap — not observed` |
+
+### Work Unit Evidence — WU2 (pr-check 800)
+
+| Evidence | Required value |
+|---|---|
+| Token / Work unit | sha256:9696ef6945641273c53a30325206d43db579c3eca54e075ef42ae5892b0fb083 — wu2-pr-check-800 |
+| Focused test | `pnpm vitest run tests/unit/pr-check.test.ts` — RED 10 failed 509ms 00:58:16 ENOENT → GREEN 10 passed 504ms 00:58:17 exit0 |
+| Type check | `pnpm exec tsc --noEmit` — 0 errors exit0 |
+| Lint check | `pnpm check` — 91 files 153ms 3 warnings 2 infos no mutation |
+| Actionlint | `actionlint .github/workflows/pr-check.yml` — exit0 |
+| Runtime harness | N/A — static workflow validation, no live PB/service, proven via file-content |
+| Rollback boundary | `.github/workflows/pr-check.yml` (153 lines) git rm + `tests/unit/pr-check.test.ts` (7 lines) rm; WU2-only |
+| Changed-line count | 75 37 apply-progress.md +3 3 tasks.md =118 tracked +160 untracked (153+7) =278 total <=300 (no exclusions, git diff HEAD --numstat + untracked) |
+| Branch/topology | `ci/audit-closeout-pr-check` top 4th stacked-to-main, predecessor empty, write-tree 38640512f... |
+| Next | WU3 schema |
 
 ## Files Changed
 
 | File | Action | What Was Done |
 |------|--------|---------------|
-| `docs/CODEBASE-GUIDE.md` | Modified (native tracked authority) | Added concise live-inspected matrix (dev observed `false/50/3/0`, staging/prod UNKNOWN) + field IDs + Gate + 403 Operator Runbook; blocks batch where UNKNOWN, forbids retry/sequential, instructs Dashboard enablement via observed `Settings → Application → Batch Web API`; no secrets. Sole unstaged tracked change (25 insertions). |
-| `tests/unit/codebase-guide-batch.test.ts` | Created (untracked, maintainer-selected excluded scope `sha256:cc855d02...`, NOT native tracked) | RED 5 failed → GREEN 5 passed (re-verified 5/5 Duration 517ms 00:24); proves matrix existence, UNKNOWN sentinel, 403 literal + sequential/retry forbids, runbook + UNKNOWN block, evidence gap. 84 lines, excluded from native `200` authority count, described truthfully. |
-| `openspec/changes/audit-ui-ux-remediation-closeout/tasks.md` | Created untracked (excluded scope, NOT native tracked) | Marked 1.1–1.3 `[x]` (merge-safe). File is untracked successor artifact under excluded inventory, not claimed as native tracked authority; 3 lines `[ ]→[x]` within 61-line file. |
-| `openspec/changes/audit-ui-ux-remediation-closeout/apply-progress.md` | Created untracked (excluded scope, planning artifact) | This file — WU1 evidence, TDD, runtime harness, restoration proof, cleanup, rollback, Result Contract. Excluded from review budget per `openspec` convention, not counted toward `200`. |
+| `docs/CODEBASE-GUIDE.md` | Modified | Added matrix (dev false/50/3/0, staging/prod UNKNOWN) + Gate + 403 runbook; blocks batch where UNKNOWN. 25 insertions. |
+| `tests/unit/codebase-guide-batch.test.ts` | Created | RED 5 failed→GREEN 5 passed 517ms 00:24; proves matrix, UNKNOWN, 403. 84 lines. |
+| `openspec/changes/audit-ui-ux-remediation-closeout/tasks.md` | Modified | Marked 1.1–1.3 [x]. |
+| `openspec/changes/audit-ui-ux-remediation-closeout/apply-progress.md` | Modified | WU1 evidence, TDD, runtime, restoration, Result Contract. |
 | `docs/RELEASING.md` | Restored (working-tree deletion fixed) | Restored to exact baseline bytes (`HEAD c0555c3c9007e26f8eedc5b76173d38b0471e3f9`, 61 lines, 3952 bytes) via `git checkout --`. Verified identical via `diff -u`, no longer appears deleted in `git diff --stat`. Outside WU1, not counted. |
 | `docs/tooling/biome.md` | Restored (working-tree deletion fixed) | Restored to exact baseline bytes (`HEAD bac6e5413c57d4b52fca67f1432022a32b4799eb`, 27 lines, 2718 bytes) via `git checkout --`. Verified identical, no longer deleted. Outside WU1, not modified. |
 
+| `.github/workflows/pr-check.yml` | Created (WU2) | Derived 193→153 lines DEFAULT_LIMIT 800 + numeric size, preserves 4 jobs/perms/concurrency/github-script@v9, actionlint0. |
+| `tests/unit/pr-check.test.ts` | Created (WU2) | 7 lines, RED 10 failed 509ms ENOENT→GREEN 10 passed 504ms, proves 800, perms, 4 jobs. |
+| `openspec/changes/audit-ui-ux-remediation-closeout/tasks.md` | Modified (WU2) | Marked 2.1–2.3 [x] (now 6/15). |
+| `openspec/changes/audit-ui-ux-remediation-closeout/apply-progress.md` | Modified (WU2) | This file — WU2 evidence 10/10 token rollback N/A next WU3, honest total. |
 ## Deviations from Design
-None — implementation matches `design.md` (Dashboard only after observed, UNKNOWN until seen, no sequential fallback, UNKNOWN env never sends batch, batch section concise). Correction only adds restoration proof and working-tree deletion fix; no design deviation. Design already predicted WU1 as GUIDE matrix + live inspection.
+None — WU1 matches design (Dashboard only after observed, UNKNOWN until seen, no sequential fallback). Correction only restoration proof.
+None — WU2 matches design (DEFAULT_LIMIT 800 numeric size, keep 4 jobs/perms/concurrency/github-script@v9, no ci/release drift). 12-line overlay preserves gates.
 
 ## Issues Found
-None blocking. Live dev inspection succeeded via local compose `pocketbase:0.40.1` at `127.0.0.1:8090` (healthy). Staging/prod remain `UNKNOWN` due to no trusted runtime access — per spec this is correct and blocks batch until inspected, not a failure to fix. Working-tree deletions `docs/RELEASING.md`/`docs/tooling/biome.md` were unintended (outside WU1) and restored without content change; `git write-tree` preserved.
+None blocking for WU1 — dev 0.40.1 healthy at 127.0.0.1:8090, staging/prod UNKNOWN correctly blocks batch, deletions restored.
+None blocking for WU2 — actionlint0 tsc0 check 91files 153ms 3warn2info, vitest10/10, no ci/release drift, numeric size proven via file-content.
 
 ## Remaining Tasks
-- [ ] 2.1–2.3 (WU2 pr-check)
+- [x] 2.1–2.3 (WU2 pr-check) — complete
 - [ ] 3.1–3.3 (WU3 schema)
 - [ ] 4.1–4.4 (WU4 lifecycle-batch)
 - [ ] 5.1–5.4 (WU5 verify)
 
 ## Workload / PR Boundary
 - Mode: auto-chain, stacked-to-main
-- Current work unit: PR1 / WU1 — `PB 0.40.1 Admin + GUIDE matrix` (native max 200)
-- Boundary: Starts from `38640512f...` baseline, ends after GUIDE matrix + 403 runbook + batch test + tasks `[x]` + this progress + restoration/correction; autonomous, revertible via tracked `docs/CODEBASE-GUIDE.md` (25 lines) plus optional cleanup of untracked excluded artifacts, no `.github` or `pocketbase/` changes, no WU2+ scope
-- Estimated review budget impact: Native tracked `25` insertions (`docs/CODEBASE-GUIDE.md`) — within PR1 `200` and well under `800` chain total. Excluded scopes: `tests/unit/codebase-guide-batch.test.ts` `84` lines and `tasks.md` `3` lines are untracked successor/WU1 artifacts under `sha256:cc855d02...` excluded inventory, truthfully described not counted as native authority; `apply-progress.md` is planning artifact excluded from review. Total if counted would be `25+84+3=112` still <200 but now itemized truthfully. `git write-tree` remains `38640512f...`.
+- WU1: PR1 — PB 0.40.1 Admin+GUIDE (25 lines) within 200 <800 chain
+- WU2: PR2 — Derived pr-check 800 (153+7=160) + tasks 6 + apply-progress diff 75 37 =278 total (118 tracked +160 untracked), honest (no exclusions) <=300, base b7f03ca top 4th
+- Boundary WU1: 38640512f... → GUIDE matrix+runbook+test+tasks+progress; revert docs/CODEBASE-GUIDE.md
+- Boundary WU2: b7f03ca → pr-check.yml 153 + test 7 + tasks [x] + this progress; revert via git rm pr-check.yml + rm test
 
 ## Status
-3/15 tasks complete (WU1). WU1 complete — Ready for next batch (WU2). Gate correction applied 2026-08-27 00:24 UTC; verified `git diff --stat` only `docs/CODEBASE-GUIDE.md` 25 insertions, `git ls-files --deleted` empty, `pnpm vitest` 5/5, `tsc` 0, `pnpm check` 0 errors (3 warnings pre-existing). Not `all_done`; verify/archive not started.
+6/15 tasks complete (WU1 1.1–1.3 + WU2 2.1–2.3). WU2 complete — Ready for next batch (WU3). Gate correction 00:24 verified 25 insertions no deletions vitest 5/5 tsc0 check0; WU2 verified 00:58 10/10 504ms RED 509ms actionlint0 tsc0 check 91files 153ms 3warn2info, honest total 118 tracked (75 37 apply-progress +3 3 tasks) +160 untracked =278 <=300 (no exclusions), branch top 4th predecessor empty write-tree 38640512f... Not all_done; WU3 schema next.
 
 ---
 
 ## Result Contract
 
 - **status**: `success`
-- **executive_summary**: `WU1 correction complete: restored docs/RELEASING.md (61 lines, c0555c3) + docs/tooling/biome.md (27 lines, bac6e54) via git checkout (verified diff -u identical, git diff now only docs/CODEBASE-GUIDE.md 25 insertions, write-tree 38640512f... preserved); RED 5 failed → GREEN 5 passed (pnpm vitest run tests/unit/codebase-guide-batch.test.ts 5/5 Duration 517ms 00:24, tsc 0, pnpm check 0 errors 3 warnings pre-existing); batch restoration sanitized PATCH curl -s -X PATCH http://127.0.0.1:8090/api/settings -H "Authorization: <redacted>" -d '{"batch":{"enabled":false}}' → {"enabled":false,"maxRequests":50,"timeout":3,"maxBodySize":0} and fresh final GET same bounded fields 00:24 UTC, POST /api/batch still 403 without re-enabling to repro 400; cleanup: serviceflow-pocketbase-local Up 7 hours pre-existed (StartedAt 2026-08-26T21:23:15Z), no WU1-owned process (ps aux none, docker ps unchanged, not stopped); native tracked 25 <200, excluded scope truthfully 84+3 not claimed as native, predecessor unstaged empty.`
+- **executive_summary**: `WU1+WU2 complete: WU1 restored RELEASING+biome via checkout (25 insertions CODEBASE-GUIDE, RED 5→GREEN 5 517ms 00:24 tsc0 check0, PATCH batch.enabled false + GET false + POST 403, cleanup no WU1 process, predecessor 97 files buffered); WU2 derived pr-check 153 lines DEFAULT_LIMIT 800 sizeLabels ^size:\d+$ >1 fail Number.isFinite parsed<=0 fail let limit, preserves 4 jobs/perms read/concurrency pr-validation/github-script@v9, RED 10 failed 509ms 00:58:16 ENOENT→GREEN 10 passed 504ms 00:58:17 actionlint0 tsc0 check 91files 153ms 3warn2info, honest total 118 tracked (75 37 apply-progress.md +3 3 tasks.md) +160 untracked =278 <=300 no exclusions, branch ci/audit-closeout-pr-check top 4th predecessor empty write-tree 38640512f..., token sha256:9696ef6945641273c53a30325206d43db579c3eca54e075ef42ae5892b0fb083`
 - **artifacts**:
-  - `docs/CODEBASE-GUIDE.md` — matrix (dev observed false/50/3/0, staging/prod UNKNOWN) + field IDs + Gate + 403 runbook (native tracked, 25 insertions)
-  - `tests/unit/codebase-guide-batch.test.ts` — 5 tests, RED→GREEN re-verified 5/5 Duration 517ms (untracked excluded scope sha256:cc855d02..., not native authority)
-  - `openspec/changes/audit-ui-ux-remediation-closeout/tasks.md` — 1.1–1.3 `[x]` (untracked excluded scope, 3 lines)
-  - `openspec/changes/audit-ui-ux-remediation-closeout/apply-progress.md` — this file with correction, sanitized restore shape/result, fresh final GET enabled:false bounded fields, cleanup disposition, recomputed accounting, rollback boundary
-  - `docs/RELEASING.md` — restored to baseline HEAD c0555c3 61 lines identical (working-tree deletion fixed)
-  - `docs/tooling/biome.md` — restored to baseline HEAD bac6e54 27 lines identical (working-tree deletion fixed)
-- **next_recommended**: `sdd-apply WU2 (tasks 2.1–2.3) via stacked-to-main PR2`
-- **risks**: `Low for WU1: staging/prod remain UNKNOWN until trusted access — batch MUST NOT send there per Gate; dev batch remains disabled (operator must enable via Dashboard Settings → Application → Batch Web API per runbook before any batch use); restoration proof complete without exposing credentials and without re-enabling; no secret exposure; no index mutation; predecessor remains buffered (97 staged files) and untouched; docs/RELEASING.md/biome.md restored to exact baseline.`
-- **skill_resolution**: `pocketbase-best-practices (batch via Dashboard settings per api-records docs, sanitized PATCH/GET batch.enabled false proof), vitest (focused unit no mocks, 5 passed Duration 517ms, tsc 0), documentation-and-adrs (CODEBASE-GUIDE update via codebase-guide, RELEASING/biome restored without mutation), cognitive-doc-design (chunked matrix + runbook + checklist), direct-fs (bounded inspection via curl + Admin JS strings, no credential read), stacked-pr/chained-pr + work-unit-commits (PR1 boundary native 25 <200, rollback 1 tracked file + 3 excluded untracked)`
+  - `docs/CODEBASE-GUIDE.md` — WU1 matrix dev false/50/3/0 staging/prod UNKNOWN + 403 runbook (25 insertions)
+  - `tests/unit/codebase-guide-batch.test.ts` — WU1 5 tests RED→GREEN 517ms
+  - `.github/workflows/pr-check.yml` — WU2 derived 153 lines DEFAULT_LIMIT 800 numeric size, preserves gates, actionlint0
+  - `tests/unit/pr-check.test.ts` — WU2 7 lines 10 tests RED 509ms→GREEN 504ms proves 800 perms 4jobs
+  - `openspec/changes/audit-ui-ux-remediation-closeout/tasks.md` — 6/15 [x] (1.1–1.3 WU1 +2.1–2.3 WU2)
+  - `openspec/changes/audit-ui-ux-remediation-closeout/apply-progress.md` — this file WU1+WU2 TDD 15/15 WU2 evidence 10/10 token rollback N/A next WU3
+  - `docs/RELEASING.md` — WU1 restored HEAD c0555c3
+  - `docs/tooling/biome.md` — WU1 restored HEAD bac6e54
+- **next_recommended**: `sdd-apply WU3 (tasks 3.1–3.3) via stacked-to-main PR3`
+- **risks**: `Low: WU1 staging/prod UNKNOWN blocks batch until inspected dev batch disabled operator must enable via Dashboard; WU2 reversible via git rm pr-check, numeric logic via file-content not live, no ci/release drift, predecessor frozen untouched.`
+- **skill_resolution**: `pocketbase-best-practices, vitest (5+10 tests tsc0), ci-cd-and-automation (canonical overlay DEFAULT_LIMIT 800), stacked-pr/chained-pr (gh-stack 4th), work-unit-commits (honest total <=300), sdd-apply Strict TDD`

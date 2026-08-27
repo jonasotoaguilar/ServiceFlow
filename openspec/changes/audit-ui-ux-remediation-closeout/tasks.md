@@ -36,9 +36,9 @@ Chain strategy: stacked-to-main
 
 ## Phase 2: Derived PR Gate 800 (WU2)
 
-- [ ] 2.1 RED `tests/unit/pr-check.test.ts` (>800 fails, one `size:<N>` ok, two+ fail, exception warns)
-- [ ] 2.2 Copy `assets/workflows/pr-check.yml` (`limit=400`) to `.github/workflows/pr-check.yml`; set `DEFAULT_LIMIT=800` if 400
-- [ ] 2.3 Keep 4 jobs, `read` perms, concurrency, `github-script@v9`; `actionlint` + vitest green
+- [x] 2.1 RED `tests/unit/pr-check.test.ts` (>800 fails, one `size:<N>` ok, two+ fail, exception warns)
+- [x] 2.2 Copy `assets/workflows/pr-check.yml` (`limit=400`) to `.github/workflows/pr-check.yml`; set `DEFAULT_LIMIT=800` if 400
+- [x] 2.3 Keep 4 jobs, `read` perms, concurrency, `github-script@v9`; `actionlint` + vitest green
 
 ## Phase 3: Additive Schema (WU3)
 
