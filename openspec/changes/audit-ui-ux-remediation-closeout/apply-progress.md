@@ -9,6 +9,7 @@ Strict TDD
 ## Work Unit
 wu1-admin-prerequisite — PB 0.40.1 Admin + GUIDE matrix (PR1 stacked-to-main)
 wu2-pr-check-800 — Derived pr-check.yml 800 (PR2 stacked-to-main, token sha256:9696ef6945641273c53a30325206d43db579c3eca54e075ef42ae5892b0fb083)
+wu3-schema — service_events operationKey/lifecycleSeq + indexes + filter (PR3 stacked-to-main, token sha256:03512c91a515678d53e4b8eab3b54253769b7811688e7fd0fdcd7bece17c7d46, parent c30db62795296c451a98f898b5b1005af4d593db)
 
 ## Attempt (WU1)
 - Token: `sha256:fd17b6f0ad36d47cc14964b62649e0168112200cd319a7071b1c7cfb0227c1da`
@@ -21,6 +22,10 @@ wu2-pr-check-800 — Derived pr-check.yml 800 (PR2 stacked-to-main, token sha256
 - Evidence goal: `install derived pr-check 800, preserve 4 jobs/gates`
 - Baseline: `38640512f6119e4edde346158797be61dd62fff6` — unchanged, parent owns settlement
 
+## Attempt (WU3)
+- Token: `sha256:03512c91a515678d53e4b8eab3b54253769b7811688e7fd0fdcd7bece17c7d46` parent c30db62795296c451a98f898b5b1005af4d593db
+- Work unit: `wu3-schema` Baseline `38640512f6119e4edde346158797be61dd62fff6`
+
 ## Completed Tasks (WU1+WU2)
 
 - [x] 1.1 RED `tests/unit/codebase-guide-batch.test.ts` expects matrix in `docs/CODEBASE-GUIDE.md`
@@ -29,6 +34,7 @@ wu2-pr-check-800 — Derived pr-check.yml 800 (PR2 stacked-to-main, token sha256
 - [x] 2.1 RED `tests/unit/pr-check.test.ts` (>800 fails, one size:<N> ok, two+ fail, exception warns)
 - [x] 2.2 Copy canonical asset 193→153 lines `DEFAULT_LIMIT=800` + numeric size handling
 - [x] 2.3 Keep 4 jobs, read perms, concurrency, github-script@v9; actionlint+vitest green
+- [x] 3.1-3.3 RED 8 failed + additive 2 UNIQUE + types/filter tsc0 353/353
 
 ## Gate Correction — WU1 automatic failures (2026-08-27 00:23 UTC)
 
@@ -105,6 +111,9 @@ This correction addresses the automatic WU1 gate failures without starting WU2+ 
 | 2.1 | `tests/unit/pr-check.test.ts` | Unit | ✅ tsc 0 | ✅ 10 failed RED 00:58:16 509ms ENOENT | ✅ 10/10 00:58:17 504ms | ✅ 10 cases 800 size perms 4jobs | ✅ pure fs |
 | 2.2 | `.github/workflows/pr-check.yml` | Unit | N/A | ✅ RED 2.1 | ✅ 193→153 DEFAULT_LIMIT 800 | ✅ 4 jobs perms concurrency | ➖ |
 | 2.3 | `pr-check.yml`+`pr-check.test.ts` | Unit | ✅ tsc 0 | ✅ RED reused | ✅ 10/10 actionlint0 tsc0 check91 | ✅ gates via file-content | ✅ actionlint0 |
+| 3.1 | `tests/schema-artifact.test.ts` | Unit | ✅ 15/15 | ✅ 5 failed RED 02:32 | ✅ 12/12 530ms | ✅ fields/indexes | ✅ Clean |
+| 3.2 | `pocketbase/v1.collections.json` | Unit | N/A | ✅ RED via 3.1 | ✅ 2 UNIQUE ids preserved | ✅ indexes | ➖ |
+| 3.3 | `lib/types.ts`+`lib/pocketbase-filter.ts` | Unit | ✅ 15/15 | ✅ 3 failed `is not a function` | ✅ 9/9+21/21 | ✅ placeholder/triangulate | ✅ Pure |
 
 ### Test Summary
 - **Total tests written**: 15 (5 WU1 +10 WU2)
@@ -120,6 +129,7 @@ This correction addresses the automatic WU1 gate failures without starting WU2+ 
 - WU2 Before (RED): `pnpm vitest run tests/unit/pr-check.test.ts` → 10 failed Duration 509ms 00:58:16 ENOENT
 - WU2 After (GREEN): → 10 passed Duration 504ms 00:58:17 exit0 — proves 800, size override, perms, concurrency, 4 jobs, github-script@v9
 - WU2 Verification: `actionlint` 0, `tsc` 0, `pnpm check` 91 files 153ms 3 warnings 2 infos
+- WU3 RED 5 schema 02:32 +3 filter `is not a function` → GREEN 21/21 530ms 02:35:04, full 353 3.46s tsc0
 
 ## Work Unit Evidence
 
@@ -149,6 +159,15 @@ This correction addresses the automatic WU1 gate failures without starting WU2+ 
 | Branch/topology | `ci/audit-closeout-pr-check` top 4th stacked-to-main, predecessor empty, write-tree 38640512f... |
 | Next | WU3 schema |
 
+### Work Unit Evidence — WU3 (schema)
+
+| Evidence | Required value |
+|---|---|
+| Token | sha256:03512c91a515678d53e4b8eab3b54253769b7811688e7fd0fdcd7bece17c7d46 parent c30db62795296c451a98f898b5b1005af4d593db |
+| Focused test | `pnpm vitest run tests/schema-artifact.test.ts tests/pocketbase-filter.test.ts` RED 8 → GREEN 21/21 530ms 02:35:04 full 353 3.46s |
+| Runtime harness | N/A — static schema/filter, no live PB (explicit N/A) |
+| Rollback boundary | `pocketbase/v1.collections.json` + `lib/types.ts` + `lib/pocketbase-filter.ts` + tests — revert 5 files |
+
 ## Files Changed
 
 | File | Action | What Was Done |
@@ -162,6 +181,8 @@ This correction addresses the automatic WU1 gate failures without starting WU2+ 
 
 | `.github/workflows/pr-check.yml` | Created (WU2) | Derived 193→153 lines DEFAULT_LIMIT 800 + numeric size, preserves 4 jobs/perms/concurrency/github-script@v9, actionlint0. |
 | `tests/unit/pr-check.test.ts` | Created (WU2) | 7 lines, RED 10 failed 509ms ENOENT→GREEN 10 passed 504ms, proves 800, perms, 4 jobs. |
+| `pocketbase/v1.collections.json` + `lib/types.ts` + `lib/pocketbase-filter.ts` | Modified (WU3) | Add operationKey/lifecycleSeq +2 UNIQUE keep ids + bound filter `userId = {:uid} && ServiceId = {:sid} && operationKey = {:key}` |
+| `tests/schema-artifact.test.ts` `tests/pocketbase-filter.test.ts` | Modified (WU3) | +3 compact +3 filter RED 8→GREEN 21/21 530ms |
 | `openspec/changes/audit-ui-ux-remediation-closeout/tasks.md` | Modified (WU2) | Marked 2.1–2.3 [x] (now 6/15). |
 | `openspec/changes/audit-ui-ux-remediation-closeout/apply-progress.md` | Modified (WU2) | This file — WU2 evidence 10/10 token rollback N/A next WU3, honest total. |
 ## Deviations from Design
@@ -173,27 +194,28 @@ None blocking for WU1 — dev 0.40.1 healthy at 127.0.0.1:8090, staging/prod UNK
 None blocking for WU2 — actionlint0 tsc0 check 91files 153ms 3warn2info, vitest10/10, no ci/release drift, numeric size proven via file-content.
 
 ## Remaining Tasks
-- [x] 2.1–2.3 (WU2 pr-check) — complete
-- [ ] 3.1–3.3 (WU3 schema)
+- [x] 3.1–3.3 (WU3 schema) — complete
 - [ ] 4.1–4.4 (WU4 lifecycle-batch)
-- [ ] 5.1–5.4 (WU5 verify)
+- [ ] 5.1–5.4 (WU5 Registro filters)
+- [ ] 6.1–6.4 (WU6 verify)
 
 ## Workload / PR Boundary
 - Mode: auto-chain, stacked-to-main
 - WU1: PR1 — PB 0.40.1 Admin+GUIDE (25 lines) within 200 <800 chain
 - WU2: PR2 — Derived pr-check 800 (153+7=160) + tasks 6 + apply-progress diff 75 37 =278 total (118 tracked +160 untracked), honest (no exclusions) <=300, base b7f03ca top 4th
+- WU3: PR3 — Schema 25 prod +57 tests +6 tasks +~20 progress ≈108 total <=120 parent c30db62 token 03512c91
 - Boundary WU1: 38640512f... → GUIDE matrix+runbook+test+tasks+progress; revert docs/CODEBASE-GUIDE.md
 - Boundary WU2: b7f03ca → pr-check.yml 153 + test 7 + tasks [x] + this progress; revert via git rm pr-check.yml + rm test
 
 ## Status
-6/15 tasks complete (WU1 1.1–1.3 + WU2 2.1–2.3). WU2 complete — Ready for next batch (WU3). Gate correction 00:24 verified 25 insertions no deletions vitest 5/5 tsc0 check0; WU2 verified 00:58 10/10 504ms RED 509ms actionlint0 tsc0 check 91files 153ms 3warn2info, honest total 118 tracked (75 37 apply-progress +3 3 tasks) +160 untracked =278 <=300 (no exclusions), branch top 4th predecessor empty write-tree 38640512f... Not all_done; WU3 schema next.
+9/15 tasks complete (WU1 1.1–1.3 + WU2 2.1–2.3 + WU3 3.1–3.3). WU3 complete — Ready for next batch (WU4). Verified 02:35:04 focused 21/21 530ms RED 8→GREEN full 353 3.46s tsc0 honest ~108 <=120 parent c30db62 token 03512c91 not all_done; WU4 next.
 
 ---
 
 ## Result Contract
 
 - **status**: `success`
-- **executive_summary**: `WU1+WU2 complete: WU1 restored RELEASING+biome via checkout (25 insertions CODEBASE-GUIDE, RED 5→GREEN 5 517ms 00:24 tsc0 check0, PATCH batch.enabled false + GET false + POST 403, cleanup no WU1 process, predecessor 97 files buffered); WU2 derived pr-check 153 lines DEFAULT_LIMIT 800 sizeLabels ^size:\d+$ >1 fail Number.isFinite parsed<=0 fail let limit, preserves 4 jobs/perms read/concurrency pr-validation/github-script@v9, RED 10 failed 509ms 00:58:16 ENOENT→GREEN 10 passed 504ms 00:58:17 actionlint0 tsc0 check 91files 153ms 3warn2info, honest total 118 tracked (75 37 apply-progress.md +3 3 tasks.md) +160 untracked =278 <=300 no exclusions, branch ci/audit-closeout-pr-check top 4th predecessor empty write-tree 38640512f..., token sha256:9696ef6945641273c53a30325206d43db579c3eca54e075ef42ae5892b0fb083`
+- **executive_summary**: `WU1+WU2+WU3 complete: WU3 additive schema 25 prod +57 tests RED 8→GREEN 21/21 530ms full 353 3.46s tsc0 operationKey max64 lifecycleSeq optional kind:created omits 2 UNIQUE keep ids pbc_2579451501/pbc_863811952 ServiceEvent types bound filter honest ~108 <=120 parent c30db62 token 03512c91`
 - **artifacts**:
   - `docs/CODEBASE-GUIDE.md` — WU1 matrix dev false/50/3/0 staging/prod UNKNOWN + 403 runbook (25 insertions)
   - `tests/unit/codebase-guide-batch.test.ts` — WU1 5 tests RED→GREEN 517ms

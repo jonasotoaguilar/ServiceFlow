@@ -106,4 +106,33 @@ describe("schema artifact", () => {
 		}
 		expect(raw).toContain("CREATE INDEX");
 	});
+	it("service_events optional idempotency fields", () => {
+		const { cols } = load();
+		const se = cols.find((c: any) => c.name === "service_events");
+		const svc = cols.find((c: any) => c.name === "services");
+		const op = (se.fields ?? []).find((x: any) => x.name === "operationKey");
+		const seq = (se.fields ?? []).find((x: any) => x.name === "lifecycleSeq");
+		const svcSeq = (svc.fields ?? []).find((x: any) => x.name === "lifecycleSeq");
+		expect(op).toBeDefined(); expect(op.type).toBe("text"); expect(op.required).toBe(false); expect(op.max).toBe(64);
+		expect(seq).toBeDefined(); expect(seq.type).toBe("number"); expect(seq.required).toBe(false);
+		expect(svcSeq).toBeDefined(); expect(svcSeq.type).toBe("number"); expect(svcSeq.required).toBe(false);
+		const kind = (se.fields ?? []).find((x: any) => x.name === "kind");
+		expect(kind.required).toBe(false);
+	});
+	it("service_events unique composite indexes", () => {
+		const { cols } = load();
+		const se = cols.find((c: any) => c.name === "service_events");
+		const idx: string[] = se.indexes ?? [];
+		expect(idx).toContain("CREATE UNIQUE INDEX idx_service_events_ServiceId_operationKey ON service_events (ServiceId, operationKey)");
+		expect(idx).toContain("CREATE UNIQUE INDEX idx_service_events_ServiceId_lifecycleSeq ON service_events (ServiceId, lifecycleSeq)");
+		expect(se.id).toBe("pbc_2579451501");
+		expect(cols.find((c:any)=>c.name==="services").id).toBe("pbc_863811952");
+	});
+	it("additive preserves existing indexes and no rows", () => {
+		const { raw, cols } = load();
+		expect(cols).toHaveLength(4); expect(raw).not.toContain('"rows"');
+		const idx: string[] = cols.find((c:any)=>c.name==="service_events").indexes ?? [];
+		expect(idx).toContain("CREATE INDEX idx_service_events_userId ON service_events (userId)");
+		expect(idx).toContain("CREATE INDEX idx_service_events_ServiceId ON service_events (ServiceId)");
+	});
 });

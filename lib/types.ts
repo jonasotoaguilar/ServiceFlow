@@ -20,6 +20,7 @@ export interface Service {
 	repairCost?: number;
 	notes?: string;
 	userId: string;
+	lifecycleSeq?: number;
 	serviceEvents?: ServiceEvent[];
 }
 
@@ -36,6 +37,8 @@ export interface ServiceEvent {
 	fromStatus?: ServiceStatus;
 	toStatus?: ServiceStatus;
 	actorId?: string;
+	operationKey?: string;
+	lifecycleSeq?: number;
 }
 
 export type NewServicePayload = Omit<Service, "id" | "status"> & {

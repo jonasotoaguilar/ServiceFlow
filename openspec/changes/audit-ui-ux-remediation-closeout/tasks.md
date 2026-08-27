@@ -43,9 +43,9 @@ Chain strategy: stacked-to-main
 
 ## Phase 3: Schema (WU3)
 
-- [ ] 3.1 RED `tests/schema-artifact.test.ts` `operationKey`/`lifecycleSeq` optional unique `(ServiceId,operationKey)`/`(ServiceId,lifecycleSeq)` `kind:created` omits
-- [ ] 3.2 Update `pocketbase/v1.collections.json` additively; keep IDs; `deleteMissing:false`
-- [ ] 3.3 Update `lib/types.ts`+`lib/pocketbase-filter.ts`; `test:run`+`tsc` pass
+- [x] 3.1 RED `tests/schema-artifact.test.ts` `operationKey`/`lifecycleSeq` optional unique `(ServiceId,operationKey)`/`(ServiceId,lifecycleSeq)` `kind:created` omits
+- [x] 3.2 Update `pocketbase/v1.collections.json` additively; keep IDs; `deleteMissing:false`
+- [x] 3.3 Update `lib/types.ts`+`lib/pocketbase-filter.ts`; `test:run`+`tsc` pass
 
 ## Phase 4: Batch (WU4)
 

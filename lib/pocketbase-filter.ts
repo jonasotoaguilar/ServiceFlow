@@ -14,6 +14,11 @@ export type ServiceEventListParams = {
 	kind?: string;
 	status?: string;
 };
+export type ServiceEventOperationKeyParams = {
+	userId: string;
+	serviceId: string;
+	operationKey: string;
+};
 export type Binding = { filter: string; params: Record<string, unknown> };
 export function serviceListBinding(p: ServiceListParams): Binding {
 	const parts = ["userId = {:uid}"];
@@ -67,6 +72,12 @@ export function serviceEventListBinding(p: ServiceEventListParams): Binding {
 		params.endDate = p.endDate;
 	}
 	return { filter: parts.join(" && "), params };
+}
+export function serviceEventOperationKeyBinding(p: ServiceEventOperationKeyParams): Binding {
+	return {
+		filter: "userId = {:uid} && ServiceId = {:sid} && operationKey = {:key}",
+		params: { uid: p.userId, sid: p.serviceId, key: p.operationKey },
+	};
 }
 export function applyBinding(
 	pb: { filter: (t: string, p: Record<string, unknown>) => string },
