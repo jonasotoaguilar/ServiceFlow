@@ -107,8 +107,8 @@
         "CREATE INDEX idx_service_events_toLocationId ON service_events (toLocationId)",
         "CREATE INDEX idx_service_events_userId_changedAt ON service_events (userId, changedAt)",
         "CREATE INDEX idx_service_events_kind ON service_events (kind)",
-        "CREATE UNIQUE INDEX idx_service_events_ServiceId_operationKey ON service_events (ServiceId, operationKey)",
-        "CREATE UNIQUE INDEX idx_service_events_ServiceId_lifecycleSeq ON service_events (ServiceId, lifecycleSeq)"
+        "CREATE UNIQUE INDEX idx_service_events_ServiceId_operationKey ON service_events (ServiceId, operationKey) WHERE operationKey != ''",
+        "CREATE UNIQUE INDEX idx_service_events_ServiceId_lifecycleSeq ON service_events (ServiceId, lifecycleSeq) WHERE lifecycleSeq != 0"
       ],
       "id": "pbc_2579451501"
     }

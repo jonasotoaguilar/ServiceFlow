@@ -228,3 +228,15 @@ None blocking for WU2 — actionlint0 tsc0 check 91files 153ms 3warn2info, vites
 - **next_recommended**: `sdd-apply WU3 (tasks 3.1–3.3) via stacked-to-main PR3`
 - **risks**: `Low: WU1 staging/prod UNKNOWN blocks batch until inspected dev batch disabled operator must enable via Dashboard; WU2 reversible via git rm pr-check, numeric logic via file-content not live, no ci/release drift, predecessor frozen untouched.`
 - **skill_resolution**: `pocketbase-best-practices, vitest (5+10 tests tsc0), ci-cd-and-automation (canonical overlay DEFAULT_LIMIT 800), stacked-pr/chained-pr (gh-stack 4th), work-unit-commits (honest total <=300), sdd-apply Strict TDD`
+
+## Correction — Combined Candidate (2026-08-27 15:30 UTC)
+
+- **Failed evidence**: `sha256:f772898a7165e1c47eb432b29cabcfa7cff580f47e53b3ff24192a2331fb8866`
+- **Native token**: `sha256:bd7e85ea7edf96476c374b74a6390b5292c46176aa650608bf8928bffd6b8e78` parent `e3bffc705d2e22bd9dfe33dec7501352297e18a3`
+- **Schema**: `pocketbase/v1.collections.json` 2 UNIQUE `WHERE operationKey != ''` / `WHERE lifecycleSeq != 0` same names/order/IDs, preserve rules/indexes/optionality
+- **Test**: `tests/schema-artifact.test.ts` RED 1 failed 533ms → GREEN 12 passed 510ms (exact WHERE + no unconditional)
+- **Smoke**: `e2e/smoke.spec.ts` `Nueva→Nuevo` (2) + `Actualizar Servicio` keep, RUT `12.345.678-9→12.345.678-5` (valid), SKU click+fill stabilization, `Transferir sede` dialog/combobox/submit accessible, heading `Registro`, proof locA→locB preserved
+- **Verification**: `pnpm vitest run tests/schema-artifact.test.ts` 12/12 510ms, `pnpm test:run` 353/353 3.27s, `pnpm exec tsc --noEmit` 0, `pnpm test:e2e` 5/5 stable 9.6s avg (SKU click stabilization, previous flake diagnosed)
+- **Harness**: `serviceflow-pocketbase-local` Up healthy, `serviceflow-app-local` Up healthy, pre-existing `arcane` Up, `test-results`/`playwright-report` cleaned (0 files), no non-e2e user data deleted, `PUT /api/collections/import` 200 partial indexes, history 2 rows (Creación+Cambio sede) live proof
+- **Rollback**: revert 3 files (`v1.collections.json`, `schema-artifact.test.ts`, `smoke.spec.ts`) + this subsection
+- **Next**: WU4 `lib/lifecycle-batch.ts` + routes (not started, not in this diff)

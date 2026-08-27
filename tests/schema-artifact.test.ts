@@ -123,8 +123,10 @@ describe("schema artifact", () => {
 		const { cols } = load();
 		const se = cols.find((c: any) => c.name === "service_events");
 		const idx: string[] = se.indexes ?? [];
-		expect(idx).toContain("CREATE UNIQUE INDEX idx_service_events_ServiceId_operationKey ON service_events (ServiceId, operationKey)");
-		expect(idx).toContain("CREATE UNIQUE INDEX idx_service_events_ServiceId_lifecycleSeq ON service_events (ServiceId, lifecycleSeq)");
+		expect(idx).toContain("CREATE UNIQUE INDEX idx_service_events_ServiceId_operationKey ON service_events (ServiceId, operationKey) WHERE operationKey != ''");
+		expect(idx).toContain("CREATE UNIQUE INDEX idx_service_events_ServiceId_lifecycleSeq ON service_events (ServiceId, lifecycleSeq) WHERE lifecycleSeq != 0");
+		expect(idx).not.toContain("CREATE UNIQUE INDEX idx_service_events_ServiceId_operationKey ON service_events (ServiceId, operationKey)");
+		expect(idx).not.toContain("CREATE UNIQUE INDEX idx_service_events_ServiceId_lifecycleSeq ON service_events (ServiceId, lifecycleSeq)");
 		expect(se.id).toBe("pbc_2579451501");
 		expect(cols.find((c:any)=>c.name==="services").id).toBe("pbc_863811952");
 	});
