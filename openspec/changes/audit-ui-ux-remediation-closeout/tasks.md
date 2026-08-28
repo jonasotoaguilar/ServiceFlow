@@ -64,6 +64,6 @@ Chain strategy: stacked-to-main
 ## Phase 6: Verification (WU6)
 
 - [x] 6.1 Acquire native verification authority against CURRENT post-WU5 successor candidate identity; prove candidate descends from/preserves starting baseline tree `38640512f6119e4edde346158797be61dd62fff6` and predecessor stays `blocked`; do NOT bind final verification to obsolete initial tree
-- [ ] 6.2 Run `test:run`+`tsc`+`build`+`check` vs PB 0.40.1
+- [x] 6.2 Run `test:run`+`tsc`+`build`+`check` vs PB 0.40.1
 - [x] 6.3 Auth verify-ui: `/service-events` first-paint visible no OUTER disclosure/chevron/`aria-expanded` on filter panel (inner dropdown chevrons/menus/`aria-expanded` remain expected and interactive) keyboard 1280×800+390×844 light/dark no overflow clear>=44px; `/dashboard` `/locations` `snapshot --boxes`+`screenshot`+`eval`; unavailable→blocked never pass
-- [ ] 6.4 Enforce 0700/0600+cleanup; overflow/English→`remediation_required`; `sdd-verify-validate`; fix `ServicesTable.tsx` only if reproduced
+- [x] 6.4 Enforce 0700/0600+cleanup; overflow/English→`remediation_required`; `sdd-verify-validate`; fix `ServicesTable.tsx` only if reproduced
