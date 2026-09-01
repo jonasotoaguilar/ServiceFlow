@@ -1,6 +1,7 @@
 import { Service, ServiceStatus } from "./types";
 import { createPocketBaseClient } from "@/lib/pocketbase";
 import { serviceListBinding, applyBinding } from "@/lib/pocketbase-filter";
+import { businessDaysSince, isUpcoming, isCritical } from "./service-days";
 
 // Helper to convert PocketBase document to Service type (WU4 read-only)
 function mapToService(item: any, locMap: Map<string, any>): Service {
@@ -73,7 +74,7 @@ export async function getServices(params?: {
 			locMap = new Map((locRes.items as Array<{ id: string }>).map((l) => [l.id, l]));
 		}
 		const data = (result.items as any[]).map((doc) => mapToService(doc, locMap));
-		// Attach locationLogs for history in details modal (best-effort)
+		// Attach serviceEvents for history in details modal (best-effort)
 		try {
 			const serviceIds = (result.items as Array<{ id: string }>).map((s) => s.id);
 			if (serviceIds.length > 0) {
@@ -86,7 +87,7 @@ export async function getServices(params?: {
 					filter: `userId = {:uid} && (${logParts})`,
 					params: logParams,
 				});
-				const logsRes = await pb.collection("location_logs").getList(1, 200, {
+				const logsRes = await pb.collection("service_events").getList(1, 200, {
 					filter: logFilter,
 					sort: "changedAt",
 				});
@@ -120,7 +121,7 @@ export async function getServices(params?: {
 				}
 				for (const svc of data) {
 					const logs = logsByService.get(svc.id) ?? [];
-					(svc as Service).locationLogs = logs.map((l: any) => ({
+					(svc as Service).serviceEvents = logs.map((l: any) => ({
 						id: l.id,
 						ServiceId: l.ServiceId,
 						fromLocationId: l.fromLocationId,
@@ -139,6 +140,57 @@ export async function getServices(params?: {
 		console.error("Error fetching Services:", error);
 		throw error;
 	}
+}
+
+export async function getServiceStats(userId: string): Promise<{
+	pending: number;
+	ready: number;
+	completed: number;
+	cancelled: number;
+	upcoming: number;
+	critical: number;
+}> {
+	if (!userId) throw new Error("userId required");
+	const pb = await createPocketBaseClient();
+	const statuses = ["pending", "ready", "completed", "cancelled"] as const;
+	const counts: Record<string, number> = {};
+	for (const status of statuses) {
+		const filter = applyBinding(pb, {
+			filter: "userId = {:uid} && status = {:status}",
+			params: { uid: userId, status },
+		});
+		const res = await pb.collection("services").getList(1, 1, { filter });
+		counts[status] =
+			typeof (res as { totalItems?: number }).totalItems === "number"
+				? (res as { totalItems: number }).totalItems
+				: 0;
+	}
+	let upcoming = 0;
+	let critical = 0;
+	try {
+		const pendingFilter = applyBinding(pb, {
+			filter: "userId = {:uid} && status = {:status}",
+			params: { uid: userId, status: "pending" },
+		});
+		const pendingRes = await pb.collection("services").getList(1, 500, { filter: pendingFilter });
+		const items =
+			(pendingRes.items as unknown as Array<{ entryDate: string; status: string }>) ?? [];
+		for (const item of items) {
+			const days = businessDaysSince(item.entryDate);
+			if (isUpcoming(days)) upcoming++;
+			else if (isCritical(days)) critical++;
+		}
+	} catch {
+		// keep 0 on error
+	}
+	return {
+		pending: counts.pending ?? 0,
+		ready: counts.ready ?? 0,
+		completed: counts.completed ?? 0,
+		cancelled: counts.cancelled ?? 0,
+		upcoming,
+		critical,
+	};
 }
 
 export async function saveService(service: Omit<Service, "id">): Promise<Service> {
@@ -168,6 +220,25 @@ export async function saveService(service: Omit<Service, "id">): Promise<Service
 		notes: service.notes ?? "",
 	};
 	const record = (await pb.collection("services").create(payload)) as any;
+	// Lifecycle: created event — rollback service if event fails (no silent unlogged mutation)
+	try {
+		await pb.collection("service_events").create({
+			userId: service.userId,
+			ServiceId: record.id,
+			kind: "created",
+			fromLocationId: service.locationId,
+			toLocationId: service.locationId,
+			fromStatus: "pending",
+			toStatus: "pending",
+			actorId: service.userId,
+			changedAt: now,
+		});
+	} catch (e) {
+		try {
+			await pb.collection("services").delete(record.id);
+		} catch {}
+		throw e;
+	}
 	return {
 		...record,
 		id: record.id,
@@ -193,7 +264,7 @@ export async function updateService(updatedService: Service, userId?: string): P
 	if (current.status === "completed") {
 		throw new Error("Cannot modify a completed Service");
 	}
-	const now = new Date().toISOString();
+	// Generic update must not silently mutate lifecycle fields; no sequential lifecycle event
 	const payload: Record<string, unknown> = {
 		invoiceNumber: updatedService.invoiceNumber,
 		clientName: updatedService.clientName,
@@ -203,37 +274,13 @@ export async function updateService(updatedService: Service, userId?: string): P
 		product: updatedService.product,
 		failureDescription: updatedService.failureDescription,
 		sku: updatedService.sku,
-		locationId: updatedService.locationId,
 		entryDate: updatedService.entryDate
 			? new Date(updatedService.entryDate).toISOString()
 			: current.entryDate,
-		deliveryDate: updatedService.deliveryDate
-			? new Date(updatedService.deliveryDate).toISOString()
-			: null,
-		readyDate: updatedService.readyDate ? new Date(updatedService.readyDate).toISOString() : null,
-		cancellationDate: updatedService.cancellationDate
-			? new Date(updatedService.cancellationDate).toISOString()
-			: updatedService.status === "cancelled" && !current.cancellationDate
-				? now
-				: (current.cancellationDate ?? null),
-		status: updatedService.status,
 		repairCost: updatedService.repairCost,
 		notes: updatedService.notes,
 	};
-	const fromLocationId = current.locationId as string | undefined;
-	const toLocationId = updatedService.locationId as string | undefined;
-	const isLocationChanged = !!fromLocationId && !!toLocationId && fromLocationId !== toLocationId;
-	const isCompleting = current.status !== "completed" && updatedService.status === "completed";
 	await pb.collection("services").update(updatedService.id, payload);
-	if (isLocationChanged && !isCompleting) {
-		await pb.collection("location_logs").create({
-			userId: current.userId,
-			ServiceId: updatedService.id,
-			fromLocationId,
-			toLocationId,
-			changedAt: now,
-		});
-	}
 }
 
 export async function deleteService(id: string, userId?: string): Promise<void> {
@@ -248,10 +295,10 @@ export async function deleteService(id: string, userId?: string): Promise<void> 
 		throw new Error("No Service found or access denied");
 	}
 	const filter = applyBinding(pb, { filter: "ServiceId = {:sid}", params: { sid: id } });
-	const logsRes = await pb.collection("location_logs").getList(1, 100, { filter });
+	const logsRes = await pb.collection("service_events").getList(1, 100, { filter });
 	const items = (logsRes.items as Array<{ id: string }>) ?? [];
 	for (const log of items) {
-		await pb.collection("location_logs").delete(log.id);
+		await pb.collection("service_events").delete(log.id);
 	}
 	await pb.collection("services").delete(id);
 }

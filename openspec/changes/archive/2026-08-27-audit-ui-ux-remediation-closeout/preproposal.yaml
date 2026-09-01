@@ -1,0 +1,141 @@
+schema: gentle-ai.sdd-preproposal/v1
+revision: 3
+change: audit-ui-ux-remediation-closeout
+exploration:
+  ref: openspec/changes/audit-ui-ux-remediation-closeout/exploration.md
+  outcome: ready_for_proposal
+  baseline_candidate_tree: 38640512f6119e4edde346158797be61dd62fff6
+  predecessor: audit-ui-ux-remediation
+  predecessor_state: blocked
+  research_requested: selected
+research_request:
+  questions:
+    - id: Q1
+      question: "For PocketBase server 0.40.1, what is the supported batch record API contract, why can POST /api/batch return 403 Batch requests are not allowed, and what product/implementation choices follow for a status/transfer operation that updates a service and creates a lifecycle event?"
+  classes:
+    documentation:
+      - pocketbase-api-records-batch
+    open_web: []
+  artifact_store: openspec
+admission:
+  requested:
+    documentation:
+      granted: true
+      provider: context7
+      source_ids: ["pocketbase-api-records-batch"]
+    open_web:
+      granted: false
+      provider: none
+      source_ids: []
+  observed:
+    documentation:
+      granted: true
+      provider: context7
+      source_ids: ["pocketbase-api-records-batch"]
+    open_web:
+      granted: false
+      provider: none
+      source_ids: []
+  denial: none
+  partial_evidence: false
+outcome: done
+evidence:
+  research:
+    schema: gentle-ai.sdd-research/v1
+    revision: 1
+    outcome: done
+    openspec_ref: openspec/changes/audit-ui-ux-remediation-closeout/research.md
+    engram_ref: null
+    validated: true
+    all_questions_supported: true
+    persisted: true
+  sources:
+    - id: pocketbase-api-records-batch
+      class: documentation
+      title: PocketBase API Records — Batch
+      publisher: PocketBase
+      url: https://pocketbase.io/docs/api-records
+      accessed_at: 2026-08-26
+      provider: context7
+      library: /websites/pocketbase_io
+product_decisions: confirmed
+product_decisions_detail:
+  status: confirmed
+  selected_token: "A:enable_configure_batch_atomic"
+  selection:
+    ordinal: 1
+    ordinal_alias: "1"
+    canonical_token: "A:enable_configure_batch_atomic"
+    mapped_once: true
+    interpretation: "enable/configure PocketBase batch and retain atomic service update + lifecycle event writes"
+    source: "maintainer single-select answer 1"
+  note: "Maintainer selection ordinal 1 mapped exactly once to canonical token A:enable_configure_batch_atomic per closed single-select envelope. No reinterpretation or broadening. Product decisions confirmed; proposal readiness re-evaluated against all other conditions which remain valid."
+  options:
+    - id: A
+      name: enable_configure_batch_atomic
+      token: "A:enable_configure_batch_atomic"
+      status: selected
+      description: "Enable batch in the PocketBase Admin Dashboard settings (per excerpts 1, 4) on the target 0.40.1 deployment and keep POST /api/batch / pb.createBatch().send() for the status/transfer operation (update services + create service_events/service_lifecycle event in one transaction)."
+      consequences: "Preserves atomicity — both writes succeed or both roll back within the single batch transaction (C5). Keeps the operation transactional as documented (C5, C6) and avoids compensation logic. Requires Admin access, deployment configuration change, and documentation of the enablement step for all environments (dev/staging/prod). Introduces operational coupling: if batch is disabled on any environment, the feature regresses to 403. Must respect bounded body/processing guidance (C6) — keep batch to exactly the two writes (service update + event create) with small JSON payloads."
+      spec_design_if_chosen: "Exact Dashboard setting path and flag; environment matrix for enablement; batch payload shape (update vs. upsert vs. create within POST /api/batch); transactional error mapping (which batch sub-error maps to HTTP 4xx vs. 500 and what client retry is allowed); idempotency on retry; observability (logging the batch idempotency key if any); fallback if batch remains unavailable on a given deployment."
+    - id: B
+      name: sequential_writes_compensation
+      token: "B:sequential_writes_compensation"
+      status: rejected
+      rejected_reason: "Not selected — maintainer chose A:enable_configure_batch_atomic. Preserved as rejected alternative with prior consequences intact; not deleted."
+      description: "Do not rely on POST /api/batch. Use sequential ordinary writes: pb.collection('services').update(id, body) (C7) followed by pb.collection('service_events').create(...). On second-write failure, apply compensation (e.g., revert the service status/location update or mark event as pending and reconcile), or surface partial-success state to the operator."
+      consequences: "No Dashboard configuration required; works regardless of batch enablement. Loses single-transaction atomicity — failure between writes leaves service updated without its lifecycle event (or vice versa) unless compensation succeeds. Requires explicit error handling, compensation semantics, and product decision on what \"partial success\" means for audit trail. Bounded processing guidance (C6) still applies to avoid slow external calls, but transactionality is no longer provided by the platform. Simpler operationally, more complex in application logic."
+      spec_design_if_chosen: "Exact sequential order (service first vs. event first and why); compensation strategy (automatic revert vs. manual operator reconciliation vs. outbox/pending queue); idempotency keys for retry; how to handle concurrent status/transfer on same service; observability for partial failures; user-facing copy for compensated vs. failed states; test matrix for failure injection on each write."
+  common_consequences: "Both must use services tenant isolation and API rules as existing; neither invents a new pipeline. Both must be verified live against PocketBase 0.40.1 after the chosen path is implemented; mocked unit tests alone did not catch the 403 (predecessor verify-report 40/51, 6 failing scenarios). Later spec/design must capture the chosen contract explicitly (batch vs. sequential) and update specs/service-lifecycle, specs/service-events, design.md, and tasks.md with the exact write path, error codes, and rollback semantics. No product choice is made in this research artifact beyond the maintainer selection persisted here."
+  next_owner: orchestrator
+  next_action: "Persisted — proceed to sdd-propose with selected token A:enable_configure_batch_atomic"
+  allowed_answers: ["A:enable_configure_batch_atomic", "B:sequential_writes_compensation"]
+  exact_tokens: ["A:enable_configure_batch_atomic", "B:sequential_writes_compensation"]
+proposal_ready: true
+proposal_handoff:
+  revision: 3
+  confirmed_decisions: true
+  selected_token: "A:enable_configure_batch_atomic"
+  evidence_refs_valid: true
+  store_ready: openspec
+  next_phase: ready_for_proposal
+  blocked_reason: null
+  constraints:
+    - "Do not edit openspec/changes/audit-ui-ux-remediation"
+    - "Do not edit production files, .github, or git index in research phase"
+    - "Spec/design must capture the selected write path A:enable_configure_batch_atomic with error mapping and rollback semantics after maintainer selection"
+    - "Proposal must establish exact Dashboard setting path and flag for batch enablement via live Admin UI inspection"
+    - "Proposal must document environment matrix for batch enablement (dev/staging/prod)"
+    - "Batch must contain exactly two operations: service update + lifecycle event creation (bounded small JSON payloads, C6)"
+    - "Proposal must define transactional error mapping for batch sub-errors to HTTP 4xx/500 and client retry policy"
+    - "Proposal must define idempotency and retry semantics for batch send"
+    - "Proposal must define observability for batch transaction (logging, batch idempotency key if any, success/failure metrics)"
+    - "Proposal must define explicit behavior if batch is unavailable (403 Batch requests are not allowed fallback, user-facing error, operational runbook) without silently falling back to sequential writes"
+  selected_consequences:
+    dashboard_setting: "Exact Admin Dashboard settings path and flag enabling POST /api/batch to be inspected and documented in proposal/design"
+    environment_matrix: "Enablement matrix across dev/staging/prod established and documented"
+    batch_shape: "POST /api/batch with exactly service update + event create, transactional, bounded body, no slow external calls"
+    error_mapping: "Transactional error mapping defined (sub-error -> HTTP status, retry allowed vs not)"
+    idempotency_retry: "Idempotency key and retry semantics defined for batch.send() (including on 403/5xx/timeout)"
+    observability: "Observability defined: batch request logging, outcome metrics, and troubleshooting guidance"
+    unavailable_behavior: "Explicit unavailable behavior defined if batch remains disabled (403 handling, operator guidance, no silent sequential fallback)"
+  next_owner: proposer
+  next_action: "sdd-propose — generate proposal/specs/design/tasks carrying selected atomic batch contract (A) and rejected alternative (B)"
+freshness:
+  retrieved: 2026-08-26
+  executed: 2026-08-27
+  age_days: 1
+  authority: Official PocketBase documentation
+uncertainty:
+  - "Exact Dashboard setting path/field name for batch enablement not quoted beyond 'Dashboard settings' — requires live Admin UI inspection."
+  - "Exact 403 condition mapping beyond literal 'Batch requests are not allowed' not detailed."
+  - "Numeric batch limits not evidenced beyond 'bounded processing/body sizes' guidance."
+contradiction:
+  prior: "Predecessor exploration §3.D.1 provisional 'does not support batch in PB 0.40.1'"
+  evidence: "Official docs: batch is supported but requires explicit Dashboard enablement"
+  resolution: "Provisional statement superseded; 403 is consistent with batch not enabled, not version absence. Predecessor file not mutated."
+store_validation:
+  openspec: success
+  engram: not_required_for_openspec_store
+  bytes_match: true
+  revision_match: true

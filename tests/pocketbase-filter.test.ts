@@ -36,9 +36,9 @@ describe("pocketbase-filter", () => {
     expect(all.filter).not.toContain("isActive");
     expect(active.filter).toContain("isActive = true");
   });
-  it("log from/to and date bounds", async () => {
-    const { logListBinding } = await import("../lib/pocketbase-filter");
-    const r = logListBinding({ userId: "u1", locationId: "l1", startDate: "2024-01-01", endDate: "2024-12-31" });
+  it("service event from/to and date bounds", async () => {
+    const { serviceEventListBinding } = await import("../lib/pocketbase-filter");
+    const r = serviceEventListBinding({ userId: "u1", locationId: "l1", startDate: "2024-01-01", endDate: "2024-12-31" });
     expect(r.filter).toContain("fromLocationId = {:lid} || toLocationId = {:lid}");
     expect(r.filter).toContain("changedAt >=");
     expect(r.params.lid).toBe("l1");
@@ -48,5 +48,33 @@ describe("pocketbase-filter", () => {
     const matches = f.match(/pb\.filter/g) ?? [];
     expect(matches.length).toBe(1);
     expect(f).toContain("applyBinding");
+  });
+  it("service event operationKey reconciliation binding uses placeholders no interpolation", async () => {
+    const { serviceEventOperationKeyBinding } = await import("../lib/pocketbase-filter");
+    const r = serviceEventOperationKeyBinding({ userId: "u1", serviceId: "s1", operationKey: "op_abc-123_XYZ" });
+    expect(r.filter).toBe("userId = {:uid} && ServiceId = {:sid} && operationKey = {:key}");
+    expect(r.params.uid).toBe("u1");
+    expect(r.params.sid).toBe("s1");
+    expect(r.params.key).toBe("op_abc-123_XYZ");
+  });
+  it("operationKey metacharacters do not change template", async () => {
+    const { serviceEventOperationKeyBinding } = await import("../lib/pocketbase-filter");
+    const a = serviceEventOperationKeyBinding({ userId: "u1", serviceId: "s1", operationKey: "normalKey_123" });
+    const b = serviceEventOperationKeyBinding({ userId: "u1", serviceId: "s1", operationKey: 'a" || b || c' });
+    expect(a.filter).toBe(b.filter);
+    expect(a.filter).toBe("userId = {:uid} && ServiceId = {:sid} && operationKey = {:key}");
+    expect(b.params.key).toBe('a" || b || c');
+  });
+  it("operationKey binding is pure and triangulates different inputs", async () => {
+    const { serviceEventOperationKeyBinding } = await import("../lib/pocketbase-filter");
+    const r1 = serviceEventOperationKeyBinding({ userId: "alice", serviceId: "svc1", operationKey: "key_one" });
+    const r2 = serviceEventOperationKeyBinding({ userId: "bob", serviceId: "svc2", operationKey: "key_two" });
+    expect(r1.filter).toBe(r2.filter);
+    expect(r1.params.uid).toBe("alice");
+    expect(r2.params.uid).toBe("bob");
+    expect(r1.params.sid).toBe("svc1");
+    expect(r2.params.sid).toBe("svc2");
+    expect(r1.params.key).toBe("key_one");
+    expect(r2.params.key).toBe("key_two");
   });
 });

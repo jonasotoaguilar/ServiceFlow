@@ -74,10 +74,18 @@ The app is available at `http://localhost:3000`.
 
 ## Docker (local full stack)
 
-`compose.yaml` runs **PocketBase + the Next.js app** so you can use the full stack in Docker without an external PocketBase.
+PocketBase stays in `compose.yaml`. The default `app` service is a production image (used by CI). For live reload of local code, overlay `compose.dev.yaml` so Next runs `pnpm dev` with the repo bind-mounted. PocketBase and its volume are unchanged.
 
 ```bash
-# from the repo root
+# live reload (PocketBase + Next watching this checkout)
+pnpm dev:stack
+# equivalent:
+docker compose -f compose.yaml -f compose.dev.yaml up
+```
+
+Rebuild the production-like app image (no live reload):
+
+```bash
 docker compose up --build -d --wait
 ```
 
@@ -85,7 +93,7 @@ docker compose up --build -d --wait
 - PocketBase API: http://127.0.0.1:8090
 - PocketBase Admin UI: http://127.0.0.1:8090/_/
 
-PocketBase uses the pinned community image `adrianmusante/pocketbase:0.40.1` (digest-pinned, non-root 1001, state at `/pocketbase`, healthcheck `GET /api/health`). A one-shot `pocketbase-init` container imports `pocketbase/v1.collections.json` with `deleteMissing:false`. The app container is built from the existing `Dockerfile` and reaches PocketBase via compose DNS at `http://pocketbase:8090` (`POCKETBASE_URL` inside the network).
+PocketBase uses the pinned community image `adrianmusante/pocketbase:0.40.1` (digest-pinned, non-root 1001, state at `/pocketbase`, healthcheck `GET /api/health`). A one-shot `pocketbase-init` container imports `pocketbase/v1.collections.json` with `deleteMissing:false`. In the live-reload overlay the app reaches PocketBase at `http://pocketbase:8090` on the compose network.
 
 Stop:
 

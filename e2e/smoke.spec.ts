@@ -80,7 +80,7 @@ test("smoke: register → location → service → move → history → isolatio
 		await expect(async () => {
 			await page.getByRole("button", { name: "Nuevo servicio" }).click();
 			const m = page.locator(".fixed.inset-0").last();
-			await expect(m.getByRole("heading", { name: /Nueva servicio/ }).first()).toBeVisible({
+			await expect(m.getByRole("heading", { name: /Nuevo servicio/ }).first()).toBeVisible({
 				timeout: 3000,
 			});
 			const t = m
@@ -104,15 +104,16 @@ test("smoke: register → location → service → move → history → isolatio
 		await page.getByRole("button", { name: "Nuevo servicio" }).click();
 		const modal = page.locator(".fixed.inset-0").last();
 		await expect(
-			modal.getByRole("heading", { name: /Nueva servicio|Actualizar Servicio/ }).first(),
+			modal.getByRole("heading", { name: /Nuevo servicio|Actualizar Servicio/ }).first(),
 		).toBeVisible();
 		await expect(modal.getByLabel("SKU")).toBeVisible({ timeout: 5000 });
 		await expect(modal.getByLabel("SKU")).toBeEnabled();
 		const today = new Date().toISOString().split("T")[0];
 		await modal.getByLabel("Fecha de Ingreso").fill(today);
+		await modal.getByLabel("SKU").click();
 		await modal.getByLabel("SKU").fill(sku);
 		await expect(modal.getByLabel("SKU")).toHaveValue(sku);
-		await modal.getByLabel("RUT").fill("12.345.678-9");
+		await modal.getByLabel("RUT").fill("12.345.678-5");
 		await modal.getByLabel("Email").fill(`svc-${uid}@example.com`);
 		await modal.getByLabel("N° Boleta").fill(invoice);
 		await expect(modal.getByLabel("N° Boleta")).toHaveValue(invoice);
@@ -134,13 +135,12 @@ test("smoke: register → location → service → move → history → isolatio
 	await test.step("move service to locB and see history", async () => {
 		const row = page.locator("tr").filter({ hasText: invoice }).first();
 		await expect(row).toBeVisible();
-		await row.getByRole("button", { name: "Editar" }).click();
-		const modal = page.locator(".fixed.inset-0").last();
-		await expect(modal.getByRole("heading", { name: /Actualizar Servicio/ })).toBeVisible();
-		await selectLocationInModal(modal, locB);
-		await modal.getByRole("button", { name: "Actualizar" }).click();
-		await expect(page.getByText("Servicio guardado correctamente")).toBeVisible({ timeout: 15000 });
-		await expect(modal).toBeHidden({ timeout: 15000 });
+		await row.getByRole("button", { name: "Transferir sede" }).click();
+		const transferDialog = page.getByRole("dialog").filter({ hasText: "Transferir sede" });
+		await expect(transferDialog.getByRole("heading", { name: "Transferir sede" })).toBeVisible();
+		await transferDialog.getByRole("combobox").selectOption({ label: locB });
+		await transferDialog.getByRole("button", { name: /Transferir sede/ }).click();
+		await expect(transferDialog).toBeHidden({ timeout: 15000 });
 		await row.getByRole("button", { name: /Ver detalles/ }).click();
 		const details = page.locator(".fixed.inset-0").last();
 		await expect(details.getByRole("heading", { name: new RegExp(invoice) })).toBeVisible({
@@ -157,8 +157,8 @@ test("smoke: register → location → service → move → history → isolatio
 			.catch(async () => {
 				await page.keyboard.press("Escape");
 			});
-		await page.goto("/locationLogs");
-		await expect(page.getByRole("heading", { name: "Historial de Movimientos" })).toBeVisible();
+		await page.goto("/service-events");
+		await expect(page.getByRole("heading", { name: "Registro" })).toBeVisible();
 		const logRow = page.locator("tr").filter({ hasText: invoice }).first();
 		await expect(logRow).toBeVisible({ timeout: 10000 });
 		await expect(logRow.getByText(locA).first()).toBeVisible();
@@ -182,7 +182,7 @@ test("smoke: register → location → service → move → history → isolatio
 		await expect(page.getByText("No se encontraron registros"))
 			.toBeVisible({ timeout: 5000 })
 			.catch(async () => {});
-		await page.goto("/locationLogs");
+		await page.goto("/service-events");
 		await expect(page.locator("tr").filter({ hasText: invoice })).toBeHidden({ timeout: 5000 });
 	});
 });

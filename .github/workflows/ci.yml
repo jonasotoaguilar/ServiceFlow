@@ -64,6 +64,46 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: docker compose up --build -d --wait
+      - name: Enable PocketBase Batch Web API (required for atomic lifecycle batches)
+        env:
+          POCKETBASE_URL: http://127.0.0.1:8090
+          POCKETBASE_ADMIN_EMAIL: admin@local.test
+          POCKETBASE_ADMIN_PASSWORD: admin123456
+        run: |
+          set -euo pipefail
+          echo "[ci-batch] waiting for PocketBase health..."
+          for i in $(seq 1 30); do
+            if curl -sf http://127.0.0.1:8090/api/health >/dev/null 2>&1; then
+              echo "[ci-batch] PocketBase healthy"
+              break
+            fi
+            if [ "$i" -eq 30 ]; then
+              echo "[ci-batch] PocketBase health timeout" >&2
+              exit 1
+            fi
+            sleep 2
+          done
+          echo "[ci-batch] authenticating..."
+          TOKEN=$(curl -s -X POST http://127.0.0.1:8090/api/collections/_superusers/auth-with-password \
+            -H "Content-Type: application/json" \
+            -d "{\"identity\":\"${POCKETBASE_ADMIN_EMAIL}\",\"password\":\"${POCKETBASE_ADMIN_PASSWORD}\"}" | jq -r .token)
+          if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
+            echo "[ci-batch] authentication failed" >&2
+            exit 1
+          fi
+          echo "[ci-batch] enabling batch..."
+          PATCH_RESP=$(curl -sf -X PATCH http://127.0.0.1:8090/api/settings \
+            -H "Authorization: $TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{"batch":{"enabled":true}}')
+          echo "$PATCH_RESP" | jq .batch
+          echo "[ci-batch] verifying batch.enabled..."
+          BATCH_ENABLED=$(curl -s http://127.0.0.1:8090/api/settings -H "Authorization: $TOKEN" | jq -r .batch.enabled)
+          if [ "$BATCH_ENABLED" != "true" ]; then
+            echo "[ci-batch] batch.enabled verification failed: $BATCH_ENABLED (expected true)" >&2
+            exit 1
+          fi
+          echo "[ci-batch] batch.enabled=true verified — proceeding to e2e"
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:e2e
       - uses: actions/upload-artifact@v4

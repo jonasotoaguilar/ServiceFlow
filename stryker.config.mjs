@@ -10,6 +10,7 @@ const config = {
 		configFile: "vitest.config.ts",
 	},
 	thresholds: { high: 80, low: 60, break: null },
+	ignorePatterns: [".codegraph/**"],
 	reporters: ["progress", "clear-text", "html"],
 	htmlReporter: { fileName: "reports/mutation/mutation.html" },
 	timeoutMS: 10000,

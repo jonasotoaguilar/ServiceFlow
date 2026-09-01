@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useRef, useState, useEffect } from "react";
-import { LogOut, User, ChevronDown, Menu, X } from "lucide-react";
+import { LogOut, User, ChevronDown, Menu, X, Sun, Moon } from "lucide-react";
+import { useTheme } from "@/components/theme-provider";
 import { logout } from "@/app/actions/auth";
 
 interface NavbarProps {
@@ -17,6 +18,9 @@ export function Navbar({ user }: Readonly<NavbarProps>) {
 	const [showDropdown, setShowDropdown] = useState(false);
 	const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 	const dropdownRef = useRef<HTMLDivElement>(null);
+	const { theme, setTheme, resolvedTheme } = useTheme();
+	const [mounted, setMounted] = useState(false);
+	useEffect(() => setMounted(true), []);
 
 	const pathname = usePathname();
 
@@ -34,14 +38,14 @@ export function Navbar({ user }: Readonly<NavbarProps>) {
 	}, []);
 
 	return (
-		<header className="border-b border-white/5 bg-background/50 backdrop-blur-md sticky top-0 z-40">
+		<header className="border-b border-border bg-surface sticky top-0 z-40">
 			<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 				<div className="flex justify-between items-center h-16">
 					{/* Branding */}
 					<div className="flex items-center gap-4">
 						<div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
 							<svg
-								className="w-6 h-6 text-white"
+								className="w-6 h-6 text-on-primary"
 								fill="none"
 								viewBox="0 0 24 24"
 								stroke="currentColor"
@@ -55,8 +59,10 @@ export function Navbar({ user }: Readonly<NavbarProps>) {
 							</svg>
 						</div>
 						<div>
-							<h1 className="text-xl font-bold tracking-tight text-white">ServiceFlow</h1>
-							<p className="text-xs text-slate-400 font-medium">Gestión servicios técnicos</p>
+							<h1 className="text-xl font-bold tracking-tight text-foreground">ServiceFlow</h1>
+							<p className="text-xs text-foreground-muted font-medium">
+								Gestión servicios técnicos
+							</p>
 						</div>
 					</div>
 
@@ -67,7 +73,7 @@ export function Navbar({ user }: Readonly<NavbarProps>) {
 							className={`text-sm font-medium transition-colors ${
 								isActive("/dashboard")
 									? "text-primary border-b-2 border-primary pb-1"
-									: "text-slate-400 hover:text-primary"
+									: "text-foreground-muted hover:text-primary"
 							}`}
 						>
 							Servicios
@@ -77,27 +83,42 @@ export function Navbar({ user }: Readonly<NavbarProps>) {
 							className={`text-sm font-medium transition-colors ${
 								isActive("/locations")
 									? "text-primary border-b-2 border-primary pb-1"
-									: "text-slate-400 hover:text-primary"
+									: "text-foreground-muted hover:text-primary"
 							}`}
 						>
 							Sedes
 						</Link>
 						<Link
-							href="/locationLogs"
+							href="/service-events"
 							className={`text-sm font-medium transition-colors ${
-								isActive("/locationLogs")
+								isActive("/service-events")
 									? "text-primary border-b-2 border-primary pb-1"
-									: "text-slate-400 hover:text-primary"
+									: "text-foreground-muted hover:text-primary"
 							}`}
 						>
-							Movimientos
+							Registro
 						</Link>
 					</nav>
 
-					{/* Logout Button */}
 					<div className="flex items-center gap-2">
 						<button
-							className="md:hidden p-2 text-slate-400 hover:text-white transition-colors rounded-lg hover:bg-white/5"
+							type="button"
+							aria-label="Cambiar tema"
+							onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+							className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-border bg-surface text-foreground-muted hover:bg-surface-muted hover:text-foreground transition-colors"
+						>
+							{mounted ? (
+								resolvedTheme === "dark" ? (
+									<Sun className="h-5 w-5" />
+								) : (
+									<Moon className="h-5 w-5" />
+								)
+							) : (
+								<Sun className="h-5 w-5 opacity-0" />
+							)}
+						</button>
+						<button
+							className="md:hidden p-2 text-foreground-muted hover:text-foreground transition-colors rounded-lg hover:bg-surface-muted"
 							onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
 							aria-label="Toggle menu"
 						>
@@ -111,16 +132,16 @@ export function Navbar({ user }: Readonly<NavbarProps>) {
 								aria-label="Menú de usuario"
 								aria-expanded={showDropdown}
 								onClick={() => setShowDropdown(!showDropdown)}
-								className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5 transition-all group"
+								className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-surface-muted transition-all group"
 							>
-								<div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+								<div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-on-primary transition-colors">
 									<User className="w-4 h-4" />
 								</div>
-								<span className="text-sm font-medium text-slate-200 group-hover:text-white transition-colors hidden md:block">
+								<span className="text-sm font-medium text-foreground group-hover:text-foreground transition-colors hidden md:block">
 									{user?.name || "Usuario"}
 								</span>
 								<ChevronDown
-									className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${
+									className={`w-4 h-4 text-foreground-muted transition-transform duration-200 ${
 										showDropdown ? "rotate-180" : ""
 									}`}
 								/>
@@ -128,19 +149,19 @@ export function Navbar({ user }: Readonly<NavbarProps>) {
 
 							{/* Dropdown */}
 							{showDropdown && (
-								<div className="absolute right-0 top-full mt-2 w-48 rounded-xl bg-slate-800 border border-slate-700 shadow-xl overflow-hidden py-1 z-50 animate-in fade-in zoom-in-95 duration-100">
-									<div className="px-4 py-3 border-b border-white/5 md:hidden">
-										<p className="text-sm font-medium text-white truncate">
+								<div className="absolute right-0 top-full mt-2 w-48 rounded-xl bg-surface border border-border shadow-xl overflow-hidden py-1 z-50 animate-in fade-in zoom-in-95 duration-100">
+									<div className="px-4 py-3 border-b border-border md:hidden">
+										<p className="text-sm font-medium text-foreground truncate">
 											{user?.name || "Usuario"}
 										</p>
 										{user?.email && (
-											<p className="text-xs text-slate-400 truncate mt-0.5">{user.email}</p>
+											<p className="text-xs text-foreground-muted truncate mt-0.5">{user.email}</p>
 										)}
 									</div>
 
 									<button
 										onClick={() => logout()}
-										className="w-full px-4 py-2.5 text-left text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors flex items-center gap-2"
+										className="w-full px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors flex items-center gap-2"
 									>
 										<LogOut className="w-4 h-4" />
 										Cerrar Sesión
@@ -153,14 +174,14 @@ export function Navbar({ user }: Readonly<NavbarProps>) {
 
 				{/* Mobile Navigation Menu */}
 				{isMobileMenuOpen && (
-					<div className="md:hidden py-4 border-t border-white/5 space-y-1 bg-slate-900/95 backdrop-blur-xl absolute top-16 left-0 right-0 shadow-2xl animate-in slide-in-from-top-5 fade-in duration-200 border-b border-slate-800 z-50">
+					<div className="md:hidden py-4 border-t border-border space-y-1 bg-surface absolute top-16 left-0 right-0 shadow-2xl animate-in slide-in-from-top-5 fade-in duration-200 border-b border-border z-50">
 						<Link
 							href="/dashboard"
 							onClick={() => setIsMobileMenuOpen(false)}
 							className={`flex items-center gap-3 px-6 py-3 text-base font-medium transition-all ${
 								isActive("/dashboard")
 									? "bg-primary/10 text-primary border-l-4 border-primary"
-									: "text-slate-400 hover:text-white hover:bg-white/5 border-l-4 border-transparent"
+									: "text-foreground-muted hover:text-foreground hover:bg-surface-muted border-l-4 border-transparent"
 							}`}
 						>
 							Servicios
@@ -171,21 +192,21 @@ export function Navbar({ user }: Readonly<NavbarProps>) {
 							className={`flex items-center gap-3 px-6 py-3 text-base font-medium transition-all ${
 								isActive("/locations")
 									? "bg-primary/10 text-primary border-l-4 border-primary"
-									: "text-slate-400 hover:text-white hover:bg-white/5 border-l-4 border-transparent"
+									: "text-foreground-muted hover:text-foreground hover:bg-surface-muted border-l-4 border-transparent"
 							}`}
 						>
 							Sedes
 						</Link>
 						<Link
-							href="/locationLogs"
+							href="/service-events"
 							onClick={() => setIsMobileMenuOpen(false)}
 							className={`flex items-center gap-3 px-6 py-3 text-base font-medium transition-all ${
-								isActive("/locationLogs")
+								isActive("/service-events")
 									? "bg-primary/10 text-primary border-l-4 border-primary"
-									: "text-slate-400 hover:text-white hover:bg-white/5 border-l-4 border-transparent"
+									: "text-foreground-muted hover:text-foreground hover:bg-surface-muted border-l-4 border-transparent"
 							}`}
 						>
-							Movimientos
+							Registro
 						</Link>
 					</div>
 				)}

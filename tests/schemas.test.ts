@@ -9,7 +9,7 @@ describe("ServiceSchema", () => {
 			invoiceNumber: "INV-001",
 			sku: "LAP-001",
 			clientName: "John Doe",
-			rut: "12.345.678-9",
+			rut: "12.345.678-5",
 			contact: "+56 9 1234 5678",
 			product: "Laptop",
 			locationId: "550e8400-e29b-41d4-a716-446655440000",
@@ -54,7 +54,9 @@ describe("LocationCreateSchema", () => {
 	});
 
 	it("rejects oversized address", () => {
-		expect(LocationCreateSchema.safeParse({ name: "Valid", address: "a".repeat(201) }).success).toBe(false);
+		expect(
+			LocationCreateSchema.safeParse({ name: "Valid", address: "a".repeat(201) }).success,
+		).toBe(false);
 	});
 });
 
@@ -72,10 +74,16 @@ describe("LocationUpdateSchema", () => {
 		const blank = LocationUpdateSchema.safeParse({ name: "Valid Name", address: "   " });
 		expect(blank.success).toBe(true);
 		if (blank.success) expect((blank.data as { address?: string }).address).toBeUndefined();
-		const trimmed = LocationUpdateSchema.safeParse({ name: "Valid Name", address: "  Av. Siempre Viva  " });
+		const trimmed = LocationUpdateSchema.safeParse({
+			name: "Valid Name",
+			address: "  Av. Siempre Viva  ",
+		});
 		expect(trimmed.success).toBe(true);
-		if (trimmed.success) expect((trimmed.data as { address?: string }).address).toBe("Av. Siempre Viva");
-		expect(LocationUpdateSchema.safeParse({ name: "Valid Name", address: "a".repeat(201) }).success).toBe(false);
+		if (trimmed.success)
+			expect((trimmed.data as { address?: string }).address).toBe("Av. Siempre Viva");
+		expect(
+			LocationUpdateSchema.safeParse({ name: "Valid Name", address: "a".repeat(201) }).success,
+		).toBe(false);
 	});
 });
 

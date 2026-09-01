@@ -39,7 +39,7 @@ export function LoginForm() {
 	};
 
 	return (
-		<div className="w-full max-w-[450px] glass-card rounded-xl p-8 md:p-10 shadow-2xl animate-fade-in relative z-10 mx-auto">
+		<div className="w-full max-w-[450px] bg-surface border border-border shadow-sm rounded-xl p-8 md:p-10 shadow-2xl animate-fade-in relative z-10 mx-auto">
 			{/* Branding */}
 			<div className="flex flex-col items-center mb-8">
 				<div className="w-16 h-16 bg-primary rounded-xl flex items-center justify-center mb-4 shadow-lg shadow-primary/20">
@@ -161,8 +161,8 @@ export function LoginForm() {
 			</form>
 
 			{/* Footer Link */}
-			<div className="mt-8 pt-6 border-t border-slate-200 dark:border-white/10 text-center">
-				<p className="text-sm text-slate-600 dark:text-slate-400">
+			<div className="mt-8 pt-6 border-t border-border border-border text-center">
+				<p className="text-sm text-foreground-muted">
 					¿No tienes cuenta?{" "}
 					<Link
 						href="/register"

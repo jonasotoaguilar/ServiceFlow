@@ -68,10 +68,10 @@ export async function cleanupE2EUsers(): Promise<void> {
 
 	const userIds = users.map((u) => u.id);
 
-	// Delete in order: location_logs → services → locations → users
+	// Delete in order: service_events → services → locations → users
 	for (const uid of userIds) {
-		const logs = await listAll(token, "location_logs", `userId = "${uid}"`);
-		for (const r of logs) await deleteRecord(token, "location_logs", r.id);
+		const logs = await listAll(token, "service_events", `userId = "${uid}"`);
+		for (const r of logs) await deleteRecord(token, "service_events", r.id);
 	}
 	for (const uid of userIds) {
 		const services = await listAll(token, "services", `userId = "${uid}"`);
