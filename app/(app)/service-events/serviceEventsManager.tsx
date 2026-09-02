@@ -2,8 +2,20 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { getServiceEvents } from "@/app/actions/service-events";
-import { ChevronLeft, ChevronRight, ChevronDown, X, FileText } from "lucide-react";
+import {
+	ChevronLeft,
+	ChevronRight,
+	ChevronDown,
+	X,
+	Clock,
+	CheckCircle,
+	ArrowLeftRight,
+	RefreshCw,
+	FilePlus,
+} from "lucide-react";
 import { formatEntryDate } from "@/lib/format-date";
+import { Skeleton } from "boneyard-js/react";
+import { PageEmptyState } from "@/components/ui/page-empty-state";
 
 type ServiceEventType = {
 	id: string;
@@ -36,18 +48,41 @@ function displayStatus(s: string): string {
 	return s;
 }
 
+function kindBadge(kind: string) {
+	if (kind === "location_changed")
+		return (
+			<span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-sm font-medium bg-surface-muted text-foreground-muted border border-border">
+				<ArrowLeftRight className="w-3 h-3" /> Cambio sede
+			</span>
+		);
+	if (kind === "status_changed")
+		return (
+			<span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-sm font-medium bg-ready-bg text-ready-fg border border-ready-border">
+				<RefreshCw className="w-3 h-3" /> Cambio estado
+			</span>
+		);
+	return (
+		<span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-sm font-medium bg-pending-bg text-pending-fg border border-pending-border">
+			<FilePlus className="w-3 h-3" /> Creación
+		</span>
+	);
+}
+
 export default function ServiceEventsManager({
 	initialLogs,
 	initialTotal,
+	initialError = null,
 	locations,
 }: Readonly<{
 	initialLogs: ServiceEventType[];
 	initialTotal: number;
+	initialError?: string | null;
 	locations: LocationType[];
 }>) {
 	const [logs, setLogs] = useState<ServiceEventType[]>(initialLogs);
 	const [total, setTotal] = useState(initialTotal);
 	const [loading, setLoading] = useState(false);
+	const [fetchError, setFetchError] = useState<string | null>(initialError);
 	const [page, setPage] = useState(1);
 	const [startDate, setStartDate] = useState("");
 	const [endDate, setEndDate] = useState("");
@@ -64,20 +99,25 @@ export default function ServiceEventsManager({
 
 	const fetchLogs = useCallback(async () => {
 		setLoading(true);
+		setFetchError(null);
 		try {
-			const params: any = { page, limit };
+			const params: Record<string, unknown> = { page, limit };
 			if (startDate) params.startDate = startDate;
 			if (endDate) params.endDate = endDate;
 			if (locationFilter) params.locationId = locationFilter;
 			if (kindFilter) params.kind = kindFilter;
 			if (statusFilter) params.status = statusFilter;
-			const result = await getServiceEvents(params);
-			if (result.data) {
-				setLogs(result.data);
-				setTotal(result.total || 0);
+			const result = await getServiceEvents(params as any);
+			if ((result as any).error) {
+				setFetchError((result as any).error as string);
+			} else if ((result as any).data) {
+				setLogs((result as any).data);
+				setTotal((result as any).total || 0);
+				setFetchError(null);
 			}
 		} catch (error) {
 			console.error("Error fetching service events:", error);
+			setFetchError("Error al cargar historial de movimientos");
 		} finally {
 			setLoading(false);
 		}
@@ -114,36 +154,37 @@ export default function ServiceEventsManager({
 		setPage(1);
 	};
 
+	const hasActiveFilters =
+		!!startDate || !!endDate || !!locationFilter || !!kindFilter || !!statusFilter;
+	const emptyMode: "true-empty" | "filtered" = hasActiveFilters ? "filtered" : "true-empty";
+	const handleEmptyAction = () => {
+		if (emptyMode === "filtered") clearFilters();
+		else {
+			// true-empty create action — stay Spanish, no navigation side-effect in test
+			clearFilters();
+		}
+	};
+
 	return (
-		<div>
-			<header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6">
-				<div className="space-y-2">
-					<h1 className="text-3xl font-bold text-foreground tracking-tight relative w-fit">
-						Registro
-						<span className="absolute bottom-0 left-0 w-1/3 h-1 bg-linear-to-r from-primary to-transparent rounded-full -mb-2" />
-					</h1>
-					<p className="text-foreground-muted pt-3 text-lg max-w-2xl">
-						Registro detallado de flujo de servicios y logística en tiempo real.
+		<div className="space-y-6">
+			{/* Headline band — Registro · count (same rhythm as Dashboard) */}
+			<div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+				<div className="min-w-0">
+					<h2 className="text-2xl font-semibold text-foreground">Registro</h2>
+					<p className="text-sm font-mono text-foreground-muted">
+						{total} registros · historial operativo
 					</p>
 				</div>
-				<div className="bg-surface border border-border shadow-sm p-5 border-l-4 border-primary flex items-center gap-4 min-w-55">
-					<div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-						<FileText className="w-6 h-6 text-primary" />
-					</div>
-					<div>
-						<p className="text-xs font-bold text-foreground-muted uppercase tracking-widest mb-0.5">
-							Total Registro
-						</p>
-						<p className="text-2xl font-bold text-foreground">{total.toLocaleString()}</p>
-					</div>
+				<div className="text-sm text-foreground-muted font-mono">
+					{page} / {totalPages}
 				</div>
-			</header>
+			</div>
 
-			<div className="bg-surface border border-border shadow-sm p-6 mb-8">
-				<h2 className="flex items-center gap-2 text-primary font-semibold text-sm mb-4">
+			{/* Filter strip — visible at all widths, border-y low not card */}
+			<div className="border-y border-border bg-surface/50 px-4 py-3 mb-6 w-full box-border">
+				<h2 className="flex items-center gap-2 text-foreground font-semibold text-sm mb-3">
 					FILTROS DE BÚSQUEDA
 				</h2>
-
 				<div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
 					<div>
 						<label htmlFor="startDate" className="block text-sm font-medium text-foreground mb-2">
@@ -155,7 +196,7 @@ export default function ServiceEventsManager({
 							value={startDate}
 							max={endDate || undefined}
 							onChange={(e) => setStartDate(e.target.value)}
-							className="w-full bg-surface border border-border rounded-lg px-4 py-2.5 text-foreground focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none"
+							className="w-full bg-surface border border-border rounded-sm px-4 py-2.5 text-sm text-foreground focus:ring-2 focus:ring-focus focus:border-focus outline-none"
 						/>
 					</div>
 					<div>
@@ -168,7 +209,7 @@ export default function ServiceEventsManager({
 							value={endDate}
 							min={startDate || undefined}
 							onChange={(e) => setEndDate(e.target.value)}
-							className="w-full bg-surface border border-border rounded-lg px-4 py-2.5 text-foreground focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none"
+							className="w-full bg-surface border border-border rounded-sm px-4 py-2.5 text-sm text-foreground focus:ring-2 focus:ring-focus focus:border-focus outline-none"
 						/>
 					</div>
 					<div>
@@ -178,7 +219,7 @@ export default function ServiceEventsManager({
 								onClick={() => setShowKindDropdown(!showKindDropdown)}
 								aria-expanded={showKindDropdown}
 								aria-haspopup="listbox"
-								className="w-full flex items-center gap-2 px-4 py-2.5 rounded-lg bg-surface border border-border text-foreground hover:bg-surface-muted transition-all justify-between"
+								className="w-full flex items-center gap-2 px-4 py-2.5 rounded-sm bg-surface border border-border text-foreground hover:bg-surface-muted justify-between text-sm"
 							>
 								<span className="text-sm font-medium">
 									{kindFilter
@@ -190,17 +231,17 @@ export default function ServiceEventsManager({
 										: "Todos"}
 								</span>
 								<ChevronDown
-									className={`w-4 h-4 transition-transform ${showKindDropdown ? "rotate-180" : ""}`}
+									className={`w-4 h-4 transition-transform duration-150 ${showKindDropdown ? "rotate-180" : ""}`}
 								/>
 							</button>
 							{showKindDropdown && (
-								<div className="absolute top-full mt-2 w-full bg-surface border border-border rounded-lg shadow-xl z-50 overflow-hidden">
+								<div className="absolute top-full mt-2 w-full bg-surface border border-border rounded-sm shadow-xl z-50 overflow-hidden">
 									<button
 										onClick={() => {
 											setKindFilter("");
 											setShowKindDropdown(false);
 										}}
-										className={`w-full px-4 py-2.5 text-left text-sm ${kindFilter === "" ? "bg-primary text-foreground" : "text-foreground hover:bg-surface-muted"}`}
+										className={`w-full px-4 py-2.5 text-left text-sm ${kindFilter === "" ? "bg-primary text-on-primary" : "text-foreground hover:bg-surface-muted"}`}
 									>
 										Todos
 									</button>
@@ -209,7 +250,7 @@ export default function ServiceEventsManager({
 											setKindFilter("created");
 											setShowKindDropdown(false);
 										}}
-										className={`w-full px-4 py-2.5 text-left text-sm ${kindFilter === "created" ? "bg-primary text-foreground" : "text-foreground hover:bg-surface-muted"}`}
+										className={`w-full px-4 py-2.5 text-left text-sm ${kindFilter === "created" ? "bg-primary text-on-primary" : "text-foreground hover:bg-surface-muted"}`}
 									>
 										Creación
 									</button>
@@ -218,7 +259,7 @@ export default function ServiceEventsManager({
 											setKindFilter("location_changed");
 											setShowKindDropdown(false);
 										}}
-										className={`w-full px-4 py-2.5 text-left text-sm ${kindFilter === "location_changed" ? "bg-primary text-foreground" : "text-foreground hover:bg-surface-muted"}`}
+										className={`w-full px-4 py-2.5 text-left text-sm ${kindFilter === "location_changed" ? "bg-primary text-on-primary" : "text-foreground hover:bg-surface-muted"}`}
 									>
 										Cambio sede
 									</button>
@@ -227,7 +268,7 @@ export default function ServiceEventsManager({
 											setKindFilter("status_changed");
 											setShowKindDropdown(false);
 										}}
-										className={`w-full px-4 py-2.5 text-left text-sm ${kindFilter === "status_changed" ? "bg-primary text-foreground" : "text-foreground hover:bg-surface-muted"}`}
+										className={`w-full px-4 py-2.5 text-left text-sm ${kindFilter === "status_changed" ? "bg-primary text-on-primary" : "text-foreground hover:bg-surface-muted"}`}
 									>
 										Cambio estado
 									</button>
@@ -242,23 +283,23 @@ export default function ServiceEventsManager({
 								onClick={() => setShowStatusDropdown(!showStatusDropdown)}
 								aria-expanded={showStatusDropdown}
 								aria-haspopup="listbox"
-								className="w-full flex items-center gap-2 px-4 py-2.5 rounded-lg bg-surface border border-border text-foreground hover:bg-surface-muted transition-all justify-between"
+								className="w-full flex items-center gap-2 px-4 py-2.5 rounded-sm bg-surface border border-border text-foreground hover:bg-surface-muted justify-between text-sm"
 							>
 								<span className="text-sm font-medium">
 									{statusFilter ? displayStatus(statusFilter) : "Todos Estado"}
 								</span>
 								<ChevronDown
-									className={`w-4 h-4 transition-transform ${showStatusDropdown ? "rotate-180" : ""}`}
+									className={`w-4 h-4 transition-transform duration-150 ${showStatusDropdown ? "rotate-180" : ""}`}
 								/>
 							</button>
 							{showStatusDropdown && (
-								<div className="absolute top-full mt-2 w-full bg-surface border border-border rounded-lg shadow-xl z-50 overflow-hidden">
+								<div className="absolute top-full mt-2 w-full bg-surface border border-border rounded-sm shadow-xl z-50 overflow-hidden">
 									<button
 										onClick={() => {
 											setStatusFilter("");
 											setShowStatusDropdown(false);
 										}}
-										className={`w-full px-4 py-2.5 text-left text-sm ${statusFilter === "" ? "bg-primary text-foreground" : "text-foreground hover:bg-surface-muted"}`}
+										className={`w-full px-4 py-2.5 text-left text-sm ${statusFilter === "" ? "bg-primary text-on-primary" : "text-foreground hover:bg-surface-muted"}`}
 									>
 										Todos
 									</button>
@@ -269,7 +310,7 @@ export default function ServiceEventsManager({
 												setStatusFilter(s);
 												setShowStatusDropdown(false);
 											}}
-											className={`w-full px-4 py-2.5 text-left text-sm ${statusFilter === s ? "bg-primary text-foreground" : "text-foreground hover:bg-surface-muted"}`}
+											className={`w-full px-4 py-2.5 text-left text-sm ${statusFilter === s ? "bg-primary text-on-primary" : "text-foreground hover:bg-surface-muted"}`}
 										>
 											{displayStatus(s)}
 										</button>
@@ -291,23 +332,23 @@ export default function ServiceEventsManager({
 									onClick={() => setShowLocationDropdown(!showLocationDropdown)}
 									aria-expanded={showLocationDropdown}
 									aria-haspopup="listbox"
-									className="w-full flex items-center gap-2 px-4 py-2.5 rounded-lg bg-surface border border-border text-foreground hover:bg-surface-muted transition-all justify-between"
+									className="w-full flex items-center gap-2 px-4 py-2.5 rounded-sm bg-surface border border-border text-foreground hover:bg-surface-muted justify-between text-sm"
 								>
 									<span className="text-sm font-medium">
 										{locations.find((l) => l.id === locationFilter)?.name || "Todas las sedes"}
 									</span>
 									<ChevronDown
-										className={`w-4 h-4 transition-transform ${showLocationDropdown ? "rotate-180" : ""}`}
+										className={`w-4 h-4 transition-transform duration-150 ${showLocationDropdown ? "rotate-180" : ""}`}
 									/>
 								</button>
 								{showLocationDropdown && (
-									<div className="absolute top-full mt-2 w-full bg-surface-muted border border-border rounded-lg shadow-xl z-50 overflow-hidden">
+									<div className="absolute top-full mt-2 w-full bg-surface border border-border rounded-sm shadow-xl z-50 overflow-hidden">
 										<button
 											onClick={() => {
 												setLocationFilter("");
 												setShowLocationDropdown(false);
 											}}
-											className={`w-full px-4 py-2.5 text-left text-sm transition-colors ${locationFilter === "" ? "bg-primary text-foreground" : "text-foreground hover:bg-surface-muted"}`}
+											className={`w-full px-4 py-2.5 text-left text-sm ${locationFilter === "" ? "bg-primary text-on-primary" : "text-foreground hover:bg-surface-muted"}`}
 										>
 											Todas las sedes
 										</button>
@@ -318,7 +359,7 @@ export default function ServiceEventsManager({
 													setLocationFilter(loc.id);
 													setShowLocationDropdown(false);
 												}}
-												className={`w-full px-4 py-2.5 text-left text-sm transition-colors ${locationFilter === loc.id ? "bg-primary text-foreground" : "text-foreground hover:bg-surface-muted"}`}
+												className={`w-full px-4 py-2.5 text-left text-sm ${locationFilter === loc.id ? "bg-primary text-on-primary" : "text-foreground hover:bg-surface-muted"}`}
 											>
 												{loc.name}
 											</button>
@@ -331,7 +372,7 @@ export default function ServiceEventsManager({
 							<button
 								onClick={clearFilters}
 								disabled={!startDate && !endDate && !locationFilter && !kindFilter && !statusFilter}
-								className="min-h-11 min-w-11 p-2.5 rounded-lg border border-border text-foreground-muted hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+								className="min-h-11 min-w-11 p-2.5 rounded-sm border border-border text-foreground-muted hover:bg-surface-muted disabled:opacity-50 disabled:cursor-not-allowed"
 								title="Limpiar filtros"
 								aria-label="Limpiar filtros"
 							>
@@ -342,207 +383,267 @@ export default function ServiceEventsManager({
 				</div>
 			</div>
 
-			<div className="bg-surface border border-border shadow-sm rounded-xl overflow-hidden mb-8">
+			<Skeleton
+				name="service-events-list"
+				loading={loading && logs.length === 0 && !fetchError}
+				color="var(--color-skeleton-base)"
+				darkColor="var(--color-skeleton-base)"
+				animate="shimmer"
+				select="container"
+			>
 				<div
-					className="hidden md:block overflow-x-auto custom-scrollbar"
-					data-testid="service-events-table-desktop"
+					className="bg-surface border border-border rounded-sm overflow-hidden relative"
+					aria-busy={loading}
+					aria-live="polite"
 				>
-					<table className="w-full text-left border-collapse">
-						<thead>
-							<tr className="bg-surface-muted border-b border-border">
-								<th className="px-6 py-4 text-xs font-bold text-foreground-muted uppercase tracking-widest">
-									Tipo
-								</th>
-								<th className="px-6 py-4 text-xs font-bold text-foreground-muted uppercase tracking-widest">
-									N° Boleta
-								</th>
-								<th className="px-6 py-4 text-xs font-bold text-foreground-muted uppercase tracking-widest">
-									Producto / Cliente
-								</th>
-								<th className="px-6 py-4 text-xs font-bold text-foreground-muted uppercase tracking-widest">
-									Origen
-								</th>
-								<th className="px-6 py-4 text-xs font-bold text-foreground-muted uppercase tracking-widest">
-									Destino
-								</th>
-								<th className="px-6 py-4 text-xs font-bold text-foreground-muted uppercase tracking-widest">
-									Fecha / Hora
-								</th>
-								<th className="px-6 py-4 text-xs font-bold text-foreground-muted uppercase tracking-widest hidden md:table-cell">
-									Actor
-								</th>
-							</tr>
-						</thead>
-						<tbody className="divide-y divide-border">
-							{logs.map((log) => {
-								const kind = (log.kind ?? "created") as string;
-								const isLocation = kind === "location_changed";
-								const isStatus = kind === "status_changed";
-								const isCreated = kind === "created";
-								const fromLabel = isLocation
-									? log.fromLocation || log.fromLocationId || ""
-									: isStatus
-										? displayStatus(log.fromStatus ?? "")
-										: isCreated
-											? ""
-											: displayStatus(log.fromStatus ?? "");
-								const toLabel = isLocation
-									? log.toLocation || log.toLocationId || ""
-									: isStatus
-										? displayStatus(log.toStatus ?? "")
-										: isCreated
-											? log.toLocation || log.fromLocation || ""
-											: displayStatus(log.toStatus ?? "");
-								return (
-									<tr key={log.id} className="hover:bg-surface-muted transition-colors group">
-										<td className="px-6 py-4">
-											<span
-												className={`inline-flex px-2.5 py-1 rounded-full text-xs font-bold border uppercase tracking-wider ${isLocation ? "bg-surface-muted text-foreground-muted border-border" : isStatus ? "bg-ready-bg text-ready-fg border-ready-border" : "bg-pending-bg text-pending-fg border-pending-border"}`}
-											>
-												{isLocation ? "Cambio sede" : isStatus ? "Cambio estado" : "Creación"}
-											</span>
-										</td>
-										<td className="px-6 py-4">
-											<span className="text-primary font-semibold text-sm">
-												#{log.invoiceNumber}
-											</span>
-										</td>
-										<td className="px-6 py-4">
-											<div>
-												<p className="font-semibold text-foreground text-sm truncate max-w-[150px] flex flex-wrap">
-													{log.product}
-												</p>
-												<p className="text-xs text-foreground-muted mt-0.5 truncate">
-													{log.clientName}
-												</p>
-											</div>
-										</td>
-										<td className="px-6 py-4">
-											<span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-surface-muted text-foreground border border-border truncate max-w-[120px]">
-												{fromLabel || "—"}
-											</span>
-										</td>
-										<td className="px-6 py-4">
-											<span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-completed-bg text-completed-fg border border-completed-border truncate max-w-[120px]">
-												{toLabel || "—"} {toLabel === "Entregada" ? "Entregada" : ""}
-											</span>
-										</td>
-										<td className="px-6 py-4">
-											<div className="text-sm">
-												<p className="text-foreground font-medium">
-													{formatEntryDate(log.changedAt)}
-												</p>
-												<p className="text-xs text-foreground-muted mt-0.5">
-													{(log.changedAt.split("T")[1] ?? log.changedAt.split(" ")[1] ?? "").slice(
-														0,
-														5,
-													)}
-												</p>
-											</div>
-										</td>
-										<td className="px-6 py-4 hidden md:table-cell">
-											<span className="text-xs font-mono text-foreground-muted truncate">
-												{log.actorId ?? ""}
-											</span>
-										</td>
-									</tr>
-								);
-							})}
-							{logs.length === 0 && !loading && (
-								<tr>
-									<td colSpan={7} className="px-6 py-16 text-center text-foreground-subtle italic">
-										No se encontraron registros en este periodo.
-									</td>
-								</tr>
-							)}
-						</tbody>
-					</table>
-				</div>
-				<div className="md:hidden p-3 space-y-3" data-testid="service-events-mobile-list">
-					{logs.map((log) => {
-						const k = (log.kind ?? "created") as string;
-						const isL = k === "location_changed";
-						const isS = k === "status_changed";
-						const b = isL ? "Cambio sede" : isS ? "Cambio estado" : "Creación";
-						const f = isL
-							? log.fromLocation || log.fromLocationId || ""
-							: isS
-								? displayStatus(log.fromStatus ?? "")
-								: "";
-						const t2 = isL
-							? log.toLocation || log.toLocationId || ""
-							: isS
-								? displayStatus(log.toStatus ?? "")
-								: log.toLocation || log.fromLocation || "";
-						return (
-							<div
-								key={log.id}
-								data-testid="service-event-card-mobile"
-								className="bg-surface border rounded-xl p-3 flex flex-col gap-2"
-							>
-								<div className="flex justify-between">
-									<span className="text-xs font-bold px-2 py-1 rounded-full border">{b}</span>
-									<span className="text-primary text-sm">#{log.invoiceNumber}</span>
-								</div>
-								<div className="flex gap-1 text-xs">
-									<span>
-										{f || "—"} → {t2 || "—"}
-									</span>
-									<span className="ml-auto">
-										{formatEntryDate(log.changedAt)}{" "}
-										{(log.changedAt.split("T")[1] ?? log.changedAt.split(" ")[1] ?? "").slice(0, 5)}
-									</span>
-								</div>
-								<p className="text-[10px] font-mono truncate">{log.actorId ?? ""}</p>
-							</div>
-						);
-					})}
-					{logs.length === 0 && !loading && (
-						<p className="text-center italic py-4">No se encontraron registros.</p>
+					{loading && logs.length > 0 && (
+						<div
+							className="absolute inset-0 bg-surface/60 pointer-events-none transition-opacity duration-150"
+							aria-hidden="true"
+						/>
 					)}
-				</div>
-				<div className="px-6 py-4 bg-surface-muted border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4">
-					<p className="text-sm text-foreground-muted">
-						Mostrando{" "}
-						<span className="text-foreground font-medium">
-							{logs.length === 0 ? 0 : (page - 1) * limit + 1}-{Math.min(page * limit, total)}
-						</span>{" "}
-						de <span className="text-foreground font-medium">{total}</span> resultados
-					</p>
-					<div className="flex gap-2">
-						<button
-							onClick={() => setPage((p) => Math.max(1, p - 1))}
-							disabled={page === 1}
-							className="p-2 rounded-lg border border-border text-foreground-muted hover:bg-surface-muted disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-						>
-							<ChevronLeft className="w-4 h-4" />
-						</button>
-						<div className="flex items-center gap-1">
-							{Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-								let p = i + 1;
-								if (totalPages > 5 && page > 3) p = page - 2 + i;
-								if (p > totalPages) return null;
-								return (
-									<button
-										key={p}
-										onClick={() => setPage(p)}
-										className={`px-3 py-1 rounded-lg text-sm font-medium transition-all ${p === page ? "bg-primary text-foreground" : "text-foreground-muted hover:bg-surface-muted"}`}
-									>
-										{p}
-									</button>
-								);
-							})}
+					{fetchError ? (
+						<div className="flex flex-col items-center justify-center py-16 gap-4">
+							<p className="text-sm text-foreground-muted">
+								Error al cargar historial de movimientos
+							</p>
+							<p className="text-sm text-foreground-subtle">{fetchError}</p>
+							<button
+								onClick={() => fetchLogs()}
+								className="px-4 py-2 rounded-sm bg-primary text-on-primary text-sm font-medium"
+							>
+								Reintentar
+							</button>
 						</div>
-						<button
-							onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-							disabled={page === totalPages}
-							className="p-2 rounded-lg border border-border text-foreground-muted hover:bg-surface-muted disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-						>
-							<ChevronRight className="w-4 h-4" />
-						</button>
+					) : logs.length === 0 && !loading ? (
+						<div className="p-4">
+							{emptyMode === "filtered" ? (
+								<PageEmptyState
+									title="Sin resultados para los filtros"
+									description="No se encontraron registros con los filtros aplicados. Ajusta los filtros para ver más resultados."
+									actionLabel="Limpiar filtros"
+									onAction={handleEmptyAction}
+								/>
+							) : (
+								<PageEmptyState
+									title="No hay registros"
+									description="Aún no hay eventos registrados. Crea un nuevo servicio para comenzar."
+									actionLabel="Nuevo servicio"
+									onAction={handleEmptyAction}
+								/>
+							)}
+						</div>
+					) : (
+						<>
+							<div
+								className="hidden md:block custom-scrollbar"
+								data-testid="service-events-table-desktop"
+							>
+								<table className="w-full text-left border-collapse">
+									<thead>
+										<tr className="bg-surface-muted border-b border-border">
+											<th className="px-4 py-3 text-sm font-medium text-foreground-muted">Tipo</th>
+											<th className="px-4 py-3 text-sm font-medium text-foreground-muted">
+												Boleta
+											</th>
+											<th className="px-4 py-3 text-sm font-medium text-foreground-muted">
+												Origen
+											</th>
+											<th className="px-4 py-3 text-sm font-medium text-foreground-muted">
+												Destino
+											</th>
+											<th className="px-4 py-3 text-sm font-medium text-foreground-muted">Fecha</th>
+											<th className="px-4 py-3 text-sm font-medium text-foreground-muted">
+												Estado
+											</th>
+										</tr>
+									</thead>
+									<tbody className="divide-y divide-border">
+										{logs.map((log) => {
+											const kind = (log.kind ?? "created") as string;
+											const isLocation = kind === "location_changed";
+											const isStatus = kind === "status_changed";
+											const isCreated = kind === "created";
+											const fromLabel = isLocation
+												? log.fromLocation || log.fromLocationId || ""
+												: isStatus
+													? displayStatus(log.fromStatus ?? "")
+													: isCreated
+														? ""
+														: displayStatus(log.fromStatus ?? "");
+											const toLabel = isLocation
+												? log.toLocation || log.toLocationId || ""
+												: isStatus
+													? displayStatus(log.toStatus ?? "")
+													: isCreated
+														? log.toLocation || log.fromLocation || ""
+														: displayStatus(log.toStatus ?? "");
+											const statusLabel = isStatus
+												? displayStatus(log.toStatus ?? log.fromStatus ?? "")
+												: log.product
+													? log.product.slice(0, 20)
+													: "—";
+											return (
+												<tr
+													key={log.id}
+													className="hover:bg-surface-muted transition-opacity duration-150"
+												>
+													<td className="px-4 py-3">{kindBadge(kind)}</td>
+													<td className="px-4 py-3">
+														<span className="font-mono text-primary font-semibold text-sm bg-primary/10 px-2 py-1 rounded-sm w-[12ch] inline-block">
+															#{log.invoiceNumber || "S/N"}
+														</span>
+													</td>
+													<td className="px-4 py-3">
+														<span className="inline-flex items-center gap-1 px-2 py-1 rounded-sm text-sm border bg-surface-muted text-foreground-muted font-mono w-[14ch] truncate">
+															{fromLabel || "—"}
+														</span>
+													</td>
+													<td className="px-4 py-3">
+														<span className="inline-flex items-center gap-1 px-2 py-1 rounded-sm text-sm border bg-surface-muted text-foreground-muted font-mono w-[14ch] truncate">
+															{toLabel || "—"}
+														</span>
+													</td>
+													<td className="px-4 py-3 text-sm font-mono text-foreground-muted w-[12ch]">
+														{formatEntryDate(log.changedAt)}
+													</td>
+													<td className="px-4 py-3">
+														<span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-sm font-medium bg-surface-muted text-foreground-muted border border-border">
+															<Clock className="w-3 h-3" />
+															{isStatus
+																? statusLabel
+																: kind === "created"
+																	? "Creación"
+																	: "Registro"}
+														</span>
+													</td>
+												</tr>
+											);
+										})}
+									</tbody>
+								</table>
+							</div>
+							<div
+								className="md:hidden space-y-3 p-4 flex flex-col gap-4"
+								data-testid="service-events-mobile-list"
+							>
+								{logs.map((log) => {
+									const k = (log.kind ?? "created") as string;
+									const isL = k === "location_changed";
+									const isS = k === "status_changed";
+									const badge = isL ? "Cambio sede" : isS ? "Cambio estado" : "Creación";
+									const f = isL
+										? log.fromLocation || log.fromLocationId || ""
+										: isS
+											? displayStatus(log.fromStatus ?? "")
+											: "";
+									const t2 = isL
+										? log.toLocation || log.toLocationId || ""
+										: isS
+											? displayStatus(log.toStatus ?? "")
+											: log.toLocation || log.fromLocation || "";
+									return (
+										<div
+											key={log.id}
+											data-testid="service-event-card-mobile"
+											className="bg-surface border border-border rounded-sm p-4 flex flex-col gap-4 transition-opacity duration-150"
+										>
+											<div className="flex justify-between items-start gap-2">
+												<span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-sm font-medium border bg-surface-muted">
+													{isS ? (
+														<RefreshCw className="w-3 h-3" />
+													) : isL ? (
+														<ArrowLeftRight className="w-3 h-3" />
+													) : (
+														<FilePlus className="w-3 h-3" />
+													)}
+													{badge}
+												</span>
+												<span className="font-mono text-primary font-semibold text-sm w-[12ch] truncate">
+													#{log.invoiceNumber || "S/N"}
+												</span>
+											</div>
+											<div className="grid grid-cols-2 gap-4 text-sm">
+												<div className="flex flex-col gap-1">
+													<span className="text-sm text-foreground-muted">Sede</span>
+													<span className="px-2 py-1 rounded-sm bg-surface-muted border border-border text-sm font-mono w-[14ch] truncate inline-block">
+														{f || "—"} → {t2 || "—"}
+													</span>
+												</div>
+												<div className="flex flex-col gap-1">
+													<span className="text-sm text-foreground-muted">Fecha</span>
+													<span className="font-mono text-sm w-[12ch]">
+														{formatEntryDate(log.changedAt)}
+													</span>
+												</div>
+												<div className="flex flex-col gap-1">
+													<span className="text-sm text-foreground-muted">Boleta</span>
+													<span className="font-mono text-sm w-[12ch]">
+														#{log.invoiceNumber || "S/N"}
+													</span>
+												</div>
+												<div className="flex flex-col gap-1">
+													<span className="text-sm text-foreground-muted">Estado</span>
+													<span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-sm border bg-surface-muted">
+														<CheckCircle className="w-3 h-3" />{" "}
+														{isS ? displayStatus(log.toStatus ?? "") : badge}
+													</span>
+												</div>
+											</div>
+											<div className="flex gap-2 justify-end">
+												<span className="text-sm font-mono text-foreground-subtle w-[14ch] truncate">
+													{log.actorId ?? ""}
+												</span>
+											</div>
+										</div>
+									);
+								})}
+							</div>
+						</>
+					)}
+					<div className="px-4 py-3 bg-surface-muted border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4">
+						<p className="text-sm text-foreground-muted">
+							Mostrando{" "}
+							<span className="text-foreground font-medium">
+								{logs.length === 0 ? 0 : (page - 1) * limit + 1}-{Math.min(page * limit, total)}
+							</span>{" "}
+							de <span className="text-foreground font-medium">{total}</span> resultados
+						</p>
+						<div className="flex gap-2">
+							<button
+								onClick={() => setPage((p) => Math.max(1, p - 1))}
+								disabled={page === 1}
+								className="p-2 rounded-sm border border-border text-foreground-muted hover:bg-surface-muted disabled:opacity-50 disabled:cursor-not-allowed"
+							>
+								<ChevronLeft className="w-4 h-4" />
+							</button>
+							<div className="flex items-center gap-1">
+								{Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+									let p = i + 1;
+									if (totalPages > 5 && page > 3) p = page - 2 + i;
+									if (p > totalPages) return null;
+									return (
+										<button
+											key={p}
+											onClick={() => setPage(p)}
+											className={`px-3 py-1 rounded-sm text-sm font-medium ${p === page ? "bg-primary text-on-primary" : "text-foreground-muted hover:bg-surface-muted"}`}
+										>
+											{p}
+										</button>
+									);
+								})}
+							</div>
+							<button
+								onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+								disabled={page === totalPages}
+								className="p-2 rounded-sm border border-border text-foreground-muted hover:bg-surface-muted disabled:opacity-50 disabled:cursor-not-allowed"
+							>
+								<ChevronRight className="w-4 h-4" />
+							</button>
+						</div>
 					</div>
 				</div>
-			</div>
+			</Skeleton>
 		</div>
 	);
 }
