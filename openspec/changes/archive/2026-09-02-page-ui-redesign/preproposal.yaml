@@ -1,0 +1,139 @@
+schema: gentle-ai.sdd-preproposal/v1
+revision: 3
+change: page-ui-redesign
+exploration:
+  ref: openspec/changes/page-ui-redesign/exploration.md
+  outcome: ready_for_proposal
+  status: exploration_complete_read_only
+research_request:
+  questions:
+    - id: Q1
+      question: "Compact operational UI density and hierarchy patterns that remain legible and avoid generic admin-template aesthetics."
+      status: unsupported
+    - id: Q2
+      question: "Dark-mode palette construction and WCAG contrast verification, including practical OKLCH constraints for a desaturated workshop/technical identity."
+      status: unsupported
+    - id: Q3
+      question: "Accessible exact-layout skeleton/loading patterns: aria-busy, reduced motion, shimmer fallback, and preserving populated context during refetch."
+      status: unsupported
+    - id: Q4
+      question: "Bodega Tecnica identity seed: palette direction, type pairing constraints, logo/mark principles, iconography, and motion character — supporting decisions without fabricating a finished brand."
+      status: unsupported
+  classes:
+    documentation: []
+    open_web: []
+  artifact_store: openspec
+  requested_lanes: 4
+  selection: deselected
+  selection_reason: explicit_human_decision
+  selection_date: 2026-09-01
+  selection_note: "2026-09-01 — explicit human decision in active resumed session: external/source-backed research deselected; continue to proposal using existing authenticated UI audit plus already-confirmed Bodega Tecnica product decisions. Prior blocked research outcome preserved as historical evidence (research.md revision 2, zero sources, zero validated claims)."
+admission:
+  requested:
+    documentation:
+      granted: false
+      provider: none
+      source_ids: []
+    open_web:
+      granted: false
+      provider: none
+      source_ids: []
+  observed:
+    documentation:
+      granted: false
+      provider: none
+      source_ids: []
+    open_web:
+      granted: false
+      provider: none
+      source_ids: []
+  capability_declaration: "gentle-ai.sdd-research-capability/v1"
+  denial: "all_requested_classes_denied — documentation=[]; open-web=[]; persistence tools are not evidence grants"
+  partial_evidence: false
+  inferred_capability: false
+outcome: blocked
+evidence:
+  research:
+    schema: gentle-ai.sdd-research/v1
+    revision: 2
+    outcome: blocked
+    openspec_ref: openspec/changes/page-ui-redesign/research.md
+    engram_ref: null
+    validated: true
+    all_questions_supported: false
+    persisted: true
+    sources_count: 0
+    claims_count: 0
+    admission_denied: true
+  sources: []
+product_decisions: confirmed
+product_decisions_detail:
+  status: confirmed
+  note: "Direction Bodega Tecnica (Operate+ hierarchy reform) and associated visual/IA constraints are CONFIRMED per pre-proposal handoff and supersede Taller Claro as future authority; current PRODUCT.md/DESIGN.md remain read-only during research. Relaunch 2026-09-02 preserved verbatim."
+  selection:
+    direction: "Bodega Tecnica (Operate+ hierarchy reform) — replace visual identity rather than merely correcting Taller Claro"
+    confirmed_constraints:
+      - "Preserve dark mode and verify contrast"
+      - "Separate metrics from filters; metric cards informational and non-interactive"
+      - "At 390px prioritize operational context: boleta, sede, ingreso, dias, estado, actions; product may be summarized"
+      - "Promote Registro as second primary surface after Dashboard"
+      - "Enforce 13px minimum typography floor"
+      - "Use compact operational rhythm: p-4, gap-4, 8px default radius"
+      - "Empty/error states provide contextual actions and Spanish-constant user-facing errors"
+      - "Create new brand identity/assets rather than retaining only current icon"
+    execution:
+      mode: automatic
+      artifact_store: openspec
+      delivery_strategy: auto-chain
+      review_budget: 800
+  options:
+    - id: incumbent
+      name: "Taller Claro Operacional (incumbent DESIGN.md alpha)"
+      status: superseded_as_future_authority
+      note: "Retained as read-only incumbent evidence; not authoritative for future proposal/design"
+    - id: bodega-tecnica
+      name: "Bodega Tecnica (Operate+ hierarchy reform)"
+      status: selected_confirmed
+proposal_ready: true
+proposal_handoff:
+  revision: 3
+  confirmed_decisions: true
+  evidence_refs_valid: true
+  store_ready: openspec
+  research_outcome: deselected_explicit_human_decision
+  blocked_reason: null
+  next_phase: ready_for_proposal
+  human_decision_note: "2026-09-01 — explicit human decision in active resumed session: external/source-backed research deselected; continue to proposal using existing authenticated UI audit plus already-confirmed Bodega Tecnica product decisions."
+  deselected_at: 2026-09-01
+  constraints:
+    - "Do not implement application code in research phase"
+    - "Do not fabricate brand assets or palette; proposal/design must be supported by existing audit and confirmed Bodega Tecnica constraints"
+    - "Preserve dark mode and verify contrast in future design"
+    - "Enforce 13px floor and p-4/gap-4/8px rhythm"
+    - "Keep exploration.md and research.md verbatim as historical blocked evidence"
+  recovery:
+    required_action: null
+    historical_required_action: "Re-declare gentle-ai.sdd-research-capability/v1 with exact documentation and/or open-web grants covering Q1-Q4, then re-enter sdd-research with retained intent. Do not infer capability from persistence or Bash. — preserved as historical evidence, superseded by explicit human deselection 2026-09-01"
+    retained_intent: "Four lanes (density/hierarchy, dark OKLCH/WCAG, skeleton aria-busy/reduced-motion, Bodega Tecnica identity seed) with canonical desired content preserved pre-source-access for blocked recovery"
+    canonical_desired_content: "Source-backed evidence for Bodega Tecnica supporting proposal/design without unvalidated claims"
+    superseded_by: "explicit_human_deselection_2026-09-01_resumed_session"
+freshness:
+  exploration: 2026-09-01
+  research_execution: 2026-09-02
+  relaunch_execution: 2026-09-02
+  deselected_at: 2026-09-01
+  accessed_at: null
+uncertainty:
+  - "All four lanes remain high uncertainty due to denied admission; no external authority admitted (relaunch confirmed) — preserved as historical evidence"
+  - "No freshness to report — no sources accessed"
+  - "Proposal proceeds on explicit human deselection; uncertainty is acknowledged and carried into proposal/design without fabricating source-backed claims"
+contradiction:
+  prior: null
+  evidence: null
+  resolution: "No evidence admitted, so no validated contradiction can be recorded; product decision supersession (Bodega Tecnica over Taller Claro) is separation of concerns, not evidence contradiction"
+store_validation:
+  openspec: success
+  engram: not_required_for_openspec_store
+  bytes_match: true
+  revision_match: true
+  exploration_preserved: true
