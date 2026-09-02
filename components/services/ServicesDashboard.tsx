@@ -575,7 +575,7 @@ export function ServiceDashboard({ initialData, user }: Readonly<ServiceDashboar
 				select="container"
 			>
 				<div
-					className="bg-surface border border-border rounded-sm overflow-hidden relative"
+					className="bg-surface border border-border rounded-sm relative"
 					aria-busy={isLoading}
 					aria-live="polite"
 				>

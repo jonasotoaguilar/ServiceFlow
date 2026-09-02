@@ -253,13 +253,15 @@ describe("S2b ServicesTable craft floor", () => {
 	});
 	it("390 structural stack no horizontal overflow, product may truncate, desktop full table", () => {
 		const tbl = read("components/services/ServicesTable.tsx");
-		expect(tbl).not.toMatch(/overflow-x-auto/);
+		// desktop owns overflow, not page; mobile cards truncate
 		expect(tbl).toContain("hidden md:block");
 		expect(tbl).toContain("md:hidden");
 		expect(tbl).toMatch(/boleta|sede|ingreso|días|estado|Acciones/i);
 		expect(tbl).toMatch(/truncate|max-w/);
 		expect(tbl).toContain('data-testid="services-table-desktop"');
 		expect(tbl).toContain('data-testid="services-mobile-list"');
+		// desktop table region must be scrollable, mobile must not require table scroll
+		expect(tbl).toMatch(/hidden md:block[^"]*overflow-x-auto/);
 	});
 });
 
@@ -292,6 +294,167 @@ describe("Remediation — ServicesTable desktop actions horizontal not vertical"
 		expect(slice).toContain('aria-label="Eliminar"');
 		expect(slice).toContain('data-testid="service-card-mobile"');
 		expect(slice).toContain("rounded-sm");
+	});
+});
+
+// ── Table gutter — Reachable Actions (RED 2.1) ──
+describe("Table gutter — reachable actions across desktop and mobile (unit-2)", () => {
+	it("desktop table region owns overflow-x-auto custom-scrollbar, not page", () => {
+		const tbl = read("components/services/ServicesTable.tsx");
+		// desktop wrapper must own horizontal overflow
+		expect(tbl).toMatch(/hidden md:block[^"]*overflow-x-auto[^"]*custom-scrollbar/);
+		expect(tbl).toMatch(/overflow-x-auto[^"]*custom-scrollbar/);
+		// table must have stable min width so columns don't collapse and Acciones stay in gutter
+		expect(tbl).toMatch(/min-w-\[.*\]|min-w-\[960px\]|min-w-\[900px\]|min-w-\[800px\]/);
+		// parent card must not clip gutter with overflow-hidden
+		const dash = read("components/services/ServicesDashboard.tsx");
+		// parent wrapper around ServiceTable should NOT be overflow-hidden (would clip right gutter)
+		// allow overflow-visible or no overflow-hidden; fail if parent still has overflow-hidden around table
+		const tableSectionIdx = dash.indexOf("<ServiceTable");
+		expect(tableSectionIdx).toBeGreaterThan(-1);
+		const beforeTable = dash.slice(Math.max(0, tableSectionIdx - 1200), tableSectionIdx);
+		expect(beforeTable).not.toMatch(/overflow-hidden/);
+		// mobile list must not be overflow-x-auto (cards handle 390/375 without table scroll)
+		expect(tbl).toContain("md:hidden");
+		expect(tbl).toContain('data-testid="services-mobile-list"');
+		// mobile wrapper class is md:hidden without overflow-x-auto
+		expect(tbl).toMatch(/md:hidden[^"]*space-y-3/);
+		expect(tbl).not.toMatch(/services-mobile-list[^"]*overflow-x-auto/);
+	});
+
+	it("desktop table has right gutter and Acciones fully reachable, not clipped", () => {
+		const tbl = read("components/services/ServicesTable.tsx");
+		// wrapper should have gutter padding or table right padding so Acciones not flush-clipped
+		// check for pr-*, overflow container padding, or min-w ensuring gutter
+		const desktopIdx = tbl.indexOf('data-testid="services-table-desktop"');
+		expect(desktopIdx).toBeGreaterThan(-1);
+		// desktop wrapper owns overflow; check whole file for hidden md:block overflow
+		expect(tbl).toMatch(/hidden md:block[^"]*overflow-x-auto[^"]*custom-scrollbar/);
+		expect(tbl).toMatch(/overflow-x-auto[^"]*custom-scrollbar/);
+		// table itself should have min-w to force overflow and create gutter
+		expect(tbl).toMatch(/<table[^>]*min-w-\[/);
+		// Acciones header and actions cell must exist in desktop table
+		expect(tbl).toContain("Acciones");
+		expect(tbl).toContain('aria-label="Editar"');
+		expect(tbl).toContain('aria-label="Eliminar"');
+		// ensure actions are in flex-row not clipped column
+		expect(tbl).toContain("flex-row");
+		// ensure header Acciones th is center and not hidden
+		expect(tbl).toMatch(/Acciones/);
+	});
+
+	it("mobile cards preserve boleta, sede, ingreso, dias, estado, actions at 390/375 without page clip", () => {
+		const tbl = read("components/services/ServicesTable.tsx");
+		const mobileIdx = tbl.indexOf('data-testid="services-mobile-list"');
+		expect(mobileIdx).toBeGreaterThan(-1);
+		const mobileSlice = tbl.slice(mobileIdx, mobileIdx + 8000);
+		expect(mobileSlice).toContain('data-testid="service-card-mobile"');
+		expect(mobileSlice).toMatch(/boleta|sede|ingreso|días|estado/i);
+		expect(mobileSlice).toContain("Sede");
+		expect(mobileSlice).toContain("Ingreso");
+		expect(mobileSlice).toContain("Días");
+		expect(mobileSlice).toContain("Estado");
+		expect(mobileSlice).toContain('aria-label="Editar"');
+		expect(mobileSlice).toContain('aria-label="Eliminar"');
+		// mobile cards must use flex-wrap and not overflow-x-auto (page-level overflow must not be required)
+		expect(mobileSlice).toContain("flex-wrap");
+		expect(tbl).toContain("md:hidden");
+		expect(mobileSlice).not.toMatch(/overflow-x-auto/);
+		// product may truncate, but essential fields stay in viewport via grid cols-2
+		expect(mobileSlice).toMatch(/grid-cols-2|truncate|max-w/);
+	});
+
+	it("rendered DOM: desktop wrapper overflow owns scroll, parent does not clip, actions reachable", async () => {
+		const { ServiceTable } = await import("@/components/services/ServicesTable");
+		const mockServices = [
+			{
+				id: "1",
+				invoiceNumber: "B-001",
+				product: "Producto de prueba con nombre largo que debe truncarse correctamente",
+				clientName: "Cliente Test",
+				rut: "20.884.087-K",
+				locationId: "loc1",
+				location: "Sede Central",
+				entryDate: new Date().toISOString(),
+				status: "pending" as const,
+				userId: "u1",
+			},
+		];
+		const { container } = render(
+			React.createElement(ServiceTable, {
+				Services: mockServices as any,
+				onEdit: () => {},
+				onView: () => {},
+				onDelete: () => {},
+				onStatusChange: () => {},
+				onTransfer: () => {},
+			}),
+		);
+		const desktop = container.querySelector('[data-testid="services-table-desktop"]');
+		expect(desktop, "desktop table region must exist").not.toBeNull();
+		expect(desktop!.className).toMatch(/overflow-x-auto/);
+		expect(desktop!.className).toMatch(/custom-scrollbar/);
+		expect(desktop!.className).toMatch(/hidden/);
+		expect(desktop!.className).toContain("md:block");
+		// table inside should have min-w for gutter
+		const table = desktop!.querySelector("table");
+		expect(table, "table must exist inside desktop wrapper").not.toBeNull();
+		expect(table!.className).toMatch(/min-w-\[/);
+		// Acciones header must be present and not clipped (th text)
+		expect(desktop!.textContent).toContain("Acciones");
+		// actions buttons must be in DOM and not hidden
+		const editBtn = desktop!.querySelector('[aria-label="Editar"]');
+		expect(editBtn, "Editar action must be reachable in desktop table").not.toBeNull();
+		const delBtn = desktop!.querySelector('[aria-label="Eliminar"]');
+		expect(delBtn).not.toBeNull();
+		// parent should not clip: check ServicesDashboard parent wrapper does not have overflow-hidden around table
+		const dashSrc = read("components/services/ServicesDashboard.tsx");
+		const tableIdx = dashSrc.indexOf("<ServiceTable");
+		const parentSlice = dashSrc.slice(Math.max(0, tableIdx - 1500), tableIdx);
+		expect(parentSlice).not.toMatch(/overflow-hidden/);
+		// prepare note: jsdom cannot prove pixel geometry at 1280/1366/1920; source/DOM ownership is the verifiable contract
+		// rendered viewport proof belongs to final verify with chrome-devtools/playwright
+	});
+
+	it("rendered DOM: mobile cards not clipped, no table scroll required at 390/375", async () => {
+		const { ServiceTable } = await import("@/components/services/ServicesTable");
+		const mock = [
+			{
+				id: "2",
+				invoiceNumber: "B-002",
+				product: "Producto",
+				clientName: "Cliente",
+				locationId: "loc1",
+				location: "Sede",
+				entryDate: new Date().toISOString(),
+				status: "ready" as const,
+				userId: "u1",
+			},
+		];
+		const { container } = render(
+			React.createElement(ServiceTable, {
+				Services: mock as any,
+				onEdit: () => {},
+				onView: () => {},
+				onDelete: () => {},
+				onStatusChange: () => {},
+				onTransfer: () => {},
+			}),
+		);
+		const mobile = container.querySelector('[data-testid="services-mobile-list"]');
+		expect(mobile).not.toBeNull();
+		expect(mobile!.className).toContain("md:hidden");
+		expect(mobile!.className).not.toMatch(/overflow-x-auto/);
+		// cards contain required fields without needing horizontal scroll
+		expect(mobile!.textContent).toMatch(/B-002|Producto/);
+		expect(mobile!.textContent).toContain("Sede");
+		expect(mobile!.textContent).toContain("Ingreso");
+		expect(mobile!.textContent).toContain("Días");
+		// actions remain reachable via flex-wrap
+		const card = mobile!.querySelector('[data-testid="service-card-mobile"]');
+		expect(card).not.toBeNull();
+		expect(card!.querySelector('[aria-label="Editar"]')).not.toBeNull();
+		expect(card!.querySelector('[aria-label="Eliminar"]')).not.toBeNull();
 	});
 });
 

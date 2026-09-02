@@ -38,8 +38,8 @@ Choose chain strategy before apply; `gh stack` only. Archive-only: `PRODUCT.md`,
 
 ## Phase 2: Reachable Actions
 
-- [ ] 2.1 RED same test: Acciones unclipped 1280/1366/1920; cards 390/375.
-- [ ] 2.2 GREEN `components/services/ServicesTable.tsx` `overflow-x-auto` + gutter; no parent clip. Check + chrome-devtools those viewports.
+- [x] 2.1 RED same test: Acciones unclipped 1280/1366/1920; cards 390/375.
+- [x] 2.2 GREEN `components/services/ServicesTable.tsx` `overflow-x-auto` + gutter; no parent clip. Check + chrome-devtools those viewports.
 
 ## Phase 3: Shell Rhythm
 

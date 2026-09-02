@@ -137,8 +137,11 @@ export function ServiceTable({
 
 	return (
 		<>
-			<div className="hidden md:block custom-scrollbar" data-testid="services-table-desktop">
-				<table className="w-full text-left border-collapse">
+			<div
+				className="hidden md:block overflow-x-auto custom-scrollbar"
+				data-testid="services-table-desktop"
+			>
+				<table className="w-full text-left border-collapse min-w-[960px]">
 					<thead>
 						<tr className="bg-surface-muted border-b border-border">
 							<th className="px-4 py-3 text-sm font-medium text-foreground-muted text-center">
