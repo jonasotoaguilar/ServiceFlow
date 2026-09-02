@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth";
 import { getServices, saveService, updateService, deleteService } from "@/lib/storage";
-import { Service } from "@/lib/types";
+import { Service, ServiceStatus } from "@/lib/types";
 import { ServiceSchema } from "@/lib/schemas";
 import { createPocketBaseClient } from "@/lib/pocketbase";
 import * as z from "zod";
@@ -21,7 +21,14 @@ export async function GET(request: Request) {
 	const location = searchParams.get("location") || undefined;
 	const sortOrder = (searchParams.get("sortOrder") as "asc" | "desc") || undefined;
 
-	const status = statusParam ? (statusParam.split(",") as any[]) : undefined;
+	const ALLOWED_STATUSES = new Set<ServiceStatus>(["pending", "ready", "completed", "cancelled"]);
+	let status: ServiceStatus[] | undefined;
+	if (statusParam) {
+		const first = statusParam.split(",")[0]?.trim() as ServiceStatus;
+		if (first && ALLOWED_STATUSES.has(first)) {
+			status = [first];
+		}
+	}
 
 	const result = await getServices({
 		page,

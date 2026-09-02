@@ -67,7 +67,7 @@ export function ServiceDashboard({ initialData, user }: Readonly<ServiceDashboar
 	);
 	const [isLoading, setIsLoading] = useState(false);
 	const [hasMounted, setHasMounted] = useState(false);
-	const [statusFilter, setStatusFilter] = useState<ServiceStatus[]>([]);
+	const [statusFilter, setStatusFilter] = useState<ServiceStatus | "">("");
 	const [showStatusDropdown, setShowStatusDropdown] = useState(false);
 	const [showLocationDropdown, setShowLocationDropdown] = useState(false);
 	const [editingService, setEditingService] = useState<Service | null>(null);
@@ -149,7 +149,7 @@ export function ServiceDashboard({ initialData, user }: Readonly<ServiceDashboar
 			params.set("page", currentPage.toString());
 			params.set("limit", "20");
 			if (searchTerm) params.set("search", searchTerm);
-			if (statusFilter.length > 0) params.set("status", statusFilter.join(","));
+			if (statusFilter) params.set("status", statusFilter);
 			if (locationFilter) params.set("location", locationFilter);
 			params.set("sortOrder", sortOrder);
 
@@ -290,21 +290,12 @@ export function ServiceDashboard({ initialData, user }: Readonly<ServiceDashboar
 		}
 	};
 
-	const toggleStatusInFilter = (status: ServiceStatus) => {
-		setStatusFilter((prev) => {
-			if (prev.includes(status)) {
-				return prev.filter((s) => s !== status);
-			}
-			return [...prev, status];
-		});
-	};
-
 	const hasActiveFilters =
-		searchTerm.length > 0 || statusFilter.length > 0 || locationFilter.length > 0;
+		searchTerm.length > 0 || statusFilter !== "" || locationFilter.length > 0;
 	const emptyMode: "true-empty" | "filtered" = hasActiveFilters ? "filtered" : "true-empty";
 	const handleClearFilters = () => {
 		setSearchTerm("");
-		setStatusFilter([]);
+		setStatusFilter("");
 		setLocationFilter("");
 	};
 	const handleEmptyAction = () => {
@@ -329,13 +320,9 @@ export function ServiceDashboard({ initialData, user }: Readonly<ServiceDashboar
 	];
 
 	const getSelectedLabel = () => {
-		if (statusFilter.length === 0) return "Todos los estados";
-		if (statusFilter.length === statusOptions.length) return "Todos los estados";
-		if (statusFilter.length === 1) {
-			const option = statusOptions.find((opt) => opt.value === statusFilter[0]);
-			return option?.label || "Filtrar por estado";
-		}
-		return `${statusFilter.length} estados selec.`;
+		if (statusFilter === "") return "Todos los estados";
+		const option = statusOptions.find((opt) => opt.value === statusFilter);
+		return option?.label || "Filtrar por estado";
 	};
 
 	return (
@@ -540,19 +527,23 @@ export function ServiceDashboard({ initialData, user }: Readonly<ServiceDashboar
 							<div className="absolute top-full mt-2 w-full bg-surface border border-border rounded-sm shadow-xl z-50 overflow-hidden">
 								<button
 									onClick={() => {
-										setStatusFilter([]);
+										setStatusFilter("");
+										setShowStatusDropdown(false);
 									}}
-									className={`w-full px-4 py-2.5 text-left text-sm transition-colors hover:bg-surface-muted flex items-center justify-between ${statusFilter.length === 0 ? "text-primary font-bold" : "text-foreground"}`}
+									className={`w-full px-4 py-2.5 text-left text-sm transition-colors hover:bg-surface-muted flex items-center justify-between ${statusFilter === "" ? "text-primary font-bold" : "text-foreground"}`}
 								>
 									<span>Todos los estados</span>
-									{statusFilter.length === 0 && <CheckCircle className="w-4 h-4" />}
+									{statusFilter === "" && <CheckCircle className="w-4 h-4" />}
 								</button>
 								{statusOptions.map((option) => {
-									const isSelected = statusFilter.includes(option.value);
+									const isSelected = statusFilter === option.value;
 									return (
 										<button
 											key={option.value}
-											onClick={() => toggleStatusInFilter(option.value)}
+											onClick={() => {
+												setStatusFilter(option.value);
+												setShowStatusDropdown(false);
+											}}
 											className="w-full px-4 py-2.5 text-left text-sm transition-colors hover:bg-surface-muted flex items-center justify-between"
 										>
 											<span
