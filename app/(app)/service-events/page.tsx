@@ -6,6 +6,8 @@ import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
+// Registro — second primary surface after Servicios
+
 export default async function ServiceEventsPage() {
 	const user = await getAuthUser();
 	if (!user) {
@@ -16,16 +18,14 @@ export default async function ServiceEventsPage() {
 		getLocations(false),
 	]);
 
-	if (logsResult.error || !logsResult.data) {
-		return (
-			<div className="p-8 text-center text-red-500">Error al cargar el historial Registro.</div>
-		);
-	}
+	const initialError =
+		typeof logsResult.error === "string" && logsResult.error.length > 0 ? logsResult.error : null;
 
 	return (
 		<ServiceEventsManager
-			initialLogs={logsResult.data}
+			initialLogs={logsResult.data || []}
 			initialTotal={logsResult.total || 0}
+			initialError={initialError}
 			locations={locationsResult.data || []}
 		/>
 	);

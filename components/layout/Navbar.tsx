@@ -6,6 +6,7 @@ import { useRef, useState, useEffect } from "react";
 import { LogOut, User, ChevronDown, Menu, X, Sun, Moon } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
 import { logout } from "@/app/actions/auth";
+import { BodegaTecnicaMark } from "@/components/brand/bodega-tecnica-mark";
 
 interface NavbarProps {
 	user?: {
@@ -41,29 +42,9 @@ export function Navbar({ user }: Readonly<NavbarProps>) {
 		<header className="border-b border-border bg-surface sticky top-0 z-40">
 			<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 				<div className="flex justify-between items-center h-16">
-					{/* Branding */}
+					{/* Branding — Bodega Técnica lockup */}
 					<div className="flex items-center gap-4">
-						<div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
-							<svg
-								className="w-6 h-6 text-on-primary"
-								fill="none"
-								viewBox="0 0 24 24"
-								stroke="currentColor"
-							>
-								<path
-									strokeLinecap="round"
-									strokeLinejoin="round"
-									strokeWidth={2}
-									d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-								/>
-							</svg>
-						</div>
-						<div>
-							<h1 className="text-xl font-bold tracking-tight text-foreground">ServiceFlow</h1>
-							<p className="text-xs text-foreground-muted font-medium">
-								Gestión servicios técnicos
-							</p>
-						</div>
+						<BodegaTecnicaMark />
 					</div>
 
 					{/* Nav Links */}
@@ -72,31 +53,31 @@ export function Navbar({ user }: Readonly<NavbarProps>) {
 							href="/dashboard"
 							className={`text-sm font-medium transition-colors ${
 								isActive("/dashboard")
-									? "text-primary border-b-2 border-primary pb-1"
+									? "text-foreground border-b-2 border-primary pb-1"
 									: "text-foreground-muted hover:text-primary"
 							}`}
 						>
 							Servicios
 						</Link>
 						<Link
-							href="/locations"
-							className={`text-sm font-medium transition-colors ${
-								isActive("/locations")
-									? "text-primary border-b-2 border-primary pb-1"
-									: "text-foreground-muted hover:text-primary"
-							}`}
-						>
-							Sedes
-						</Link>
-						<Link
 							href="/service-events"
 							className={`text-sm font-medium transition-colors ${
 								isActive("/service-events")
-									? "text-primary border-b-2 border-primary pb-1"
+									? "text-foreground border-b-2 border-primary pb-1"
 									: "text-foreground-muted hover:text-primary"
 							}`}
 						>
 							Registro
+						</Link>
+						<Link
+							href="/locations"
+							className={`text-sm font-medium transition-colors ${
+								isActive("/locations")
+									? "text-foreground border-b-2 border-primary pb-1"
+									: "text-foreground-muted hover:text-primary"
+							}`}
+						>
+							Sedes
 						</Link>
 					</nav>
 
@@ -174,39 +155,39 @@ export function Navbar({ user }: Readonly<NavbarProps>) {
 
 				{/* Mobile Navigation Menu */}
 				{isMobileMenuOpen && (
-					<div className="md:hidden py-4 border-t border-border space-y-1 bg-surface absolute top-16 left-0 right-0 shadow-2xl animate-in slide-in-from-top-5 fade-in duration-200 border-b border-border z-50">
+					<div className="md:hidden py-4 border-t border-border space-y-1 bg-surface absolute top-16 left-0 right-0 shadow-xl animate-in slide-in-from-top-5 fade-in duration-200 border-b border-border z-50">
 						<Link
 							href="/dashboard"
 							onClick={() => setIsMobileMenuOpen(false)}
-							className={`flex items-center gap-3 px-6 py-3 text-base font-medium transition-all ${
+							className={`flex items-center gap-3 px-6 py-3 text-base font-medium transition-colors ${
 								isActive("/dashboard")
-									? "bg-primary/10 text-primary border-l-4 border-primary"
-									: "text-foreground-muted hover:text-foreground hover:bg-surface-muted border-l-4 border-transparent"
+									? "bg-primary/10 text-foreground"
+									: "text-foreground-muted hover:text-foreground hover:bg-surface-muted"
 							}`}
 						>
 							Servicios
 						</Link>
 						<Link
-							href="/locations"
-							onClick={() => setIsMobileMenuOpen(false)}
-							className={`flex items-center gap-3 px-6 py-3 text-base font-medium transition-all ${
-								isActive("/locations")
-									? "bg-primary/10 text-primary border-l-4 border-primary"
-									: "text-foreground-muted hover:text-foreground hover:bg-surface-muted border-l-4 border-transparent"
-							}`}
-						>
-							Sedes
-						</Link>
-						<Link
 							href="/service-events"
 							onClick={() => setIsMobileMenuOpen(false)}
-							className={`flex items-center gap-3 px-6 py-3 text-base font-medium transition-all ${
+							className={`flex items-center gap-3 px-6 py-3 text-base font-medium transition-colors ${
 								isActive("/service-events")
-									? "bg-primary/10 text-primary border-l-4 border-primary"
-									: "text-foreground-muted hover:text-foreground hover:bg-surface-muted border-l-4 border-transparent"
+									? "bg-primary/10 text-primary"
+									: "text-foreground-muted hover:text-foreground hover:bg-surface-muted"
 							}`}
 						>
 							Registro
+						</Link>
+						<Link
+							href="/locations"
+							onClick={() => setIsMobileMenuOpen(false)}
+							className={`flex items-center gap-3 px-6 py-3 text-base font-medium transition-colors ${
+								isActive("/locations")
+									? "bg-primary/10 text-primary"
+									: "text-foreground-muted hover:text-foreground hover:bg-surface-muted"
+							}`}
+						>
+							Sedes
 						</Link>
 					</div>
 				)}

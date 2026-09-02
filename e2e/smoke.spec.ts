@@ -78,7 +78,7 @@ test("smoke: register → location → service → move → history → isolatio
 		});
 		// Ensure locations are loaded by polling modal
 		await expect(async () => {
-			await page.getByRole("button", { name: "Nuevo servicio" }).click();
+			await page.getByRole("button", { name: "Nuevo servicio" }).first().click();
 			const m = page.locator(".fixed.inset-0").last();
 			await expect(m.getByRole("heading", { name: /Nuevo servicio/ }).first()).toBeVisible({
 				timeout: 3000,
@@ -101,7 +101,7 @@ test("smoke: register → location → service → move → history → isolatio
 			await expect(m).toBeHidden({ timeout: 2000 });
 		}).toPass({ timeout: 20000, intervals: [1000, 1500] });
 
-		await page.getByRole("button", { name: "Nuevo servicio" }).click();
+		await page.getByRole("button", { name: "Nuevo servicio" }).first().click();
 		const modal = page.locator(".fixed.inset-0").last();
 		await expect(
 			modal.getByRole("heading", { name: /Nuevo servicio|Actualizar Servicio/ }).first(),
@@ -179,7 +179,9 @@ test("smoke: register → location → service → move → history → isolatio
 		await page.goto("/dashboard");
 		await expect(page.getByText(`#${invoice}`)).toBeHidden({ timeout: 5000 });
 		await expect(page.getByText(client)).toBeHidden({ timeout: 5000 });
-		await expect(page.getByText("No se encontraron registros"))
+		await expect(
+			page.getByText(/No se encontraron registros|No hay servicios registrados|Sin resultados/),
+		)
 			.toBeVisible({ timeout: 5000 })
 			.catch(async () => {});
 		await page.goto("/service-events");

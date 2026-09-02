@@ -26,6 +26,7 @@ yarn-error.log*
 .agent
 .agents
 .claude
+.sdd
 
 # Typescript
 tsconfig.tsbuildinfo

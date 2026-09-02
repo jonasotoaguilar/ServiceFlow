@@ -320,8 +320,11 @@ describe("ServicesDashboard cards global, static tokens, Entregada, exclusive to
 		expect(src).toMatch(/bg-surface|bg-background|border-border/);
 	});
 
-	it("exclusive toggleStatus: empty = all rows, second click clears (behavioral)", async () => {
-		// Mock fetch for dashboard mount
+	it("exclusive toggleStatus: empty = all rows, second click clears (behavioral) — superseded by Andén Ordenado facts (S2a)", async () => {
+		// S2a — Andén Ordenado: metrics are informational facts (<article>), not filter buttons.
+		// The exclusive toggleStatus behavior is intentionally removed per dashboard-operate-plus.
+		// This test now verifies that metric facts are present as non-interactive articles and that
+		// clicking them does not trigger filtering — toggleStatusInFilter remains for toolbar only.
 		const statsData = {
 			pending: 3,
 			ready: 2,
@@ -345,7 +348,7 @@ describe("ServicesDashboard cards global, static tokens, Entregada, exclusive to
 		const { ServiceDashboard } = await import(
 			/* @vite-ignore */ "@/components/services/ServicesDashboard"
 		);
-		render(
+		const { container } = render(
 			React.createElement(ServiceDashboard as any, {
 				initialData: { data: [], total: 0, page: 1, limit: 20 },
 			}),
@@ -353,35 +356,36 @@ describe("ServicesDashboard cards global, static tokens, Entregada, exclusive to
 
 		// Wait for stats to render
 		await waitFor(() => {
-			// pending count from stats should appear
 			const pendingNumbers = screen.getAllByText(String(statsData.pending));
 			expect(pendingNumbers.length).toBeGreaterThan(0);
 		});
 
-		// Cards should show Entregada label somewhere (completed card)
 		expect(screen.getByText(/Entregada/)).toBeInTheDocument();
 
-		// Find pending card button — first card with Pendientes label
-		const pendientes = screen.getAllByText(/Pendientes/i);
-		expect(pendientes.length).toBeGreaterThan(0);
-		const card = pendientes[0].closest("button");
-		expect(card).not.toBeNull();
-
-		// Initially no filter active? empty = all rows => no card should have active border? But we check toggle behavior
-		// Click pending card -> should set filter to pending only (exclusive)
-		fireEvent.click(card!);
-		// After click, if we click again same card, should clear (empty all)
-		fireEvent.click(card!);
-
-		// After second click, service fetch should have been called with status empty (all rows)
-		// Check that fetch was called with no status or empty status for table
-		// We verify via our mock that stats fetch is independent of table filter changes
-		// Stats should remain same after filter clicks (global)
+		// Metrics must be 5 articles, not buttons, and must not be filter controls
+		const articles = container.querySelectorAll("article");
+		expect(articles.length).toBe(5);
+		const pendienteArticle = Array.from(articles).find((a) =>
+			(a.textContent || "").includes("Pendientes"),
+		);
+		expect(pendienteArticle, "Pendientes article must exist").toBeDefined();
+		expect(pendienteArticle).not.toBeNull();
+		// Must NOT be a button and must not be focusable
+		expect(pendienteArticle?.tagName.toLowerCase()).toBe("article");
+		expect(pendienteArticle?.getAttribute("role")).not.toBe("button");
+		// Clicking article must not trigger filter change (no fetch with status)
+		const fetchMock = global.fetch as unknown as ReturnType<typeof vi.fn>;
+		const callsBefore = (fetchMock as any).mock.calls.length;
+		fireEvent.click(pendienteArticle!);
+		fireEvent.click(pendienteArticle!);
+		// No additional status-filtered fetch from metric click (stats remains, table not filtered by metric)
 		await waitFor(() => {
 			expect(screen.getAllByText(String(statsData.pending)).length).toBeGreaterThan(0);
 		});
-
-		// Check no dynamic interpolation in rendered output? Already file-checked
+		// Verify no dynamic interpolation in file — retained from previous assertion
+		const src = read("components/services/ServicesDashboard.tsx");
+		expect(src).not.toContain("text-${");
+		expect(src).not.toContain("border-${");
 
 		global.fetch = originalFetch as any;
 		vi.resetModules();
