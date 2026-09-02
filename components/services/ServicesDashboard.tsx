@@ -94,6 +94,7 @@ export function ServiceDashboard({ initialData, user }: Readonly<ServiceDashboar
 	const [nextStatus, setNextStatus] = useState<ServiceStatus>("ready");
 	const [targetLocation, setTargetLocation] = useState("");
 	const [actionError, setActionError] = useState<string | null>(null);
+	const [fetchError, setFetchError] = useState<string | null>(null);
 	const [stats, setStats] = useState({
 		pending: 0,
 		ready: 0,
@@ -142,6 +143,7 @@ export function ServiceDashboard({ initialData, user }: Readonly<ServiceDashboar
 
 	const fetchServices = useCallback(async () => {
 		setIsLoading(true);
+		setFetchError(null);
 		try {
 			const params = new URLSearchParams();
 			params.set("page", currentPage.toString());
@@ -160,9 +162,12 @@ export function ServiceDashboard({ initialData, user }: Readonly<ServiceDashboar
 				setServices(data);
 				setTotalRecords(total);
 				setTotalPages(Math.max(1, Math.ceil(total / 20)));
+			} else {
+				setFetchError("No se pudo cargar los servicios. Reintentar");
 			}
 		} catch (e) {
 			console.error("Error fetching Services", e);
+			setFetchError("No se pudo cargar los servicios. Reintentar");
 		} finally {
 			setIsLoading(false);
 		}
@@ -294,15 +299,21 @@ export function ServiceDashboard({ initialData, user }: Readonly<ServiceDashboar
 		});
 	};
 
-	const toggleStatus = (status: ServiceStatus) => {
-		setStatusFilter((prev) => {
-			if (prev.length === 1 && prev[0] === status) {
-				return []; // If only this status is selected, deselect it
-			}
-			return [status]; // Select only this status
-		});
+	const hasActiveFilters =
+		searchTerm.length > 0 || statusFilter.length > 0 || locationFilter.length > 0;
+	const emptyMode: "true-empty" | "filtered" = hasActiveFilters ? "filtered" : "true-empty";
+	const handleClearFilters = () => {
+		setSearchTerm("");
+		setStatusFilter([]);
+		setLocationFilter("");
 	};
-
+	const handleEmptyAction = () => {
+		if (emptyMode === "filtered") handleClearFilters();
+		else {
+			setEditingService(null);
+			setIsModalOpen(true);
+		}
+	};
 	// Pagination handler
 	const handlePageChange = (page: number) => {
 		if (page >= 1 && page <= totalPages) {
@@ -329,7 +340,27 @@ export function ServiceDashboard({ initialData, user }: Readonly<ServiceDashboar
 
 	return (
 		<>
-			{/* Stats Row — exact-layout skeleton on initial load (no rows yet) */}
+			{/* Headline band — Servicios + mono count + Nuevo servicio (before metrics, wraps at 390) */}
+			<div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+				<div className="min-w-0">
+					<h2 className="text-2xl font-semibold text-foreground tracking-tight">Servicios</h2>
+					<p className="text-sm font-mono text-foreground-muted">
+						{totalRecords} registros · {stats.pending} pendientes
+					</p>
+				</div>
+				<button
+					onClick={() => {
+						setEditingService(null);
+						setIsModalOpen(true);
+					}}
+					className="bg-primary hover:bg-primary-hover text-on-primary px-5 py-2.5 rounded-sm font-semibold text-sm flex items-center gap-2 shadow-sm active:scale-95 transition-opacity duration-150"
+				>
+					<Plus className="w-4 h-4" />
+					Nuevo servicio
+				</button>
+			</div>
+
+			{/* Metrics — 2 large + 3 muted facts as semantic articles, not equal tiles */}
 			<Skeleton
 				name="dashboard-stats"
 				loading={isLoading && Services.length === 0}
@@ -338,107 +369,96 @@ export function ServiceDashboard({ initialData, user }: Readonly<ServiceDashboar
 				animate="shimmer"
 				select="container"
 			>
-				<div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
-					<button
-						onClick={() => toggleStatus("pending")}
-						data-testid="card-pending"
-						className={`p-6 border-l-4 rounded-sm text-left w-full transition-all cursor-pointer bg-surface border ${statusFilter.includes("pending") ? "border-pending-border bg-pending-bg/30" : "border-border"}`}
-					>
-						<div className="flex justify-between items-start">
-							<div className="p-2 bg-pending-bg rounded-lg">
-								<Clock className="w-5 h-5 text-pending-fg" />
+				<div className="flex flex-col gap-6 mb-8">
+					<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+						<article
+							data-testid="metric-pending"
+							className="p-4 rounded-sm border bg-surface flex items-center justify-between gap-4 transition-opacity duration-150"
+						>
+							<div className="flex items-center gap-3">
+								<div className="p-2 bg-pending-bg rounded-lg">
+									<Clock className="w-5 h-5 text-pending-fg" />
+								</div>
+								<p className="text-sm font-medium text-foreground">Pendientes</p>
 							</div>
-							<span className="text-2xl font-bold text-foreground tracking-tight font-mono">
+							<span className="text-3xl font-semibold text-foreground font-mono">
 								{stats.pending}
 							</span>
-						</div>
-						<p className="text-xs font-bold text-foreground-muted uppercase tracking-widest mt-4 flex items-center gap-1">
-							<Clock className="w-3 h-3" /> Pendientes
-						</p>
-					</button>
+						</article>
 
-					<button
-						onClick={() => toggleStatus("pending")}
-						data-testid="card-upcoming"
-						className={`p-6 border-l-4 rounded-sm text-left w-full transition-all cursor-pointer bg-surface border ${statusFilter.includes("pending") ? "border-pending-border bg-pending-bg/30" : "border-border"}`}
-					>
-						<div className="flex justify-between items-start">
-							<div className="p-2 bg-pending-bg rounded-lg">
-								<AlertTriangle className="w-5 h-5 text-pending-fg" />
+						<article
+							data-testid="metric-ready"
+							className="p-4 rounded-sm border bg-surface flex items-center justify-between gap-4 transition-opacity duration-150"
+						>
+							<div className="flex items-center gap-3">
+								<div className="p-2 bg-ready-bg rounded-lg">
+									<CheckCircle className="w-5 h-5 text-ready-fg" />
+								</div>
+								<p className="text-sm font-medium text-foreground">Entregadas</p>
 							</div>
-							<span className="text-2xl font-bold text-foreground tracking-tight font-mono">
-								{stats.upcoming}
-							</span>
-						</div>
-						<p className="text-xs font-bold text-foreground-muted uppercase tracking-widest mt-4 flex items-center gap-1">
-							<AlertTriangle className="w-3 h-3" /> Por Vencer
-						</p>
-					</button>
-
-					<button
-						onClick={() => toggleStatus("pending")}
-						data-testid="card-critical"
-						className={`p-6 border-l-4 rounded-sm text-left w-full transition-all cursor-pointer bg-surface border ${statusFilter.includes("pending") ? "border-cancelled-border bg-cancelled-bg/30" : "border-border"}`}
-					>
-						<div className="flex justify-between items-start">
-							<div className="p-2 bg-cancelled-bg rounded-lg">
-								<Zap className="w-5 h-5 text-cancelled-fg" />
-							</div>
-							<span className="text-2xl font-bold text-foreground tracking-tight font-mono">
-								{stats.critical}
-							</span>
-						</div>
-						<p className="text-xs font-bold text-foreground-muted uppercase tracking-widest mt-4 flex items-center gap-1">
-							<Zap className="w-3 h-3" /> Críticos
-						</p>
-					</button>
-
-					<button
-						onClick={() => toggleStatus("ready")}
-						data-testid="card-ready"
-						className={`p-6 border-l-4 rounded-sm text-left w-full transition-all cursor-pointer bg-surface border ${statusFilter.includes("ready") || statusFilter.includes("completed") ? "border-ready-border bg-ready-bg/30" : "border-border"}`}
-					>
-						<div className="flex justify-between items-start">
-							<div className="p-2 bg-ready-bg rounded-lg">
-								<CheckCircle className="w-5 h-5 text-ready-fg" />
-							</div>
-							<span className="text-2xl font-bold text-foreground tracking-tight font-mono">
+							<span className="text-3xl font-semibold text-foreground font-mono">
 								{stats.ready + stats.completed}
 							</span>
-						</div>
-						<p className="text-xs font-bold text-foreground-muted uppercase tracking-widest mt-4 flex items-center gap-1">
-							<CheckCircle className="w-3 h-3" /> Entregadas
-						</p>
-					</button>
+						</article>
+					</div>
 
-					<button
-						onClick={() => toggleStatus("cancelled")}
-						data-testid="card-cancelled"
-						className={`p-6 border-l-4 rounded-sm text-left w-full transition-all cursor-pointer bg-surface border ${statusFilter.includes("cancelled") ? "border-cancelled-border bg-cancelled-bg/30" : "border-border"}`}
-					>
-						<div className="flex justify-between items-start">
-							<div className="p-2 bg-cancelled-bg rounded-lg">
-								<X className="w-5 h-5 text-cancelled-fg" />
+					<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+						<article
+							data-testid="metric-upcoming"
+							className="p-4 rounded-sm border bg-surface flex items-center justify-between gap-3 transition-opacity duration-150 opacity-90"
+						>
+							<div className="flex items-center gap-2">
+								<div className="p-1.5 bg-pending-bg rounded-lg">
+									<AlertTriangle className="w-4 h-4 text-pending-fg" />
+								</div>
+								<p className="text-sm font-medium text-foreground-muted">Por Vencer</p>
 							</div>
-							<span className="text-2xl font-bold text-foreground tracking-tight font-mono">
+							<span className="text-xl font-semibold text-foreground font-mono">
+								{stats.upcoming}
+							</span>
+						</article>
+
+						<article
+							data-testid="metric-critical"
+							className="p-4 rounded-sm border bg-surface flex items-center justify-between gap-3 transition-opacity duration-150 opacity-90"
+						>
+							<div className="flex items-center gap-2">
+								<div className="p-1.5 bg-cancelled-bg rounded-lg">
+									<Zap className="w-4 h-4 text-cancelled-fg" />
+								</div>
+								<p className="text-sm font-medium text-foreground-muted">Críticos</p>
+							</div>
+							<span className="text-xl font-semibold text-foreground font-mono">
+								{stats.critical}
+							</span>
+						</article>
+
+						<article
+							data-testid="metric-cancelled"
+							className="p-4 rounded-sm border bg-surface flex items-center justify-between gap-3 transition-opacity duration-150 opacity-90"
+						>
+							<div className="flex items-center gap-2">
+								<div className="p-1.5 bg-cancelled-bg rounded-lg">
+									<X className="w-4 h-4 text-cancelled-fg" />
+								</div>
+								<p className="text-sm font-medium text-foreground-muted">Canceladas</p>
+							</div>
+							<span className="text-xl font-semibold text-foreground font-mono">
 								{stats.cancelled}
 							</span>
-						</div>
-						<p className="text-xs font-bold text-foreground-muted uppercase tracking-widest mt-4 flex items-center gap-1">
-							<X className="w-3 h-3" /> Canceladas
-						</p>
-					</button>
+						</article>
+					</div>
 				</div>
 			</Skeleton>
 
-			{/* Toolbar Section */}
-			<div className="bg-surface border border-border rounded-lg p-4 mb-8">
-				<div className="flex items-center gap-3 flex-wrap">
-					{/* Search Bar */}
-					<div className="relative flex-1 min-w-[230px]">
-						<Search className="absolute left-3 top-1/2 -translate-y-1/2 text-foreground-muted w-5 h-5" />
+			{/* Toolbar strip — low border-y not card, gap-3 inside */}
+			<div className="border-y border-border bg-surface/50 px-4 py-3 mb-6 w-full box-border">
+				<div className="flex items-center gap-3 flex-wrap w-full">
+					{/* Search — full width at 390, flex at desktop */}
+					<div className="relative w-full sm:flex-1 sm:min-w-[180px]">
+						<Search className="absolute left-3 top-1/2 -translate-y-1/2 text-foreground-muted w-4 h-4" />
 						<input
-							className="w-full bg-surface border border-border rounded-sm pl-10 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-focus focus:border-focus placeholder:text-foreground-subtle text-foreground outline-none transition-all"
+							className="w-full bg-surface border border-border rounded-sm pl-9 pr-3 py-2 text-sm focus:ring-2 focus:ring-focus focus:border-focus placeholder:text-foreground-subtle text-foreground outline-none transition-colors"
 							placeholder="Buscar por boleta o cliente..."
 							type="text"
 							value={searchTerm}
@@ -449,24 +469,24 @@ export function ServiceDashboard({ initialData, user }: Readonly<ServiceDashboar
 					{/* Sort Toggle */}
 					<button
 						onClick={() => setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"))}
-						className="p-2.5 rounded-sm bg-surface border border-border text-foreground-muted hover:text-foreground hover:bg-surface-muted transition-all group relative"
+						className="p-2 rounded-sm bg-surface border border-border text-foreground-muted hover:text-foreground hover:bg-surface-muted transition-colors group relative"
 						title={sortOrder === "asc" ? "Ver más recientes primero" : "Ver más antiguos primero"}
 					>
 						{sortOrder === "asc" ? (
-							<ArrowUpNarrowWide className="w-5 h-5" />
+							<ArrowUpNarrowWide className="w-4 h-4" />
 						) : (
-							<ArrowDownWideNarrow className="w-5 h-5" />
+							<ArrowDownWideNarrow className="w-4 h-4" />
 						)}
-						<span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-[10px] font-bold text-white bg-zinc-900 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none border border-border">
+						<span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-sm font-medium text-white bg-zinc-900 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none border border-border">
 							{sortOrder === "asc" ? "Orden: Antiguos primero" : "Orden: Recientes primero"}
 						</span>
 					</button>
 
-					{/* Location Dropdown */}
-					<div className="relative" ref={locationDropdownRef}>
+					{/* Location Dropdown — compact */}
+					<div className="relative flex-1 sm:flex-none" ref={locationDropdownRef}>
 						<button
 							onClick={() => setShowLocationDropdown(!showLocationDropdown)}
-							className="flex items-center gap-2 px-4 py-2.5 rounded-sm bg-surface border border-border text-foreground hover:bg-surface-muted transition-all min-w-[200px] justify-between"
+							className="flex items-center gap-2 px-3 py-2 rounded-sm bg-surface border border-border text-foreground hover:bg-surface-muted transition-colors min-w-[140px] w-full sm:w-auto justify-between text-sm"
 						>
 							<div className="flex items-center gap-2">
 								<MapPin className="w-4 h-4 text-foreground-muted" />
@@ -505,11 +525,11 @@ export function ServiceDashboard({ initialData, user }: Readonly<ServiceDashboar
 						)}
 					</div>
 
-					{/* Status Filter Dropdown */}
-					<div className="relative" ref={statusDropdownRef}>
+					{/* Status Filter Dropdown — compact */}
+					<div className="relative flex-1 sm:flex-none" ref={statusDropdownRef}>
 						<button
 							onClick={() => setShowStatusDropdown(!showStatusDropdown)}
-							className="flex items-center gap-2 px-4 py-2.5 rounded-sm bg-surface border border-border text-foreground hover:bg-surface-muted transition-all min-w-[200px] justify-between"
+							className="flex items-center gap-2 px-3 py-2 rounded-sm bg-surface border border-border text-foreground hover:bg-surface-muted transition-colors min-w-[140px] w-full sm:w-auto justify-between text-sm"
 						>
 							<span className="text-sm font-medium">{getSelectedLabel()}</span>
 							<ChevronDown
@@ -538,7 +558,7 @@ export function ServiceDashboard({ initialData, user }: Readonly<ServiceDashboar
 											<span
 												className={
 													isSelected
-														? `${option.badgeClass} px-2 py-0.5 rounded-full text-xs border`
+														? `${option.badgeClass} px-2 py-0.5 rounded-full text-sm border`
 														: "text-foreground"
 												}
 											>
@@ -551,32 +571,20 @@ export function ServiceDashboard({ initialData, user }: Readonly<ServiceDashboar
 							</div>
 						)}
 					</div>
-
-					{/* New Service Button */}
-					<button
-						onClick={() => {
-							setEditingService(null);
-							setIsModalOpen(true);
-						}}
-						className="bg-primary hover:bg-primary-hover text-on-primary px-5 py-2.5 rounded-sm font-semibold text-sm flex items-center gap-2 shadow-sm active:scale-95 transition-all"
-					>
-						<Plus className="w-4 h-4" />
-						Nuevo servicio
-					</button>
 				</div>
 			</div>
 
 			{/* Data Table Section — exact-layout skeleton on initial load, aria-busy on refetch */}
 			<Skeleton
 				name="dashboard-table"
-				loading={isLoading && Services.length === 0}
+				loading={isLoading && Services.length === 0 && !fetchError}
 				color="var(--color-skeleton-base)"
 				darkColor="var(--color-skeleton-base)"
 				animate="shimmer"
 				select="container"
 			>
 				<div
-					className="bg-surface border border-border rounded-xl overflow-hidden relative"
+					className="bg-surface border border-border rounded-sm overflow-hidden relative"
 					aria-busy={isLoading}
 					aria-live="polite"
 				>
@@ -586,16 +594,30 @@ export function ServiceDashboard({ initialData, user }: Readonly<ServiceDashboar
 							aria-hidden="true"
 						/>
 					)}
-					<ServiceTable
-						Services={Services}
-						onEdit={handleEdit}
-						onView={handleView}
-						onDelete={(Service) => setDeleteConfirm({ isOpen: true, Service })}
-						onStatusChange={handleStatusChange}
-						onTransfer={handleTransfer}
-					/>
+					{fetchError ? (
+						<div className="flex flex-col items-center justify-center py-16 gap-4">
+							<p className="text-sm text-foreground-muted">{fetchError}</p>
+							<button
+								onClick={() => fetchServices()}
+								className="px-4 py-2 rounded-sm bg-primary text-on-primary text-sm font-medium"
+							>
+								Reintentar
+							</button>
+						</div>
+					) : (
+						<ServiceTable
+							Services={Services}
+							onEdit={handleEdit}
+							onView={handleView}
+							onDelete={(Service) => setDeleteConfirm({ isOpen: true, Service })}
+							onStatusChange={handleStatusChange}
+							onTransfer={handleTransfer}
+							emptyMode={emptyMode}
+							onEmptyAction={handleEmptyAction}
+						/>
+					)}
 
-					<div className="px-6 py-4 bg-surface-muted border-t border-border flex items-center justify-between">
+					<div className="px-4 py-3 bg-surface-muted border-t border-border flex items-center justify-between">
 						<p className="text-sm text-foreground-muted">
 							Mostrando página <span className="text-foreground font-medium">{currentPage}</span> de{" "}
 							<span className="text-foreground font-medium">{totalPages}</span>
@@ -718,7 +740,7 @@ export function ServiceDashboard({ initialData, user }: Readonly<ServiceDashboar
 							onClick={submitStatus}
 							className="px-4 py-2 rounded-lg bg-primary text-on-primary"
 						>
-							Cambiar estado status
+							Cambiar estado
 						</button>
 					</div>
 				</div>
@@ -732,7 +754,7 @@ export function ServiceDashboard({ initialData, user }: Readonly<ServiceDashboar
 			>
 				<div className="space-y-4">
 					<p className="text-sm text-foreground-muted">
-						Transferir servicio #{transferDialog.service?.invoiceNumber} — transfer sede
+						Transferir servicio #{transferDialog.service?.invoiceNumber} — seleccionar nueva sede
 					</p>
 					<select
 						value={targetLocation}
@@ -757,7 +779,7 @@ export function ServiceDashboard({ initialData, user }: Readonly<ServiceDashboar
 							onClick={submitTransfer}
 							className="px-4 py-2 rounded-lg bg-primary text-on-primary"
 						>
-							Transferir sede transfer
+							Transferir sede
 						</button>
 					</div>
 				</div>
