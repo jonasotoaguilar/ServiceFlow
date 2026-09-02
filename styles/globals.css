@@ -4,9 +4,11 @@
 	--color-zinc-100: #f4f4f5;
 	--color-zinc-200: #e4e4e7;
 	--color-zinc-300: #d4d4d8;
+	--color-zinc-400: #a1a1aa;
 	--color-zinc-500: #71717a;
 	--color-zinc-600: #52525b;
 	--color-zinc-700: #3f3f46;
+	--color-zinc-800: #27272a;
 	--color-zinc-900: #18181b;
 	--color-white: #ffffff;
 	--color-slate-blue-700: #2f5b8a;
@@ -61,7 +63,7 @@
 	--color-surface-muted: #3f3f46;
 	--color-foreground: #fafafa;
 	--color-foreground-muted: #a1a1aa;
-	--color-foreground-subtle: #71717a;
+	--color-foreground-subtle: #a1a1aa;
 	--color-border: #3f3f46;
 	--color-border-strong: #52525b;
 	--color-primary: #3a6fa3;

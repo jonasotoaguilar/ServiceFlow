@@ -1,0 +1,10 @@
+schema: sdd-ui/v1
+access:
+  mechanism: project-e2e-self-register
+  setup: e2e/smoke.spec.ts#register via e2e/pb-admin.ts + e2e/global-setup.ts
+  probe: /dashboard
+  role: authenticated-user
+rendered:
+  command: pnpm dev
+# also-probe: /service-events shares same pb_auth session (verified bounded probe)
+# target: local-compose 127.0.0.1:8090 (PocketBase) + 127.0.0.1:3000 (Next), loopback-only, http

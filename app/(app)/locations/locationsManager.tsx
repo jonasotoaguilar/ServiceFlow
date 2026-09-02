@@ -75,9 +75,11 @@ export default function LocationsManager({
 	// Filtered locations
 	const filteredLocations = useMemo(() => {
 		return locations.filter((loc) => {
-			const matchesSearch = loc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+			const matchesSearch =
+				loc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
 				(loc.address?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false);
-			const matchesStatus = statusFilter === "all" ||
+			const matchesStatus =
+				statusFilter === "all" ||
 				(statusFilter === "active" && loc.isActive) ||
 				(statusFilter === "inactive" && !loc.isActive);
 			return matchesSearch && matchesStatus;
@@ -227,46 +229,40 @@ export default function LocationsManager({
 		{ value: "all", label: "Todas" },
 	];
 
-	const selectedStatus = statusOptions.find(opt => opt.value === statusFilter);
+	const selectedStatus = statusOptions.find((opt) => opt.value === statusFilter);
 
 	return (
 		<>
 			<div>
-				{/* Header Section */}
-				<header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6">
+				{/* Header Section — craft floor p-4 gap-4 8px ≥13px */}
+				<header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
 					<div className="space-y-2">
-						<h1 className="text-3xl font-bold text-foreground tracking-tight relative w-fit">
-							Gestión de Sedes
-							<span className="absolute bottom-0 left-0 w-1/3 h-1 bg-primary to-transparent rounded-full -mb-2" />
-						</h1>
-						<p className="text-foreground-muted pt-3 text-lg max-w-2xl">
-							Administra y supervisa las sedes operativas de tu red de
-							servicios.
+						<h1 className="text-xl font-bold text-foreground">Gestión de Sedes</h1>
+						<p className="text-sm text-foreground-muted max-w-2xl">
+							Administra y supervisa las sedes operativas de tu red de servicios.
 						</p>
 					</div>
 
 					{/* Stats Card */}
-					<div className="bg-surface border border-border shadow-sm p-5 border-l-4 border-primary bg-surface flex items-center gap-4 min-w-50">
-						<div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-							<Building2 className="w-6 h-6 text-primary" />
+					<div className="bg-surface border border-border shadow-sm p-4 rounded-sm flex items-center gap-4 min-w-50">
+						<div className="w-10 h-10 rounded-sm bg-primary/10 flex items-center justify-center">
+							<Building2 className="w-5 h-5 text-primary" />
 						</div>
 						<div>
-							<p className="text-xs font-bold text-foreground-muted uppercase tracking-widest mb-0.5">
+							<p className="text-sm font-medium text-foreground-muted uppercase mb-0.5">
 								Total Sedes
 							</p>
-							<p className="text-2xl font-bold text-foreground">
-								{locations.length}
-							</p>
+							<p className="text-xl font-bold text-foreground font-mono">{locations.length}</p>
 						</div>
 					</div>
 				</header>
 
-				{/* Toolbar */}
-				<div className="bg-surface border border-border shadow-sm p-4 mb-8 flex flex-col md:flex-row gap-4 items-center justify-between bg-surface">
+				{/* Toolbar — craft floor */}
+				<div className="bg-surface border border-border shadow-sm p-4 mb-6 flex flex-col md:flex-row gap-4 items-center justify-between rounded-sm">
 					<div className="relative w-full md:w-96 group">
 						<Search className="absolute left-3 top-1/2 -translate-y-1/2 text-foreground-muted w-5 h-5 group-focus-within:text-primary transition-colors" />
 						<input
-							className="w-full bg-surface border-border rounded-lg pl-10 pr-4 py-2.5 text-foreground focus:ring-2 focus:ring-primary focus:border-primary placeholder:text-foreground-subtle transition-all outline-none"
+							className="w-full bg-surface border-border rounded-sm pl-10 pr-4 py-2 text-sm text-foreground focus:ring-2 focus:ring-primary focus:border-primary placeholder:text-foreground-subtle outline-none"
 							placeholder="Buscar Sede..."
 							type="text"
 							value={searchTerm}
@@ -279,13 +275,15 @@ export default function LocationsManager({
 						<div className="relative">
 							<button
 								onClick={() => setShowStatusDropdown(!showStatusDropdown)}
-								className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-surface border border-border text-foreground hover:bg-surface-muted transition-all min-w-35 justify-between"
+								className="flex items-center gap-2 px-4 py-2 rounded-sm bg-surface border border-border text-sm text-foreground hover:bg-surface-muted transition-colors min-w-35 justify-between"
 							>
 								<span className="text-sm font-medium">{selectedStatus?.label}</span>
-								<ChevronDown className={`w-4 h-4 transition-transform ${showStatusDropdown ? "rotate-180" : ""}`} />
+								<ChevronDown
+									className={`w-4 h-4 transition-transform ${showStatusDropdown ? "rotate-180" : ""}`}
+								/>
 							</button>
 							{showStatusDropdown && (
-								<div className="absolute top-full mt-2 w-full bg-surface-muted border border-border rounded-lg shadow-xl z-50 overflow-hidden">
+								<div className="absolute top-full mt-2 w-full bg-surface border border-border rounded-sm shadow-sm z-50 overflow-hidden">
 									{statusOptions.map((option) => (
 										<button
 											key={option.value}
@@ -316,7 +314,7 @@ export default function LocationsManager({
 								setAddressError("");
 								setIsDialogOpen(true);
 							}}
-							className="bg-primary hover:bg-primary-hover text-foreground px-5 py-2.5 rounded-lg font-semibold text-sm flex items-center gap-2 shadow-lg shadow-primary/20 active:scale-95 transition-all"
+							className="bg-primary hover:bg-primary-hover text-on-primary px-4 py-2 rounded-sm font-medium text-sm flex items-center gap-2 transition-colors"
 						>
 							<Plus className="w-5 h-5" />
 							Nueva Sede
@@ -325,34 +323,31 @@ export default function LocationsManager({
 				</div>
 
 				{/* Data Table Container */}
-				<div className="bg-surface border border-border shadow-sm rounded-xl overflow-hidden bg-surface border-border">
+				<div className="bg-surface border border-border shadow-sm rounded-sm overflow-hidden">
 					<div className="overflow-x-auto custom-scrollbar">
 						<table className="w-full text-left border-collapse">
 							<thead>
 								<tr className="bg-surface-muted border-b border-border">
-									<th className="px-6 py-4 text-xs font-bold text-foreground-muted uppercase tracking-widest pl-8">
+									<th className="px-4 py-3 text-sm font-medium text-foreground-muted uppercase pl-4">
 										Nombre
 									</th>
-									<th className="px-6 py-4 text-xs font-bold text-foreground-muted uppercase tracking-widest text-center">
+									<th className="px-4 py-3 text-sm font-medium text-foreground-muted uppercase text-center">
 										Activos
 									</th>
-									<th className="px-6 py-4 text-xs font-bold text-foreground-muted uppercase tracking-widest text-center">
+									<th className="px-4 py-3 text-sm font-medium text-foreground-muted uppercase text-center">
 										Completados
 									</th>
-									<th className="px-6 py-4 text-xs font-bold text-foreground-muted uppercase tracking-widest text-center">
+									<th className="px-4 py-3 text-sm font-medium text-foreground-muted uppercase text-center">
 										Estado Sede
 									</th>
-									<th className="px-6 py-4 text-xs font-bold text-foreground-muted uppercase tracking-widest text-center">
+									<th className="px-4 py-3 text-sm font-medium text-foreground-muted uppercase text-center">
 										Acciones
 									</th>
 								</tr>
 							</thead>
 							<tbody className="divide-y divide-border">
 								{currentItems.map((loc) => (
-									<tr
-										key={loc.id}
-										className="hover:bg-surface-muted transition-colors group"
-									>
+									<tr key={loc.id} className="hover:bg-surface-muted transition-colors group">
 										<td className="px-6 py-5">
 											<div className="flex items-center gap-4">
 												<div
@@ -369,10 +364,8 @@ export default function LocationsManager({
 													/>
 												</div>
 												<div>
-													<p className="font-semibold text-foreground text-base">
-														{loc.name}
-													</p>
-													<p className="text-xs text-foreground-muted mt-0.5">
+													<p className="font-semibold text-foreground text-base">{loc.name}</p>
+													<p className="text-sm text-foreground-muted mt-0.5">
 														{loc.address || "Sin dirección"}
 													</p>
 												</div>
@@ -390,12 +383,12 @@ export default function LocationsManager({
 										</td>
 										<td className="px-6 py-5 text-center">
 											{loc.isActive ? (
-												<span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+												<span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-bold uppercase  bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
 													<CheckCircle2 className="w-3.5 h-3.5" />
 													Activa
 												</span>
 											) : (
-												<span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider bg-surface-muted text-foreground-muted border border-border">
+												<span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-bold uppercase  bg-surface-muted text-foreground-muted border border-border">
 													<Ban className="w-3.5 h-3.5" />
 													Inactiva
 												</span>
@@ -403,19 +396,47 @@ export default function LocationsManager({
 										</td>
 										<td className="px-6 py-5">
 											<div className="flex items-center justify-center gap-2">
-												<IconButton variant="primary" aria-label="Editar Sede" onClick={() => openEditDialog(loc)} disabled={isPending} title="Editar Sede">
+												<IconButton
+													variant="primary"
+													aria-label="Editar Sede"
+													onClick={() => openEditDialog(loc)}
+													disabled={isPending}
+													title="Editar Sede"
+												>
 													<Edit2 className="w-4 h-4" />
 												</IconButton>
 												{loc.isActive ? (
-													<IconButton variant="warning" aria-label="Desactivar Sede" onClick={() => handleToggleActive(loc.id, loc.isActive)} disabled={isPending} title="Desactivar Sede">
+													<IconButton
+														variant="warning"
+														aria-label="Desactivar Sede"
+														onClick={() => handleToggleActive(loc.id, loc.isActive)}
+														disabled={isPending}
+														title="Desactivar Sede"
+													>
 														<Ban className="w-4 h-4" />
 													</IconButton>
 												) : null}
-												<IconButton variant="danger" aria-label="Eliminar Sede" onClick={() => handleDelete(loc.id, loc.name)} disabled={isPending || loc.hasHistory} title={loc.hasHistory ? "No se puede eliminar (tiene historial)" : "Eliminar Sede"}>
+												<IconButton
+													variant="danger"
+													aria-label="Eliminar Sede"
+													onClick={() => handleDelete(loc.id, loc.name)}
+													disabled={isPending || loc.hasHistory}
+													title={
+														loc.hasHistory
+															? "No se puede eliminar (tiene historial)"
+															: "Eliminar Sede"
+													}
+												>
 													<Trash2 className="w-4 h-4" />
 												</IconButton>
 												{loc.isActive ? null : (
-													<IconButton variant="primary" aria-label="Habilitar Sede" onClick={() => handleToggleActive(loc.id, loc.isActive)} disabled={isPending} title="Habilitar Sede">
+													<IconButton
+														variant="primary"
+														aria-label="Habilitar Sede"
+														onClick={() => handleToggleActive(loc.id, loc.isActive)}
+														disabled={isPending}
+														title="Habilitar Sede"
+													>
 														<CheckCircle2 className="w-4 h-4" />
 													</IconButton>
 												)}
@@ -440,8 +461,7 @@ export default function LocationsManager({
 					{/* Pagination */}
 					<div className="px-6 py-4 bg-surface-muted border-t border-border flex items-center justify-between">
 						<p className="text-sm text-foreground-muted">
-							Mostrando página{" "}
-							<span className="text-foreground font-medium">{currentPage}</span> de{" "}
+							Mostrando página <span className="text-foreground font-medium">{currentPage}</span> de{" "}
 							<span className="text-foreground font-medium">{totalPages}</span>
 						</p>
 						<div className="flex gap-2">
@@ -520,9 +540,7 @@ export default function LocationsManager({
 							placeholder="Ej: Sede Central"
 							required
 						/>
-						{nameError && (
-							<p className="text-red-500 text-xs mt-1">{nameError}</p>
-						)}
+						{nameError && <p className="text-red-500 text-sm mt-1">{nameError}</p>}
 					</div>
 					<div>
 						<label
@@ -543,9 +561,7 @@ export default function LocationsManager({
 							className={`w-full bg-surface-muted border ${addressError ? "border-red-500" : "border-border"} rounded-lg px-4 py-2.5 text-foreground placeholder:text-foreground-subtle focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none`}
 							placeholder="Ej: Calle Mayor 12"
 						/>
-						{addressError && (
-							<p className="text-red-500 text-xs mt-1">{addressError}</p>
-						)}
+						{addressError && <p className="text-red-500 text-sm mt-1">{addressError}</p>}
 					</div>
 					<div className="flex gap-3 justify-end pt-4">
 						<button
@@ -560,9 +576,7 @@ export default function LocationsManager({
 							disabled={isPending || !newLocationName.trim()}
 							className="px-6 py-2 rounded-lg bg-primary hover:bg-primary-hover text-foreground font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all"
 						>
-							{isPending
-								? "Guardando..."
-								: (editingLocation ? "Actualizar Sede" : "Guardar Sede")}
+							{isPending ? "Guardando..." : editingLocation ? "Actualizar Sede" : "Guardar Sede"}
 						</button>
 					</div>
 				</form>
