@@ -237,7 +237,9 @@ export default function LocationsManager({
 				{/* Header Section — craft floor p-4 gap-4 8px ≥13px */}
 				<header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
 					<div className="space-y-2">
-						<h1 className="text-xl font-bold text-foreground">Gestión de Sedes</h1>
+						<h1 className="text-2xl font-semibold tracking-tight text-foreground">
+							Gestión de Sedes
+						</h1>
 						<p className="text-sm text-foreground-muted max-w-2xl">
 							Administra y supervisa las sedes operativas de tu red de servicios.
 						</p>
@@ -257,8 +259,8 @@ export default function LocationsManager({
 					</div>
 				</header>
 
-				{/* Toolbar — craft floor */}
-				<div className="bg-surface border border-border shadow-sm p-4 mb-6 flex flex-col md:flex-row gap-4 items-center justify-between rounded-sm">
+				{/* Toolbar — operate band */}
+				<div className="border-y bg-surface/50 px-4 py-3 mb-6 flex flex-col md:flex-row gap-4 items-center justify-between">
 					<div className="relative w-full md:w-96 group">
 						<Search className="absolute left-3 top-1/2 -translate-y-1/2 text-foreground-muted w-5 h-5 group-focus-within:text-primary transition-colors" />
 						<input

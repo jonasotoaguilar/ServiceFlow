@@ -22,7 +22,9 @@ export default async function AppLayout({
 	return (
 		<div className="min-h-dvh bg-background">
 			<Navbar user={user} />
-			<main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">{children}</main>
+			<main className="max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+				{children}
+			</main>
 		</div>
 	);
 }

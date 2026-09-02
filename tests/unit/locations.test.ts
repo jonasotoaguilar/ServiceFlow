@@ -468,3 +468,45 @@ describe("Location invariants — isDefault + ensure idempotent + guards (Unit 7
 		});
 	});
 });
+
+describe("Locations rhythm and shared shell (Unit 3 RED)", () => {
+	it("Locations title is text-2xl font-semibold tracking-tight, not text-xl font-bold", () => {
+		const src = read("app/(app)/locations/locationsManager.tsx");
+		expect(src).toMatch(
+			/<h1[^>]*text-2xl[^>]*font-semibold[^>]*tracking-tight[^>]*>\s*Gestión de Sedes/,
+		);
+		expect(src).not.toMatch(/<h1[^>]*text-xl[^>]*font-bold/);
+		expect(src).toContain("Gestión de Sedes");
+		// header band gap-4 mb-6
+		expect(src).toMatch(/gap-4/);
+		expect(src).toMatch(/mb-6/);
+	});
+
+	it("Locations toolbar is border-y bg-surface/50 px-4 py-3 shared operate band, not card", () => {
+		const src = read("app/(app)/locations/locationsManager.tsx");
+		expect(src).toContain("border-y");
+		expect(src).toContain("bg-surface/50");
+		expect(src).toContain("px-4");
+		expect(src).toContain("py-3");
+		// should not be card with shadow-sm p-4 rounded-sm mb-6 as isolated card
+		expect(src).not.toMatch(/bg-surface border border-border shadow-sm p-4 mb-6/);
+		// should be flex with gap and border-y band
+		expect(src).toMatch(/border-y[^"]*bg-surface\/50[^"]*px-4[^"]*py-3/);
+	});
+
+	it("Locations inherits shell max-w-7xl 2xl:max-w-[1600px] via layout, no per-page max widths", () => {
+		const layout = read("app/(app)/layout.tsx");
+		const navbar = read("components/layout/Navbar.tsx");
+		const locPage = read("app/(app)/locations/page.tsx");
+		const locManager = read("app/(app)/locations/locationsManager.tsx");
+		// shell has 2xl
+		expect(layout).toContain("max-w-7xl");
+		expect(layout).toContain("2xl:max-w-[1600px]");
+		expect(navbar).toContain("2xl:max-w-[1600px]");
+		// locations page/manager should not duplicate shell widths
+		expect(locPage).not.toContain("max-w-7xl");
+		expect(locPage).not.toContain("2xl:max-w");
+		expect(locManager).not.toContain("max-w-7xl");
+		expect(locManager).not.toContain("2xl:max-w");
+	});
+});
