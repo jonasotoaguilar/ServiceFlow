@@ -17,9 +17,9 @@ export function escapeHtml(value: string | null | undefined): string {
 		.replaceAll("`", "&#96;");
 }
 
-const TITLE = "COMPROBANTE DE RECEPCIÓN Y CUSTODIA";
+const TITLE = "Comprobante de recepción y custodia";
 const DISCLAIMER =
-	"Este documento acredita únicamente la recepción y custodia del producto. No constituye boleta, factura, DTE, comprobante de pago ni certificado de garantía.";
+	"Este documento acredita la recepción del equipo para servicio y custodia. No constituye documento tributario, no es boleta ni factura y no acredita pago. Sin validez tributaria ante el SII.";
 const COLLECTION_INSTRUCTION =
 	"Conserve este comprobante para el retiro. La entrega se realizará contra presentación de este documento y verificación de identidad.";
 

@@ -74,7 +74,7 @@ export function ServiceDetailsModal({
 					type="button"
 					onClick={handlePrint}
 					className="text-foreground-muted hover:text-foreground transition-colors bg-surface-muted hover:bg-surface-muted/80 p-2 rounded-lg border border-border"
-					title="Imprimir Etiqueta"
+					title="Imprimir comprobante"
 				>
 					<Printer className="h-5 w-5" />
 				</button>

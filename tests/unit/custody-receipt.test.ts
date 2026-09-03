@@ -10,8 +10,11 @@ function exists(rel: string): boolean {
 }
 
 const DISCLAIMER =
+	"Este documento acredita la recepción del equipo para servicio y custodia. No constituye documento tributario, no es boleta ni factura y no acredita pago. Sin validez tributaria ante el SII.";
+const TITLE = "Comprobante de recepción y custodia";
+const OLD_TITLE = "COMPROBANTE DE RECEPCIÓN Y CUSTODIA";
+const OLD_DISCLAIMER =
 	"Este documento acredita únicamente la recepción y custodia del producto. No constituye boleta, factura, DTE, comprobante de pago ni certificado de garantía.";
-const TITLE = "COMPROBANTE DE RECEPCIÓN Y CUSTODIA";
 
 function sampleService(overrides: Record<string, unknown> = {}) {
 	return {
@@ -55,13 +58,14 @@ describe("custody receipt — lib/custody-receipt.ts pure helper (7.1 RED)", () 
 		expect(escapeHtml("`backtick`")).not.toContain("`");
 	});
 
-	it("rendered HTML contains exact title COMPROBANTE DE RECEPCIÓN Y CUSTODIA", async () => {
+	it("rendered HTML contains exact title Comprobante de recepción y custodia (authoritative spec)", async () => {
 		const mod: any = await import("@/lib/custody-receipt");
 		const render =
 			mod.renderCustodyReceiptHtml ?? mod.buildCustodyReceiptHtml ?? mod.getCustodyReceiptHtml;
 		const html = render(sampleService());
 		expect(html).toContain(TITLE);
-		// must not contain old title
+		// reject previously shipped conflicting variant (uppercase) and other old titles
+		expect(html).not.toContain(OLD_TITLE);
 		expect(html).not.toContain("Comprobante de Servicio");
 		expect(html).not.toContain("Etiqueta de Servicio");
 	});
@@ -72,6 +76,8 @@ describe("custody receipt — lib/custody-receipt.ts pure helper (7.1 RED)", () 
 			mod.renderCustodyReceiptHtml ?? mod.buildCustodyReceiptHtml ?? mod.getCustodyReceiptHtml;
 		const html = render(sampleService());
 		expect(html).toContain(DISCLAIMER);
+		// reject previously shipped conflicting disclaimer variant
+		expect(html).not.toContain(OLD_DISCLAIMER);
 		// must not claim legally required
 		expect(html.toLowerCase()).not.toContain("legalmente exigido");
 		expect(html.toLowerCase()).not.toContain("requerido por ley");
@@ -217,5 +223,11 @@ describe("custody receipt — lib/custody-receipt.ts pure helper (7.1 RED)", () 
 		// must not directly interpolate Service fields without escape (old pattern had ${Service.clientName} raw)
 		expect(src).not.toMatch(/\$\{Service\.clientName\}/);
 		expect(src).not.toMatch(/\$\{Service\.product\}/);
+	});
+
+	it("ServicesDetailsModal.tsx print action label is neutral Imprimir comprobante (not stale Etiqueta)", () => {
+		const src = read("components/services/ServicesDetailsModal.tsx");
+		expect(src).toContain("Imprimir comprobante");
+		expect(src).not.toContain("Imprimir Etiqueta");
 	});
 });
