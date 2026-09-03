@@ -72,7 +72,7 @@ The meaningfully different mechanism is the full repair cycle with branch tracea
 
 ## Evidence on Hand
 
-- **Product intent:** `PRD.md`, `ARCHITECTURE.md`, `docs/CODEBASE-GUIDE.md` — all aligned on PocketBase-only lifecycle.
+- **Product intent:** `PRD.md`, `docs/CODEBASE-GUIDE.md` — all aligned on PocketBase-only lifecycle.
 - **Schema artifact:** `pocketbase/v1.collections.json` — collections `users`, `services`, `locations`, `location_logs` with indexes and tenant rules; canonical source.
 - **Implementation:** `app/(app)/dashboard`, `app/(app)/locations`, `app/(app)/service-events`, `app/api/services/**`, `lib/pocketbase.ts`, `lib/pocketbase-filter.ts`, `lib/schemas.ts`, `lib/storage.ts`.
 - **Visual truth:** `DESIGN.md` (Taller Claro Operacional) — zinc neutrals + desaturated ink `#2F5B8A`, density 6, 8–12px radii, Boneyard skeletons. Incumbent system to preserve for refinement or replace explicitly if rebranded.

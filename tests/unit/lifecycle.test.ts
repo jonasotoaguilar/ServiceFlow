@@ -482,8 +482,6 @@ describe("Unit 8 lifecycle — create/edit 4.3 RED (create pending owned locatio
 				method: "PUT",
 				body: JSON.stringify({
 					id: "pb15svc00000004",
-					invoiceNumber: "INV-004",
-					clientName: "Cliente Edit4",
 					rut: "12.345.678-5",
 					contact: "+56 9 1212 1212",
 					product: "Prod4",
@@ -511,8 +509,6 @@ describe("Unit 8 lifecycle — create/edit 4.3 RED (create pending owned locatio
 				method: "PUT",
 				body: JSON.stringify({
 					id: "pb15svcForeign01",
-					invoiceNumber: "INV-005",
-					clientName: "Cliente Foreign",
 					rut: "12.345.678-5",
 					contact: "+56 9 1313 1313",
 					product: "Prod",

@@ -109,7 +109,7 @@ describe("dark-contrast S1 — computed AA from actual tokens (RED then GREEN)",
 });
 
 describe("S1 identity surfaces — brand mark and empty state (RED probes)", () => {
-	it("assets/brand/bodega-tecnica-mark.svg exists and is 32×32 currentColor 2px (primary RED)", () => {
+	it("assets/brand/bodega-tecnica-mark.svg exists and is 32×32 currentColor 1.5px refined (primary RED)", () => {
 		const rel = "assets/brand/bodega-tecnica-mark.svg";
 		const p = path.join(process.cwd(), rel);
 		expect(fs.existsSync(p), `${rel} must exist`).toBe(true);
@@ -117,7 +117,7 @@ describe("S1 identity surfaces — brand mark and empty state (RED probes)", () 
 		expect(svg).toContain("<svg");
 		expect(svg).toMatch(/viewBox\s*=\s*["']0 0 32 32["']/);
 		expect(svg.toLowerCase()).toContain("currentcolor");
-		expect(svg).toMatch(/stroke-width\s*=\s*["']2["']/);
+		expect(svg).toMatch(/stroke-width\s*=\s*["']1\.5["']/);
 		expect(svg).not.toContain("oklch");
 		expect(svg).not.toContain("<image");
 	});
@@ -142,7 +142,10 @@ describe("S1 identity surfaces — brand mark and empty state (RED probes)", () 
 		expect(src).toContain("Bodega Técnica");
 		expect(src).not.toContain("next/image");
 		expect(src).not.toContain('from "next/image"');
-		expect(src).toContain("bodega-tecnica-mark.svg");
+		// refined lockup is code-native SVG synced with asset, no filename sr-only duplicate
+		expect(src).not.toContain("bodega-tecnica-mark.svg");
+		expect(src).not.toMatch(/sr-only[^>]*>.*\.svg/);
+		expect(src).toMatch(/aria-hidden/);
 		// 390 hide: hidden class or responsive guard
 		expect(src).toMatch(/hidden|390|sm:/);
 		expect(src).toContain("ServiceFlow");

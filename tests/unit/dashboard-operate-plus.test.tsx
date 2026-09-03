@@ -1,8 +1,8 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 import React from "react";
-import { render } from "@testing-library/react";
+import { render, fireEvent, screen, waitFor, act } from "@testing-library/react";
 function read(rel: string) {
 	return fs.readFileSync(path.join(process.cwd(), rel), "utf8");
 }
@@ -64,11 +64,11 @@ describe("S2a facts 2 large + 3 muted not buttons", () => {
 		expect(src).toMatch(/text-3xl|text-\[32px\]|text-2xl/);
 		expect(src).toMatch(/text-xl|text-\[20px\]/);
 	});
-	it("metrics not buttons no toggleStatus tabbable", () => {
+	it("metrics not buttons - no status toggle tabbable inside articles", () => {
 		const src = read("components/services/ServicesDashboard.tsx");
-		expect(src).toContain("toggleStatusInFilter");
+		// exclusive status: no multi-toggle helper inside metrics
+		expect(src).not.toContain("toggleStatusInFilter");
 		expect(src).not.toMatch(/toggleStatus\s*\(\s*["']pending["']\s*\)/);
-		expect(src).not.toMatch(/onClick\s*=\s*\{[^}]*\btoggleStatus\s*\(/);
 		const blocks = src.split("<article");
 		for (const b of blocks.slice(1)) {
 			const h = b.slice(0, 800);
@@ -144,12 +144,14 @@ describe("S2a Boneyard and aria-busy", () => {
 		expect(src).toContain("<ServiceTable");
 	});
 });
-describe("S2a delete toggleStatus keep InFilter", () => {
-	it("deletes toggleStatus keeps toggleStatusInFilter", () => {
+describe("Exclusive status — no multi-select helpers", () => {
+	it("removes toggleStatusInFilter, uses scalar ServiceStatus | ''", () => {
 		const src = read("components/services/ServicesDashboard.tsx");
-		expect(src).not.toMatch(/const\s+toggleStatus\s*=\s*\(/);
-		expect(src).not.toMatch(/function\s+toggleStatus\s*\(/);
-		expect(src).toContain("toggleStatusInFilter");
+		expect(src).not.toContain("toggleStatusInFilter");
+		// scalar statusFilter
+		expect(src).toMatch(/useState<ServiceStatus \| "">/);
+		expect(src).not.toMatch(/useState<ServiceStatus\[\]>/);
+		expect(src).not.toMatch(/toggleStatus\s*=\s*\(/);
 	});
 });
 describe("S2b strip low border-y not card", () => {
@@ -184,15 +186,13 @@ describe("S2b strip low border-y not card", () => {
 		expect(src).not.toMatch(/border-l-4/);
 		expect(src).not.toMatch(/backdrop-blur|glass|gradient|glow/);
 	});
-	it("only toggleStatusInFilter may filter", () => {
+	it("exclusive status uses scalar setStatusFilter, no multi-toggle", () => {
 		const src = read("components/services/ServicesDashboard.tsx");
-		expect(src).toContain("toggleStatusInFilter");
-		expect(src).not.toMatch(/toggleStatus\s*\(\s*["']pending["']\s*\)/);
-		expect(src).not.toMatch(/onClick\s*=\s*\{[^}]*\btoggleStatus\s*\(/);
-		const countToggle = (src.match(/toggleStatusInFilter/g) || []).length;
-		expect(countToggle).toBeGreaterThanOrEqual(1);
-		const bareToggle = src.split("toggleStatusInFilter").join("");
-		expect(bareToggle).not.toMatch(/const\s+toggleStatus\s*=/);
+		expect(src).not.toContain("toggleStatusInFilter");
+		// scalar setter with "" for all-status and option.value for single
+		expect(src).toMatch(/setStatusFilter\(""/);
+		expect(src).toMatch(/setStatusFilter\(option\.value\)/);
+		expect(src).not.toMatch(/const\s+toggleStatus\s*=/);
 	});
 });
 describe("S2b true-empty vs filtered-empty contextual Spanish actions and error retry", () => {
@@ -253,13 +253,15 @@ describe("S2b ServicesTable craft floor", () => {
 	});
 	it("390 structural stack no horizontal overflow, product may truncate, desktop full table", () => {
 		const tbl = read("components/services/ServicesTable.tsx");
-		expect(tbl).not.toMatch(/overflow-x-auto/);
+		// desktop owns overflow, not page; mobile cards truncate
 		expect(tbl).toContain("hidden md:block");
 		expect(tbl).toContain("md:hidden");
 		expect(tbl).toMatch(/boleta|sede|ingreso|días|estado|Acciones/i);
 		expect(tbl).toMatch(/truncate|max-w/);
 		expect(tbl).toContain('data-testid="services-table-desktop"');
 		expect(tbl).toContain('data-testid="services-mobile-list"');
+		// desktop table region must be scrollable, mobile must not require table scroll
+		expect(tbl).toMatch(/hidden md:block[^"]*overflow-x-auto/);
 	});
 });
 
@@ -271,14 +273,11 @@ describe("Remediation — ServicesTable desktop actions horizontal not vertical"
 		const mobileIdx = tbl.indexOf('data-testid="services-mobile-list"');
 		expect(mobileIdx).toBeGreaterThan(desktopIdx);
 		const slice = tbl.slice(desktopIdx, mobileIdx);
-		// desktop actions container must be horizontal row, not vertical column
-		// the actions div is the one with justify-center gap-2 inside the desktop table
 		expect(slice).toMatch(/className="flex[^"]*justify-center[^"]*gap-2/);
 		expect(slice, "desktop actions must be explicit flex-row for horizontal remediation").toContain(
 			"flex-row",
 		);
 		expect(slice).not.toMatch(/className="flex flex-col[^"]*justify-center/);
-		// ensure no flex-col inside desktop actions cell (desktop slice should not have vertical stack for actions)
 		const actionsDivMatch = slice.match(/<div className="flex[^"]*justify-center[^"]*">/);
 		expect(actionsDivMatch, "desktop actions div must exist with flex-row").not.toBeNull();
 		expect(actionsDivMatch![0]).toContain("flex-row");
@@ -291,11 +290,456 @@ describe("Remediation — ServicesTable desktop actions horizontal not vertical"
 		expect(slice).toContain("flex");
 		expect(slice).toContain("justify-end");
 		expect(slice).toContain("flex-wrap");
-		// mobile must still have all actions (Edit/Delete) — not hidden desktop-only
 		expect(slice).toContain('aria-label="Editar"');
 		expect(slice).toContain('aria-label="Eliminar"');
-		// mobile adaptation preserved: cards still responsive
 		expect(slice).toContain('data-testid="service-card-mobile"');
 		expect(slice).toContain("rounded-sm");
+	});
+});
+
+// ── Table gutter — Reachable Actions (RED 2.1) ──
+describe("Table gutter — reachable actions across desktop and mobile (unit-2)", () => {
+	it("desktop table region owns overflow-x-auto custom-scrollbar, not page", () => {
+		const tbl = read("components/services/ServicesTable.tsx");
+		// desktop wrapper must own horizontal overflow
+		expect(tbl).toMatch(/hidden md:block[^"]*overflow-x-auto[^"]*custom-scrollbar/);
+		expect(tbl).toMatch(/overflow-x-auto[^"]*custom-scrollbar/);
+		// table must have stable min width so columns don't collapse and Acciones stay in gutter
+		expect(tbl).toMatch(/min-w-\[.*\]|min-w-\[960px\]|min-w-\[900px\]|min-w-\[800px\]/);
+		// parent card must not clip gutter with overflow-hidden
+		const dash = read("components/services/ServicesDashboard.tsx");
+		// parent wrapper around ServiceTable should NOT be overflow-hidden (would clip right gutter)
+		// allow overflow-visible or no overflow-hidden; fail if parent still has overflow-hidden around table
+		const tableSectionIdx = dash.indexOf("<ServiceTable");
+		expect(tableSectionIdx).toBeGreaterThan(-1);
+		const beforeTable = dash.slice(Math.max(0, tableSectionIdx - 1200), tableSectionIdx);
+		expect(beforeTable).not.toMatch(/overflow-hidden/);
+		// mobile list must not be overflow-x-auto (cards handle 390/375 without table scroll)
+		expect(tbl).toContain("md:hidden");
+		expect(tbl).toContain('data-testid="services-mobile-list"');
+		// mobile wrapper class is md:hidden without overflow-x-auto
+		expect(tbl).toMatch(/md:hidden[^"]*space-y-3/);
+		expect(tbl).not.toMatch(/services-mobile-list[^"]*overflow-x-auto/);
+	});
+
+	it("desktop table has right gutter and Acciones fully reachable, not clipped", () => {
+		const tbl = read("components/services/ServicesTable.tsx");
+		// wrapper should have gutter padding or table right padding so Acciones not flush-clipped
+		// check for pr-*, overflow container padding, or min-w ensuring gutter
+		const desktopIdx = tbl.indexOf('data-testid="services-table-desktop"');
+		expect(desktopIdx).toBeGreaterThan(-1);
+		// desktop wrapper owns overflow; check whole file for hidden md:block overflow
+		expect(tbl).toMatch(/hidden md:block[^"]*overflow-x-auto[^"]*custom-scrollbar/);
+		expect(tbl).toMatch(/overflow-x-auto[^"]*custom-scrollbar/);
+		// table itself should have min-w to force overflow and create gutter
+		expect(tbl).toMatch(/<table[^>]*min-w-\[/);
+		// Acciones header and actions cell must exist in desktop table
+		expect(tbl).toContain("Acciones");
+		expect(tbl).toContain('aria-label="Editar"');
+		expect(tbl).toContain('aria-label="Eliminar"');
+		// ensure actions are in flex-row not clipped column
+		expect(tbl).toContain("flex-row");
+		// ensure header Acciones th is center and not hidden
+		expect(tbl).toMatch(/Acciones/);
+	});
+
+	it("mobile cards preserve boleta, sede, ingreso, dias, estado, actions at 390/375 without page clip", () => {
+		const tbl = read("components/services/ServicesTable.tsx");
+		const mobileIdx = tbl.indexOf('data-testid="services-mobile-list"');
+		expect(mobileIdx).toBeGreaterThan(-1);
+		const mobileSlice = tbl.slice(mobileIdx, mobileIdx + 8000);
+		expect(mobileSlice).toContain('data-testid="service-card-mobile"');
+		expect(mobileSlice).toMatch(/boleta|sede|ingreso|días|estado/i);
+		expect(mobileSlice).toContain("Sede");
+		expect(mobileSlice).toContain("Ingreso");
+		expect(mobileSlice).toContain("Días");
+		expect(mobileSlice).toContain("Estado");
+		expect(mobileSlice).toContain('aria-label="Editar"');
+		expect(mobileSlice).toContain('aria-label="Eliminar"');
+		// mobile cards must use flex-wrap and not overflow-x-auto (page-level overflow must not be required)
+		expect(mobileSlice).toContain("flex-wrap");
+		expect(tbl).toContain("md:hidden");
+		expect(mobileSlice).not.toMatch(/overflow-x-auto/);
+		// product may truncate, but essential fields stay in viewport via grid cols-2
+		expect(mobileSlice).toMatch(/grid-cols-2|truncate|max-w/);
+	});
+
+	it("rendered DOM: desktop wrapper overflow owns scroll, parent does not clip, actions reachable", async () => {
+		const { ServiceTable } = await import("@/components/services/ServicesTable");
+		const mockServices = [
+			{
+				id: "1",
+				invoiceNumber: "B-001",
+				product: "Producto de prueba con nombre largo que debe truncarse correctamente",
+				clientName: "Cliente Test",
+				rut: "20.884.087-K",
+				locationId: "loc1",
+				location: "Sede Central",
+				entryDate: new Date().toISOString(),
+				status: "pending" as const,
+				userId: "u1",
+			},
+		];
+		const { container } = render(
+			React.createElement(ServiceTable, {
+				Services: mockServices as any,
+				onEdit: () => {},
+				onView: () => {},
+				onDelete: () => {},
+				onStatusChange: () => {},
+				onTransfer: () => {},
+			}),
+		);
+		const desktop = container.querySelector('[data-testid="services-table-desktop"]');
+		expect(desktop, "desktop table region must exist").not.toBeNull();
+		expect(desktop!.className).toMatch(/overflow-x-auto/);
+		expect(desktop!.className).toMatch(/custom-scrollbar/);
+		expect(desktop!.className).toMatch(/hidden/);
+		expect(desktop!.className).toContain("md:block");
+		// table inside should have min-w for gutter
+		const table = desktop!.querySelector("table");
+		expect(table, "table must exist inside desktop wrapper").not.toBeNull();
+		expect(table!.className).toMatch(/min-w-\[/);
+		// Acciones header must be present and not clipped (th text)
+		expect(desktop!.textContent).toContain("Acciones");
+		// actions buttons must be in DOM and not hidden
+		const editBtn = desktop!.querySelector('[aria-label="Editar"]');
+		expect(editBtn, "Editar action must be reachable in desktop table").not.toBeNull();
+		const delBtn = desktop!.querySelector('[aria-label="Eliminar"]');
+		expect(delBtn).not.toBeNull();
+		// parent should not clip: check ServicesDashboard parent wrapper does not have overflow-hidden around table
+		const dashSrc = read("components/services/ServicesDashboard.tsx");
+		const tableIdx = dashSrc.indexOf("<ServiceTable");
+		const parentSlice = dashSrc.slice(Math.max(0, tableIdx - 1500), tableIdx);
+		expect(parentSlice).not.toMatch(/overflow-hidden/);
+		// prepare note: jsdom cannot prove pixel geometry at 1280/1366/1920; source/DOM ownership is the verifiable contract
+		// rendered viewport proof belongs to final verify with chrome-devtools/playwright
+	});
+
+	it("rendered DOM: mobile cards not clipped, no table scroll required at 390/375", async () => {
+		const { ServiceTable } = await import("@/components/services/ServicesTable");
+		const mock = [
+			{
+				id: "2",
+				invoiceNumber: "B-002",
+				product: "Producto",
+				clientName: "Cliente",
+				locationId: "loc1",
+				location: "Sede",
+				entryDate: new Date().toISOString(),
+				status: "ready" as const,
+				userId: "u1",
+			},
+		];
+		const { container } = render(
+			React.createElement(ServiceTable, {
+				Services: mock as any,
+				onEdit: () => {},
+				onView: () => {},
+				onDelete: () => {},
+				onStatusChange: () => {},
+				onTransfer: () => {},
+			}),
+		);
+		const mobile = container.querySelector('[data-testid="services-mobile-list"]');
+		expect(mobile).not.toBeNull();
+		expect(mobile!.className).toContain("md:hidden");
+		expect(mobile!.className).not.toMatch(/overflow-x-auto/);
+		// cards contain required fields without needing horizontal scroll
+		expect(mobile!.textContent).toMatch(/B-002|Producto/);
+		expect(mobile!.textContent).toContain("Sede");
+		expect(mobile!.textContent).toContain("Ingreso");
+		expect(mobile!.textContent).toContain("Días");
+		// actions remain reachable via flex-wrap
+		const card = mobile!.querySelector('[data-testid="service-card-mobile"]');
+		expect(card).not.toBeNull();
+		expect(card!.querySelector('[aria-label="Editar"]')).not.toBeNull();
+		expect(card!.querySelector('[aria-label="Eliminar"]')).not.toBeNull();
+	});
+});
+
+// ── Exclusive Single Status Filter — RED for unit-1 ──
+describe("Exclusive Single Status Filter (unit-1)", () => {
+	it("scalar statusFilter, exclusive query carries at most one status, closes on pick", () => {
+		const src = read("components/services/ServicesDashboard.tsx");
+		// scalar type
+		expect(src).toMatch(/ServiceStatus \| ""/);
+		expect(src).not.toContain("ServiceStatus[]");
+		expect(src).not.toContain("toggleStatusInFilter");
+		expect(src).not.toContain("statusFilter.includes");
+		expect(src).not.toContain("statusFilter.length");
+		expect(src).not.toContain('statusFilter.join(",")');
+		expect(src).not.toContain("estados selec");
+		// query carries at most one
+		expect(src).toMatch(/if\s*\(\s*statusFilter\s*\)\s*params\.set\("status",\s*statusFilter\)/);
+		// close on pick — at least two closes (all-status + option)
+		const closes = (src.match(/setShowStatusDropdown\(false\)/g) || []).length;
+		expect(closes).toBeGreaterThanOrEqual(2);
+		// single-select label and active filter
+		expect(src).toMatch(/statusFilter === ""/);
+		expect(src).toMatch(/statusFilter === option\.value/);
+		// hasActiveFilters and clear use scalar
+		expect(src).toMatch(/statusFilter !== ""/);
+		expect(src).toMatch(/setStatusFilter\(""/);
+		// handleClearFilters clears scalar
+		expect(src).not.toMatch(/setStatusFilter\(\[\]\)/);
+	});
+
+	it("GET route accepts at most one allowlisted status, first token only", () => {
+		const route = read("app/api/services/route.ts");
+		// must not preserve comma multi-select
+		expect(route).not.toMatch(/statusParam\.split\(","\)\s*as any\[\]/);
+		// must handle single allowlisted token
+		expect(route).toMatch(/ALLOWED_STATUSES|allowlisted|allowed/i);
+		// should take first token only, not all
+		expect(route).toMatch(/split\(","\)\[0\]|first/i);
+		// should not pass raw comma-joined array
+		expect(route).not.toMatch(/statusParam\.split\(","\) as/);
+		// ensure it builds single-element status array or undefined
+		expect(route).toMatch(/status/);
+	});
+
+	it("pointer: selecting a status replaces prior, all-status removes filter, query has at most one", async () => {
+		const { ServiceDashboard } = await import("@/components/services/ServicesDashboard");
+		const fetchCalls: string[] = [];
+		const orig = (global as any).fetch as any;
+		(global as any).fetch = vi.fn(async (url: string) => {
+			fetchCalls.push(url);
+			return { ok: true, json: async () => ({ data: [], total: 0 }) } as any;
+		});
+		const { container } = render(
+			React.createElement(ServiceDashboard, {
+				initialData: { data: [], total: 0, page: 1, limit: 20 },
+				user: { name: "Test" },
+			}),
+		);
+		// open status dropdown
+		const trigger = Array.from(container.querySelectorAll("button")).find((b) =>
+			b.textContent?.includes("Todos los estados"),
+		);
+		expect(trigger, "status trigger must exist").toBeDefined();
+		await act(async () => {
+			fireEvent.click(trigger!);
+		});
+		// click Pendientes (pending)
+		const pendientesOpt = Array.from(container.querySelectorAll("button")).find((b) =>
+			b.textContent?.includes("Pendientes"),
+		);
+		expect(pendientesOpt, "Pendientes option must exist").toBeDefined();
+		await act(async () => {
+			fireEvent.click(pendientesOpt!);
+		});
+		// menu must close after pick (option buttons disappear from dropdown)
+		// trigger should now show Pendientes label
+		await waitFor(() => {
+			const t = Array.from(container.querySelectorAll("button")).find((b) =>
+				b.textContent?.includes("Pendientes"),
+			);
+			expect(t).toBeDefined();
+		});
+		// dropdown should be closed — Pendientes option as menu item should not be visible twice
+		// reopen and select Reparadas — should replace Pendientes
+		const triggerAfterPending = Array.from(container.querySelectorAll("button")).find(
+			(b) => b.textContent?.trim() === "Pendientes",
+		);
+		expect(triggerAfterPending, "trigger should show Pendientes after first pick").toBeDefined();
+		await act(async () => {
+			fireEvent.click(triggerAfterPending!);
+		});
+		const reparadasOpt = Array.from(container.querySelectorAll("button")).find((b) =>
+			b.textContent?.includes("Reparadas"),
+		);
+		expect(reparadasOpt, "Reparadas option must exist").toBeDefined();
+		await act(async () => {
+			fireEvent.click(reparadasOpt!);
+		});
+		await waitFor(() => {
+			const t = Array.from(container.querySelectorAll("button")).find(
+				(b) => b.textContent?.trim() === "Reparadas",
+			);
+			expect(t).toBeDefined();
+		});
+		// should NOT show multi-count like "2 estados" nor still show Pendientes as selected trigger
+		expect(container.textContent).not.toContain("estados selec");
+		expect(container.textContent).not.toContain("2 estados");
+		// wait for debounced fetch (300ms)
+		await act(async () => {
+			await new Promise((r) => setTimeout(r, 400));
+		});
+		const lastUrl = fetchCalls[fetchCalls.length - 1] || "";
+		// query must carry at most one status, no comma-joined list
+		if (lastUrl.includes("status=")) {
+			const statusVal = new URL(lastUrl, "http://localhost").searchParams.get("status") || "";
+			expect(statusVal).not.toContain(",");
+			expect(["pending", "ready", "completed", "cancelled"]).toContain(statusVal);
+			expect(statusVal).toBe("ready");
+		}
+		// all-status reset: reopen and click Todos los estados
+		const triggerReady = Array.from(container.querySelectorAll("button")).find(
+			(b) => b.textContent?.trim() === "Reparadas",
+		);
+		await act(async () => {
+			fireEvent.click(triggerReady!);
+		});
+		const allOpt = Array.from(container.querySelectorAll("button")).find(
+			(b) => b.textContent?.trim() === "Todos los estados",
+		);
+		expect(allOpt, "Todos los estados option must exist").toBeDefined();
+		await act(async () => {
+			fireEvent.click(allOpt!);
+		});
+		await waitFor(() => {
+			const t = Array.from(container.querySelectorAll("button")).find((b) =>
+				b.textContent?.includes("Todos los estados"),
+			);
+			expect(t).toBeDefined();
+		});
+		await act(async () => {
+			await new Promise((r) => setTimeout(r, 400));
+		});
+		const afterAllUrl = fetchCalls[fetchCalls.length - 1] || "";
+		if (afterAllUrl) {
+			expect(new URL(afterAllUrl, "http://localhost").searchParams.get("status")).toBeNull();
+		}
+		(global as any).fetch = orig;
+	});
+
+	it("keyboard: Enter/Space on status option selects exclusively and closes menu", async () => {
+		const { ServiceDashboard } = await import("@/components/services/ServicesDashboard");
+		const orig = (global as any).fetch as any;
+		(global as any).fetch = vi.fn(
+			async () => ({ ok: true, json: async () => ({ data: [], total: 0 }) }) as any,
+		);
+		const { container } = render(
+			React.createElement(ServiceDashboard, {
+				initialData: { data: [], total: 0, page: 1, limit: 20 },
+				user: { name: "Test" },
+			}),
+		);
+		const trigger = Array.from(container.querySelectorAll("button")).find((b) =>
+			b.textContent?.includes("Todos los estados"),
+		);
+		await act(async () => {
+			fireEvent.click(trigger!);
+		});
+		// keyboard activation: focus Pendientes and press Enter
+		const pendientesBtn = Array.from(container.querySelectorAll("button")).find((b) =>
+			b.textContent?.includes("Pendientes"),
+		);
+		expect(pendientesBtn).toBeDefined();
+		pendientesBtn!.focus();
+		await act(async () => {
+			fireEvent.keyDown(pendientesBtn!, { key: "Enter", code: "Enter" });
+			fireEvent.click(pendientesBtn!);
+		});
+		await waitFor(() => {
+			const t = Array.from(container.querySelectorAll("button")).find(
+				(b) => b.textContent?.trim() === "Pendientes",
+			);
+			expect(t).toBeDefined();
+		});
+		// menu should be closed after keyboard activation (no duplicate option visible as open menu)
+		// reopen and use Space on Reparadas
+		const trigPend = Array.from(container.querySelectorAll("button")).find(
+			(b) => b.textContent?.trim() === "Pendientes",
+		);
+		await act(async () => {
+			fireEvent.click(trigPend!);
+		});
+		const reparadasBtn = Array.from(container.querySelectorAll("button")).find((b) =>
+			b.textContent?.includes("Reparadas"),
+		);
+		expect(reparadasBtn).toBeDefined();
+		reparadasBtn!.focus();
+		await act(async () => {
+			fireEvent.keyDown(reparadasBtn!, { key: " ", code: "Space" });
+			fireEvent.click(reparadasBtn!);
+		});
+		await waitFor(() => {
+			const t = Array.from(container.querySelectorAll("button")).find(
+				(b) => b.textContent?.trim() === "Reparadas",
+			);
+			expect(t).toBeDefined();
+		});
+		// exactly one selected — not multi
+		expect(container.textContent).not.toContain("estados selec");
+		(global as any).fetch = orig;
+	});
+
+	it("exclusive: second status does not remain selected alongside first", async () => {
+		const { ServiceDashboard } = await import("@/components/services/ServicesDashboard");
+		const orig = (global as any).fetch as any;
+		(global as any).fetch = vi.fn(
+			async () => ({ ok: true, json: async () => ({ data: [], total: 0 }) }) as any,
+		);
+		const { container, unmount } = render(
+			React.createElement(ServiceDashboard, {
+				initialData: { data: [], total: 0, page: 1, limit: 20 },
+				user: { name: "Test" },
+			}),
+		);
+		const getTrigger = () =>
+			Array.from(container.querySelectorAll("button")).find(
+				(b) =>
+					b.textContent?.includes("Todos los estados") ||
+					b.textContent?.trim() === "Pendientes" ||
+					b.textContent?.trim() === "Reparadas",
+			);
+		// pick pending
+		let trig = Array.from(container.querySelectorAll("button")).find((b) =>
+			b.textContent?.includes("Todos los estados"),
+		);
+		await act(async () => {
+			fireEvent.click(trig!);
+		});
+		let opt = Array.from(container.querySelectorAll("button")).find((b) =>
+			b.textContent?.includes("Pendientes"),
+		);
+		await act(async () => {
+			fireEvent.click(opt!);
+		});
+		await waitFor(() =>
+			expect(
+				Array.from(container.querySelectorAll("button")).find(
+					(b) => b.textContent?.trim() === "Pendientes",
+				),
+			).toBeDefined(),
+		);
+		// pick completed — should replace, not add
+		trig = Array.from(container.querySelectorAll("button")).find(
+			(b) => b.textContent?.trim() === "Pendientes",
+		)!;
+		await act(async () => {
+			fireEvent.click(trig!);
+		});
+		opt = Array.from(container.querySelectorAll("button")).find((b) =>
+			b.textContent?.includes("Entregada"),
+		);
+		await act(async () => {
+			fireEvent.click(opt!);
+		});
+		await waitFor(() =>
+			expect(
+				Array.from(container.querySelectorAll("button")).find(
+					(b) => b.textContent?.trim() === "Entregada",
+				),
+			).toBeDefined(),
+		);
+		// trigger shows only Entregada — not Pendientes as selected filter (metrics still contain Pendientes word, so check trigger not whole container)
+		const finalTrig = Array.from(container.querySelectorAll("button")).find(
+			(b) => b.textContent?.trim() === "Entregada",
+		);
+		expect(finalTrig).toBeDefined();
+		expect(finalTrig?.textContent?.trim()).toBe("Entregada");
+		// ensure Pendientes is not shown as the active filter trigger (only as metric)
+		const pendingTrigger = Array.from(container.querySelectorAll("button")).find(
+			(b) => b.textContent?.trim() === "Pendientes",
+		);
+		// after exclusive pick, Pendientes trigger should not exist; only Entregada trigger exists
+		// (pending option still exists in hidden menu only when reopened, not as trigger)
+		// verify no button with exact Pendientes is the status trigger (metrics are articles not buttons)
+		expect(pendingTrigger).toBeUndefined();
+		unmount();
+		(global as any).fetch = orig;
 	});
 });

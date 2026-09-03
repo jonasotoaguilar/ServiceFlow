@@ -6,6 +6,7 @@ import { Printer } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/utils";
 import { formatEntryDate } from "@/lib/format-date";
+import { renderCustodyReceiptHtml } from "@/lib/custody-receipt";
 
 interface ServiceDetailsModalProps {
 	isOpen: boolean;
@@ -58,135 +59,8 @@ export function ServiceDetailsModal({
 		const printWindow = window.open("", "_blank");
 		if (!printWindow) return;
 
-		const costText =
-			Service.repairCost && Service.repairCost > 0
-				? formatCurrency(Service.repairCost)
-				: "______________";
-
-		printWindow.document.write(`
-			<html>
-				<head>
-					<title>Etiqueta de Servicio #${Service.invoiceNumber}</title>
-					<style>
-						@page { margin: 0; }
-						body {
-							font-family: sans-serif;
-							width: 58mm;
-							margin: 0;
-							padding: 5mm;
-							font-size: 10pt;
-							line-height: 1.2;
-						}
-						.header {
-							text-align: center;
-							border-bottom: 1pt dashed #000;
-							margin-bottom: 3mm;
-							padding-bottom: 2mm;
-						}
-						.invoice { font-size: 14pt; font-weight: bold; }
-						.field { margin-bottom: 2mm; }
-						.label { font-size: 8pt; text-transform: uppercase; color: #555; }
-						.value { font-weight: bold; display: block; word-break: break-word; }
-						.cost-section {
-							margin-top: 4mm;
-							padding: 2mm;
-							border: 1pt solid #000;
-							text-align: center;
-						}
-						.footer {
-							margin-top: 5mm;
-							text-align: center;
-							font-size: 8pt;
-							border-top: 1pt dashed #000;
-							padding-top: 2mm;
-						}
-					</style>
-				</head>
-				<body>
-					<div class="header">
-						<div class="label">Comprobante de Servicio</div>
-						<div class="invoice">#${Service.invoiceNumber}</div>
-					</div>
-
-					<div class="field">
-						<span class="label">Cliente</span>
-						<span class="value">${Service.clientName}</span>
-						${Service.rut ? `<span class="value" style="font-size: 9pt;">${Service.rut}</span>` : ""}
-					</div>
-
-					<div class="field">
-						<span class="label">Contacto</span>
-						<span class="value">${Service.contact || "Sin teléfono"}</span>
-						${Service.email ? `<span class="value" style="font-size: 9pt;">${Service.email}</span>` : ""}
-					</div>
-
-					<div class="field">
-						<span class="label">Producto</span>
-						<span class="value">${Service.product}</span>
-						${Service.sku ? `<span class="label">SKU:</span> <span class="value" style="display:inline; font-size:9pt;">${Service.sku}</span>` : ""}
-					</div>
-
-					<div class="field">
-						<span class="label">Fecha Ingreso</span>
-						<span class="value">${formatEntryDate(Service.entryDate)}</span>
-					</div>
-
-					${
-						Service.deliveryDate
-							? `
-					<div class="field">
-						<span class="label">Fecha Entrega</span>
-						<span class="value">${formatEntryDate(Service.deliveryDate)}</span>
-					</div>
-					`
-							: ""
-					}
-
-					<div class="field">
-						<span class="label">Sede</span>
-						<span class="value">${Service.location}</span>
-					</div>
-
-					${
-						Service.failureDescription
-							? `
-					<div class="field">
-						<span class="label">Falla Reportada</span>
-						<span class="value" style="font-weight: normal; font-size: 9pt;">${Service.failureDescription}</span>
-					</div>
-					`
-							: ""
-					}
-
-					${
-						Service.notes
-							? `
-					<div class="field">
-						<span class="label">Notas</span>
-						<span class="value" style="font-weight: normal; font-size: 9pt; font-style: italic;">${Service.notes}</span>
-					</div>
-					`
-							: ""
-					}
-
-					<div class="cost-section">
-						<span class="label">Costo Reparación</span>
-						<div style="font-size: 14pt; font-weight: bold; margin-top: 1mm;">${costText}</div>
-					</div>
-
-					<div class="footer">
-						Gracias por su preferencia
-					</div>
-
-					<script>
-						window.onload = function() {
-							window.print();
-							window.onafterprint = function() { window.close(); };
-						};
-					</script>
-				</body>
-			</html>
-		`);
+		const html = renderCustodyReceiptHtml(Service);
+		printWindow.document.write(html);
 		printWindow.document.close();
 	};
 
@@ -200,7 +74,7 @@ export function ServiceDetailsModal({
 					type="button"
 					onClick={handlePrint}
 					className="text-foreground-muted hover:text-foreground transition-colors bg-surface-muted hover:bg-surface-muted/80 p-2 rounded-lg border border-border"
-					title="Imprimir Etiqueta"
+					title="Imprimir comprobante"
 				>
 					<Printer className="h-5 w-5" />
 				</button>

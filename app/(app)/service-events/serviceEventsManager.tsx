@@ -16,6 +16,7 @@ import {
 import { formatEntryDate } from "@/lib/format-date";
 import { Skeleton } from "boneyard-js/react";
 import { PageEmptyState } from "@/components/ui/page-empty-state";
+import { useRouter } from "next/navigation";
 
 type ServiceEventType = {
 	id: string;
@@ -143,6 +144,8 @@ export default function ServiceEventsManager({
 		return () => document.removeEventListener("mousedown", handleClickOutside);
 	}, []);
 
+	const router = useRouter();
+
 	const totalPages = Math.max(1, Math.ceil(total / limit));
 
 	const clearFilters = () => {
@@ -159,10 +162,7 @@ export default function ServiceEventsManager({
 	const emptyMode: "true-empty" | "filtered" = hasActiveFilters ? "filtered" : "true-empty";
 	const handleEmptyAction = () => {
 		if (emptyMode === "filtered") clearFilters();
-		else {
-			// true-empty create action — stay Spanish, no navigation side-effect in test
-			clearFilters();
-		}
+		else router.push("/dashboard?createService=1");
 	};
 
 	return (

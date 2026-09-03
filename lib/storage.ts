@@ -264,16 +264,13 @@ export async function updateService(updatedService: Service, userId?: string): P
 	if (current.status === "completed") {
 		throw new Error("Cannot modify a completed Service");
 	}
-	// Generic update must not silently mutate lifecycle fields; no sequential lifecycle event
+	// Generic update must not silently mutate lifecycle nor identity fields; no sequential lifecycle event
 	const payload: Record<string, unknown> = {
-		invoiceNumber: updatedService.invoiceNumber,
-		clientName: updatedService.clientName,
 		rut: updatedService.rut,
 		contact: updatedService.contact,
 		email: updatedService.email,
 		product: updatedService.product,
 		failureDescription: updatedService.failureDescription,
-		sku: updatedService.sku,
 		entryDate: updatedService.entryDate
 			? new Date(updatedService.entryDate).toISOString()
 			: current.entryDate,

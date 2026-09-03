@@ -5,7 +5,7 @@ context: |
   Architecture: App Router pages under app/, shared lib/ (pocketbase client, pocketbase-filter, env, schemas, auth, storage), components/ UI kit (Radix + cva + shadcn-style), zod schemas for validation.
   Testing: Vitest 4 + Testing Library (jsdom) in tests/ + Playwright E2E in e2e/ (local compose); coverage via @vitest/coverage-v8.
   Style: Biome 2.5 (biome check/lint/format), tsc --noEmit typecheck, husky + lint-staged (biome lint --write); no ESLint.
-  Conventions: PRD.md / ARCHITECTURE.md / DESIGN.md at repo root; PR review budget 400 lines; conventional commits.
+  Conventions: PRD.md / PRODUCT.md / DESIGN.md at repo root; PR review budget 400 lines; conventional commits.
 
 strict_tdd: true
 

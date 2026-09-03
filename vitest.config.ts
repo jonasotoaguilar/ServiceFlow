@@ -8,7 +8,13 @@ export default defineConfig({
 		environment: "jsdom",
 		globals: true,
 		setupFiles: ["./tests/setup.ts"],
-		exclude: ["e2e/**", "node_modules/**", "playwright-report/**", "test-results/**"],
+		exclude: [
+			"e2e/**",
+			"node_modules/**",
+			"playwright-report/**",
+			"test-results/**",
+			".stryker-tmp/**",
+		],
 		coverage: {
 			provider: "v8",
 			reportsDirectory: "./coverage",

@@ -1,0 +1,197 @@
+schema: gentle-ai.sdd-preproposal/v1
+revision: 4
+change: service-ui-corrections
+exploration:
+  ref: openspec/changes/service-ui-corrections/exploration.md
+  outcome: ready_for_proposal
+  status: exploration_complete_read_only
+research_request:
+  questions:
+    - id: Q1
+      question: "Official Chilean/SII sources defining or distinguishing boletas, invoices, DTEs, and non-tax internal/customer records; determine what this acknowledgment must avoid claiming. This document is NOT a tax receipt, boleta, invoice, DTE, warranty certificate, or proof of payment."
+      status: supported
+    - id: Q2
+      question: "Applicable Chilean consumer-protection obligations or authoritative guidance relevant to repair/service intake, custody, quote/authorization, delivery, warranties, and clear customer information. Prefer BCN LeyChile, SERNAC, SII, or other first-party government sources."
+      status: supported
+    - id: Q3
+      question: "Practical industry evidence for useful receipt fields, but clearly separate industry convention from legal requirement."
+      status: supported
+    - id: Q4
+      question: "Determine safe minimum fields and wording for a 58mm thermal print receipt, whether an A4 fallback materially helps, and whether signatures, terms, repair authorization, liability limitations, item condition/accessories, estimated date, tracking code, or QR are appropriate. Do not invent a public tracking endpoint."
+      status: supported
+    - id: Q5
+      question: "Produce recommended neutral Spanish copy, with citations or explicit evidence classification for each claim, using neutral professional Chilean Spanish. Avoid unsupported claims such as 'legally required'."
+      status: supported
+  classes:
+    documentation:
+      - ctx_fetch_and_index
+      - ctx_search
+    open_web:
+      - ctx_fetch_and_index
+      - ctx_search
+  artifact_store: openspec
+  requested_lanes: 5
+  selection: selected
+  selection_reason: mandatory_pre_proposal_gate
+  selection_date: 2026-09-02
+  selection_note: "Mandatory sdd-research for Chilean custody acknowledgment; receipt must not be conflated with SII boleta/factura/DTE; thermal 58mm + A4/QR assessment. Static first-party handoff validated 2026-09-02, no Chrome, dead endpoints not retried."
+admission:
+  requested:
+    documentation:
+      granted: true
+      provider: ctx_fetch_and_index
+      source_ids: [S-01, S-02, S-03, S-04, S-05, S-06, S-07]
+    open_web:
+      granted: true
+      provider: ctx_fetch_and_index
+      source_ids: [S-08, S-09]
+  observed:
+    documentation:
+      granted: true
+      provider: ctx_fetch_and_index
+      source_ids: [S-01, S-02, S-03, S-04, S-05, S-06, S-07]
+    open_web:
+      granted: true
+      provider: ctx_fetch_and_index
+      source_ids: [S-08, S-09]
+  capability_declaration: "gentle-ai.sdd-research-capability/v1"
+  denial: null
+  partial_evidence: false
+  inferred_capability: false
+  static_handoff:
+    mapper: source-mapper_read_only
+    chrome_used: false
+    dead_endpoints_not_retried: true
+outcome: done
+evidence:
+  research:
+    schema: gentle-ai.sdd-research/v1
+    revision: 4
+    outcome: done
+    openspec_ref: openspec/changes/service-ui-corrections/research.md
+    engram_ref: null
+    validated: true
+    all_questions_supported: true
+    persisted: true
+    sources_count: 9
+    claims_count: 9
+    admission_denied: false
+  sources:
+    - id: S-01
+      class: documentation
+      title: "Resolución Exenta SII N°45 del 01 de Septiembre del 2003 — ESTABLECE NORMAS Y PROCEDIMIENTOS DE OPERACIÓN RESPECTO DE LOS DOCUMENTOS TRIBUTARIOS ELECTRÓNICOS"
+      publisher: "Servicio de Impuestos Internos (SII)"
+      url: "https://www.sii.cl/documentos/resoluciones/2003/reso45.htm"
+      accessed_at: "2026-09-02"
+      authority: "first-party regulator (SII)"
+    - id: S-02
+      class: documentation
+      title: "Resolución Exenta SII N°11 del 14 de Febrero del 2003 — ESTABLECE PROCEDIMIENTO PARA QUE CONTRIBUYENTES AUTORIZADOS PARA EMITIR DOCUMENTOS ELECTRÓNICOS QUE INDICA PUEDA TAMBIÉN ENVIARLOS POR ESTOS MEDIOS A RECEPTORES MANUALES"
+      publisher: "Servicio de Impuestos Internos (SII)"
+      url: "https://www.sii.cl/documentos/resoluciones/2003/reso11.htm"
+      accessed_at: "2026-09-02"
+      authority: "first-party regulator (SII)"
+    - id: S-03
+      class: documentation
+      title: "SII — Servicios online — Factura electrónica / Boleta de ventas y servicios electrónica — Portal homer.sii.cl navigation"
+      publisher: "Servicio de Impuestos Internos (SII)"
+      url: "https://homer.sii.cl/"
+      accessed_at: "2026-09-02"
+      authority: "first-party regulator (SII)"
+    - id: S-04
+      class: documentation
+      title: "SERNAC destaca la publicación de la Ley Pro Consumidor... — Ampliación Garantía Legal"
+      publisher: "Servicio Nacional del Consumidor (SERNAC)"
+      url: "https://www.sernac.cl/portal/604/w3-article-64652.html"
+      accessed_at: "2026-09-02"
+      authority: "first-party regulator (SERNAC)"
+    - id: S-05
+      class: documentation
+      title: "Deber: Solicitar la reparación o indemnización por los daños materiales y morales derivados de actos de consumo"
+      publisher: "Servicio Nacional del Consumidor (SERNAC)"
+      url: "https://www.sernac.cl/portal/607/w3-propertyvalue-20901.html"
+      accessed_at: "2026-09-02"
+      authority: "first-party regulator (SERNAC)"
+    - id: S-06
+      class: documentation
+      title: "Guía del consumidor — Derechos y deberes del consumidor"
+      publisher: "Servicio Nacional del Consumidor (SERNAC)"
+      url: "https://www.sernac.cl/derechos-y-deberes-del-consumidor/"
+      accessed_at: "2026-09-02"
+      authority: "first-party regulator (SERNAC)"
+    - id: S-07
+      class: documentation
+      title: "Deber: Informarse sobre los bienes y servicios ofrecidos en el mercado (precio, condiciones de contratación, etc.)"
+      publisher: "Servicio Nacional del Consumidor (SERNAC)"
+      url: "https://www.sernac.cl/portal/607/w3-propertyvalue-20900.html"
+      accessed_at: "2026-09-02"
+      authority: "first-party regulator (SERNAC)"
+    - id: S-08
+      class: documentation
+      title: "BCN LeyChile idNorma=61438 canonical lead — Ley Chile SPA shell (inaccessible)"
+      publisher: "Biblioteca del Congreso Nacional (BCN)"
+      url: "https://www.bcn.cl/leychile/navegar?idNorma=61438"
+      accessed_at: "2026-09-02"
+      authority: "first-party legislator (BCN) — inaccessible via plain fetch"
+    - id: S-09
+      class: documentation
+      title: "BCN LeyChile idNorma=61438 mirror — Ley Chile SPA shell (inaccessible)"
+      publisher: "Biblioteca del Congreso Nacional (BCN)"
+      url: "https://www.leychile.cl/Navegar?idNorma=61438"
+      accessed_at: "2026-09-02"
+      authority: "first-party legislator (BCN) — inaccessible via plain fetch"
+product_decisions: confirmed
+product_decisions_detail:
+  status: confirmed
+  note: "User explicitly confirmed 2026-09-02 and static handoff 2026-09-02: custody acknowledgment for collection (not boleta/invoice/DTE/proof of payment/warranty), 58mm thermal as operational default unless evidence shows it cannot carry necessary information (A4 optional alternative not replacement), no public tracking/QR endpoint unless it already exists, Andén Ordenado / Bodega Técnica direction remains authoritative. All eight bounded corrections + ARCHITECTURE.md deletion remain orchestrator-owned product decisions, now confirmed for done."
+  pending_reason: null
+  selection:
+    purpose: "intake/custody acknowledgment used by the customer to collect item later"
+    must_not_present_as: ["boleta", "invoice", "DTE", "proof of payment", "warranty certificate"]
+    thermal: "58mm thermal as operational default unless evidenced insufficient; A4 optional alternative not replacement by inference — product/operational choice not law"
+    tracking_qr: "No public tracking/QR endpoint in this change unless it already exists — do not invent; QR excluded in this scope"
+    visual_direction: "Andén Ordenado / Bodega Técnica remains authoritative"
+  options: []
+  constraints:
+    - "Technical artifacts must be English; customer-facing Spanish receipt copy must use neutral professional Chilean Spanish, not persona voice"
+    - "Do not implement code and do not create proposal/spec/design/tasks until research is done — now done, proposal may proceed"
+    - "Receipt is custody acknowledgment, NOT tax receipt/boleta/invoice/DTE/warranty/proof of payment; carries explicit non-tax disclaimer — S-01/S-02 support negative constraint (avoid DTE language) as inference, disclaimer wording classified as inference/UX not law"
+    - "Distinguish product garantía legal (6 months 3 options per S-04) from repair-service intake/custody; do not imply mandatory form"
+    - "Do not invent a public tracking endpoint; distinguish law / regulator guidance / inference / UX recommendation"
+    - "Execution mode auto; artifact store openspec; delivery strategy auto-chain; review budget 800"
+  confirmed_at: "2026-09-02"
+  confirmed_by: "user explicit re-entry authorization + static handoff validation"
+proposal_ready: true
+proposal_handoff:
+  revision: 4
+  confirmed_decisions: true
+  evidence_refs_valid: true
+  store_ready: openspec
+  research_outcome: done
+  blocked_reason: null
+  next_phase: sdd-propose
+  recovery:
+    required_action: null
+    retained_intent: "Five lanes (Q1 SII distinction, Q2 consumer protection, Q3 industry vs legal separation, Q4 thermal/A4/QR appropriateness, Q5 neutral Spanish copy) with canonical desired content preserved pre-source-access for blocked recovery without source claims"
+    canonical_desired_content: "Source-backed evidence for Chilean customer intake/custody acknowledgment covering SII tax-document boundaries, BCN/SERNAC/SII obligations, industry conventions labeled as convention vs requirement, 58mm minimum plus A4 fallback and signature/terms/authorization/liability/condition/accessories/date/tracking-QR assessment without inventing endpoint, neutral Chilean Spanish copy with per-claim evidence classification distinguishing law, regulator guidance, inference, and UX recommendation"
+freshness:
+  exploration: 2026-09-02
+  research_execution: 2026-09-02
+  accessed_at: 2026-09-02
+uncertainty:
+  - "Q1 bounded: SII DTE as SII-authorized under Ley IVA art 56 + DTE definition (C-03); affirmative 'comprobante no tributario' phrasing remains not found verbatim — disclaimer inference/UX not law"
+  - "Q2 bounded: SERNAC regulator guidance for garantía 6 months 3 options (C-05), provider responsibility (C-06), information rights/duties (C-07/C-08); BCN Ley 19.496 statutory text not validated via plain fetch (S-08/S-09 SPA) — explicitly not found, not fabricated; no mandatory field checklist found — explicitly not found, fields as UX"
+  - "Q3 bounded: absence of mandatory checklist explicitly recorded; recommended fields as UX/product choice grounded in custody purpose"
+  - "Q4 bounded: 58mm thermal product choice not law; A4 optional only if implementation supports proportionally; QR excluded for absence of endpoint"
+  - "Q5 bounded: classified Spanish copy with law/regulator/inference/UX labels; no 'legally required' without source"
+  - "Sources S-01..S-09 accessed 2026-09-02; re-validate freshness before proposal if window exceeded"
+contradiction:
+  prior: null
+  evidence: null
+  resolution: "No validated contradiction between admitted sources; S-01/S-02 and S-03 consistent on DTE/boleta/factura as distinct SII-authorized classes; S-04/S-05/S-06/S-07 consistent on consumer information/garantía; BCN inaccessible does not contradict; gap vs thin current copy is product gap, not evidence contradiction"
+store_validation:
+  openspec: success
+  engram: not_required_for_openspec_store
+  bytes_match: true
+  revision_match: true
+  exploration_preserved: true

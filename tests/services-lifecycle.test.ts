@@ -284,7 +284,7 @@ describe("services read WU4 — getServices PocketBase tenant scope + GET route"
 		expect(await res.json()).toEqual({ error: "Unauthorized" });
 		expect(mockCreatePocketBaseClient).not.toHaveBeenCalled();
 	});
-	it("GET keeps query params and passes userId from auth only triangulates comma-separated status", async () => {
+	it("GET keeps query params and passes userId from auth only — exclusive single status first allowlisted token", async () => {
 		mockGetAuthUser.mockResolvedValue({ id: "auth-user-123", email: "a@b.com", name: "A" });
 		mockServicesGetList.mockResolvedValue({
 			items: [pbRecord({ id: "pb15charsvc00020" })],
@@ -316,7 +316,7 @@ describe("services read WU4 — getServices PocketBase tenant scope + GET route"
 		expect(p.uid).toBe("auth-user-123");
 		expect(p.search).toBe("Acme");
 		expect(Object.values(p)).toContain("pending");
-		expect(Object.values(p)).toContain("ready");
+		expect(Object.values(p)).not.toContain("ready");
 		expect(p.locationId).toBe("loc_pb_15_chars1");
 	});
 });
@@ -576,8 +576,6 @@ describe("services write WU5 — update/delete ownership/completed/delete-order 
 			method: "PUT",
 			body: JSON.stringify({
 				id: "pb15svc00000002",
-				invoiceNumber: "INV-1",
-				clientName: "Cliente",
 				rut: "12.345.678-5",
 				contact: "56912345678",
 				product: "Prod",
@@ -592,8 +590,6 @@ describe("services write WU5 — update/delete ownership/completed/delete-order 
 			method: "PUT",
 			body: JSON.stringify({
 				id: "pb15svc00000002",
-				invoiceNumber: "INV-1",
-				clientName: "Cliente",
 				rut: "12.345.678-5",
 				contact: "56912345678",
 				product: "Prod",
@@ -679,8 +675,6 @@ describe("services write WU5 — update/delete ownership/completed/delete-order 
 			method: "PUT",
 			body: JSON.stringify({
 				id: "pb15svc00000006",
-				invoiceNumber: "INV-1",
-				clientName: "Cliente",
 				rut: "12.345.678-5",
 				contact: "56912345678",
 				product: "Prod",
@@ -752,8 +746,6 @@ describe("services write WU5 — update/delete ownership/completed/delete-order 
 			method: "PUT",
 			body: JSON.stringify({
 				id: "pb15svc00000010",
-				invoiceNumber: "INV-1",
-				clientName: "Cliente",
 				rut: "12.345.678-5",
 				contact: "56912345678",
 				product: "Prod",
@@ -793,8 +785,6 @@ describe("services write WU5 — update/delete ownership/completed/delete-order 
 			method: "PUT",
 			body: JSON.stringify({
 				id: "pb15svc00000012",
-				invoiceNumber: "INV-1",
-				clientName: "Cliente",
 				rut: "12.345.678-5",
 				contact: "56912345678",
 				product: "Prod",
@@ -944,5 +934,208 @@ describe("movement logs WU6c — updateService creates service_events only on lo
 		);
 		expect(mockServicesUpdate).toHaveBeenCalledTimes(1);
 		expect(mockLogsCreate).not.toHaveBeenCalled();
+	});
+});
+
+describe("service identity immutability — PUT 400 IDENTITY_PROTECTED + storage omit (unit-5)", () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		mockGetAuthUser.mockReset();
+		mockServicesGetOne.mockReset();
+		mockServicesUpdate.mockReset();
+		mockServicesCreate.mockReset();
+		mockFilter.mockClear();
+		mockCollection.mockClear();
+		mockCreatePocketBaseClient.mockClear();
+		mockGetAuthUser.mockResolvedValue({ id: "owner-1", email: "owner@a.com", name: "Owner" });
+		mockServicesGetOne.mockResolvedValue(
+			pbRecord({
+				id: "pb15svc00010001",
+				userId: "owner-1",
+				status: "pending",
+				clientName: "A",
+				invoiceNumber: "B",
+				sku: "C",
+				locationId: "loc1",
+			}),
+		);
+		mockServicesUpdate.mockResolvedValue(pbRecord({ id: "pb15svc00010001" }));
+		mockLogsCreate.mockResolvedValue({ id: "log1" });
+	});
+	it("PUT rejects any own identity key with 400 IDENTITY_PROTECTED before Zod/write — Object.hasOwn guard", async () => {
+		const { PUT } = await import("@/app/api/services/route");
+		for (const field of ["clientName", "invoiceNumber", "sku"]) {
+			const req = new Request("http://localhost/api/services", {
+				method: "PUT",
+				body: JSON.stringify({ id: "pb15svc00010001", [field]: "HACKED", notes: "x" }),
+				headers: { "Content-Type": "application/json" },
+			});
+			const res = await PUT(req);
+			expect(res.status, `expected 400 for ${field}`).toBe(400);
+			const body = await res.json();
+			expect(body.code).toBe("IDENTITY_PROTECTED");
+			expect(mockServicesGetOne).not.toHaveBeenCalled();
+			expect(mockServicesUpdate).not.toHaveBeenCalled();
+			vi.clearAllMocks();
+			mockGetAuthUser.mockResolvedValue({ id: "owner-1", email: "owner@a.com", name: "Owner" });
+			mockServicesGetOne.mockResolvedValue(
+				pbRecord({ id: "pb15svc00010001", userId: "owner-1", status: "pending" }),
+			);
+		}
+		// prototype pollution not triggered:Inherited should not count, but own should
+		const proto = Object.create({ clientName: "inherited" });
+		(proto as any).id = "pb15svc00010001";
+		(proto as any).notes = "x";
+		// This object has no own clientName, so should NOT be rejected for identity (should go through validation)
+		// We send JSON that will not have own identity keys because JSON.stringify doesn't preserve proto — so this is not a request-level bypass test, just logic check
+		const src = fs.readFileSync(path.join(process.cwd(), "app/api/services/route.ts"), "utf8");
+		expect(src).toContain("Object.hasOwn");
+		expect(src).toContain("IDENTITY_PROTECTED");
+		expect(src.indexOf("Object.hasOwn")).toBeLessThan(src.indexOf("GenericEditSchema"));
+	});
+	it("PUT with inherited identity only (no own) does not trigger IDENTITY_PROTECTED — uses Object.hasOwn not 'in'", async () => {
+		// Ensure guard uses Object.hasOwn, so an object that inherits identity via proto is not rejected (avoids false positive)
+		const src = fs.readFileSync(path.join(process.cwd(), "app/api/services/route.ts"), "utf8");
+		expect(src).toMatch(/Object\.hasOwn\s*\(\s*jsonBody\s*,\s*["']clientName["']\s*\)/);
+		expect(src).not.toMatch(/jsonBody\s+in\s+/);
+		expect(src).not.toMatch(/hasOwnProperty.*clientName/);
+		// Also verify route does not use 'in' operator for identity
+		expect(src).not.toContain('"clientName" in jsonBody');
+		expect(src).not.toContain("'clientName' in jsonBody");
+	});
+	it("valid edit persists mutable fields, omits identity/lifecycle, status/location unchanged", async () => {
+		const current = pbRecord({
+			id: "pb15svc00010002",
+			userId: "owner-1",
+			status: "pending",
+			locationId: "loc1",
+			clientName: "A",
+			invoiceNumber: "B",
+			sku: "C",
+			contact: "old",
+			email: "old@a.com",
+			failureDescription: "old",
+			repairCost: 0,
+			notes: "old",
+		});
+		mockServicesGetOne.mockResolvedValue(current);
+		const { PUT } = await import("@/app/api/services/route");
+		const req = new Request("http://localhost/api/services", {
+			method: "PUT",
+			body: JSON.stringify({
+				id: "pb15svc00010002",
+				contact: "+56 9 1234 5678",
+				failureDescription: "No enciende nuevo",
+				email: "new@a.com",
+				repairCost: 5000,
+				notes: "nueva nota",
+				rut: "12.345.678-5",
+				product: "Laptop",
+			}),
+			headers: { "Content-Type": "application/json" },
+		});
+		const res = await PUT(req);
+		expect(res.status).toBe(200);
+		const body = await res.json();
+		expect(body.contact).toBe("+56 9 1234 5678");
+		expect(body.failureDescription).toBe("No enciende nuevo");
+		expect(body.email).toBe("new@a.com");
+		expect(body.repairCost).toBe(5000);
+		expect(body.notes).toBe("nueva nota");
+		// identity unchanged
+		expect(body.clientName).toBe("A");
+		expect(body.invoiceNumber).toBe("B");
+		expect(body.sku).toBe("C");
+		// lifecycle unchanged
+		expect(body.status).toBe("pending");
+		expect(body.locationId).toBe("loc1");
+		// storage payload must omit identity
+		expect(mockServicesUpdate).toHaveBeenCalledTimes(1);
+		const payload = mockServicesUpdate.mock.calls[0][1] as any;
+		// updateService is called via updateService(updated) where updated is built from body+current; check that underlying pb update omits identity
+		// We'll verify storage file omits identity directly
+		const sSrc = fs.readFileSync(path.join(process.cwd(), "lib/storage.ts"), "utf8");
+		const updSlice = sSrc.slice(
+			sSrc.indexOf("export async function updateService"),
+			sSrc.indexOf("export async function updateService") + 4000,
+		);
+		expect(updSlice).not.toContain("invoiceNumber: updatedService.invoiceNumber");
+		expect(updSlice).not.toContain("clientName: updatedService.clientName");
+		// should not have sku with invoice/client pattern in update payload, or explicitly omits via not writing those keys
+		expect(updSlice).not.toMatch(/invoiceNumber:\s*updatedService\.invoiceNumber/);
+		expect(updSlice).not.toMatch(/clientName:\s*updatedService\.clientName/);
+		expect(updSlice).not.toMatch(/sku:\s*updatedService\.sku/);
+		// must still write mutable fields
+		expect(updSlice).toContain("contact");
+		expect(updSlice).toContain("failureDescription");
+		expect(updSlice).toContain("repairCost");
+	});
+	it("invalid mutable email fails closed, identity unchanged, no write", async () => {
+		const cur = pbRecord({
+			id: "pb15svc00010003",
+			userId: "owner-1",
+			status: "pending",
+			clientName: "A",
+			invoiceNumber: "B",
+			sku: "C",
+		});
+		mockServicesGetOne.mockResolvedValue(cur);
+		const { PUT } = await import("@/app/api/services/route");
+		const req = new Request("http://localhost/api/services", {
+			method: "PUT",
+			body: JSON.stringify({ id: "pb15svc00010003", email: "not-an-email", notes: "x" }),
+			headers: { "Content-Type": "application/json" },
+		});
+		const res = await PUT(req);
+		expect(res.status).toBe(400);
+		const body = await res.json();
+		expect(body.code).toBe("VALIDATION_ERROR");
+		expect(mockServicesUpdate).not.toHaveBeenCalled();
+		// verify storage not called with identity mutation even on invalid
+	});
+	it("lifecycle 400 and 409 remain, not shadowed by identity", async () => {
+		// lifecycle 400 for status/locationId
+		const { PUT } = await import("@/app/api/services/route");
+		const r1 = new Request("http://localhost/api/services", {
+			method: "PUT",
+			body: JSON.stringify({ id: "pb15svc00010001", status: "ready" }),
+			headers: { "Content-Type": "application/json" },
+		});
+		const res1 = await PUT(r1);
+		expect(res1.status).toBe(400);
+		expect((await res1.json()).code).toBe("LIFECYCLE_PROTECTED");
+		// identity 400 distinct
+		const r2 = new Request("http://localhost/api/services", {
+			method: "PUT",
+			body: JSON.stringify({ id: "pb15svc00010001", clientName: "HACK" }),
+			headers: { "Content-Type": "application/json" },
+		});
+		const res2 = await PUT(r2);
+		expect(res2.status).toBe(400);
+		expect((await res2.json()).code).toBe("IDENTITY_PROTECTED");
+		// completed 409
+		mockServicesGetOne.mockResolvedValue(
+			pbRecord({ id: "pb15svc00010001", userId: "owner-1", status: "completed" }),
+		);
+		const r3 = new Request("http://localhost/api/services", {
+			method: "PUT",
+			body: JSON.stringify({ id: "pb15svc00010001", notes: "x" }),
+			headers: { "Content-Type": "application/json" },
+		});
+		const res3 = await PUT(r3);
+		expect(res3.status).toBe(409);
+		expect((await res3.json()).code).toBe("IMMUTABLE_STATUS");
+	});
+	it("source uses GENERIC_EDIT_OMIT and Object.hasOwn before Zod", () => {
+		const rSrc = fs.readFileSync(path.join(process.cwd(), "app/api/services/route.ts"), "utf8");
+		expect(rSrc).toContain("GENERIC_EDIT_OMIT");
+		expect(rSrc).toContain("Object.hasOwn");
+		expect(rSrc).toContain("IDENTITY_PROTECTED");
+		// must be before safeParse
+		expect(rSrc.indexOf("IDENTITY_PROTECTED")).toBeLessThan(
+			rSrc.indexOf("GenericEditSchema.safeParse"),
+		);
+		const sSrc = fs.readFileSync(path.join(process.cwd(), "lib/schemas.ts"), "utf8");
+		expect(sSrc).toContain("GENERIC_EDIT_OMIT");
 	});
 });

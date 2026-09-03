@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth";
 import { getServices, saveService, updateService, deleteService } from "@/lib/storage";
-import { Service } from "@/lib/types";
-import { ServiceSchema } from "@/lib/schemas";
+import { Service, ServiceStatus } from "@/lib/types";
+import { ServiceSchema, GENERIC_EDIT_OMIT } from "@/lib/schemas";
 import { createPocketBaseClient } from "@/lib/pocketbase";
 import * as z from "zod";
 
@@ -21,7 +21,14 @@ export async function GET(request: Request) {
 	const location = searchParams.get("location") || undefined;
 	const sortOrder = (searchParams.get("sortOrder") as "asc" | "desc") || undefined;
 
-	const status = statusParam ? (statusParam.split(",") as any[]) : undefined;
+	const ALLOWED_STATUSES = new Set<ServiceStatus>(["pending", "ready", "completed", "cancelled"]);
+	let status: ServiceStatus[] | undefined;
+	if (statusParam) {
+		const first = statusParam.split(",")[0]?.trim() as ServiceStatus;
+		if (first && ALLOWED_STATUSES.has(first)) {
+			status = [first];
+		}
+	}
 
 	const result = await getServices({
 		page,
@@ -148,13 +155,25 @@ export async function PUT(request: Request) {
 			);
 		}
 
-		const GenericEditSchema = ServiceSchema.omit({
-			status: true,
-			locationId: true,
-			deliveryDate: true,
-			readyDate: true,
-			cancellationDate: true,
-		})
+		if (
+			Object.hasOwn(jsonBody, "clientName") ||
+			Object.hasOwn(jsonBody, "invoiceNumber") ||
+			Object.hasOwn(jsonBody, "sku")
+		) {
+			return NextResponse.json(
+				{
+					error: "Cliente, boleta y SKU no pueden modificarse desde la edición general",
+					code: "IDENTITY_PROTECTED",
+				},
+				{ status: 400 },
+			);
+		}
+
+		const genericOmit = Object.fromEntries(GENERIC_EDIT_OMIT.map((k) => [k, true])) as Record<
+			(typeof GENERIC_EDIT_OMIT)[number],
+			true
+		>;
+		const GenericEditSchema = ServiceSchema.omit(genericOmit)
 			.partial()
 			.extend({
 				id: z.string().min(1, "ID requerido"),
@@ -205,13 +224,13 @@ export async function PUT(request: Request) {
 		const updated: Service = {
 			id: body.id,
 			userId: current.userId,
-			invoiceNumber: (body as any).invoiceNumber ?? current.invoiceNumber,
-			clientName: (body as any).clientName ?? current.clientName,
+			invoiceNumber: current.invoiceNumber,
+			clientName: current.clientName,
 			rut: (body as any).rut ?? current.rut,
 			contact: (body as any).contact ?? current.contact,
 			email: (body as any).email ?? current.email,
 			product: (body as any).product ?? current.product,
-			sku: (body as any).sku ?? current.sku,
+			sku: current.sku,
 			failureDescription: (body as any).failureDescription ?? current.failureDescription,
 			locationId: current.locationId,
 			entryDate: (body as any).entryDate || current.entryDate,

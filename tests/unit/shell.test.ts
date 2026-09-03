@@ -301,3 +301,93 @@ describe("Dashboard 32px displacement removed — no extra p-4 md:p-8 wrappers",
 		}
 	});
 });
+
+describe("Shell 2xl width and shared rhythm (Unit 3 RED)", () => {
+	it("layout main has max-w-7xl 2xl:max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8", () => {
+		const src = read("app/(app)/layout.tsx");
+		expect(src).toContain("max-w-7xl");
+		expect(src).toContain("2xl:max-w-[1600px]");
+		expect(src).toContain("mx-auto");
+		expect(src).toContain("px-4");
+		expect(src).toContain("sm:px-6");
+		expect(src).toContain("lg:px-8");
+		expect(src).toContain("py-8");
+		// must be in same main class string
+		expect(src).toMatch(/max-w-7xl[^"]*2xl:max-w-\[1600px\]/);
+		expect(src).toMatch(
+			/<main[^>]*max-w-7xl[^>]*mx-auto[^>]*px-4[^>]*sm:px-6[^>]*lg:px-8[^>]*py-8/,
+		);
+	});
+
+	it("Navbar inner row shares same max-w-7xl 2xl:max-w-[1600px] gutters as main", () => {
+		const navbar = read("components/layout/Navbar.tsx");
+		const layout = read("app/(app)/layout.tsx");
+		expect(navbar).toContain("max-w-7xl");
+		expect(navbar).toContain("2xl:max-w-[1600px]");
+		expect(navbar).toContain("mx-auto");
+		expect(navbar).toContain("px-4");
+		expect(navbar).toContain("sm:px-6");
+		expect(navbar).toContain("lg:px-8");
+		expect(navbar).toMatch(/max-w-7xl[^"]*2xl:max-w-\[1600px\]/);
+		expect(navbar).toMatch(/max-w-7xl[^"]*mx-auto[^"]*px-4[^"]*sm:px-6[^"]*lg:px-8/);
+		// both share same
+		expect(layout).toMatch(/max-w-7xl[^"]*2xl:max-w-\[1600px\]/);
+		// Navbar row has h-16 + border-b = 65px, layout main py-8
+		expect(navbar).toContain("h-16");
+		expect(layout).toContain("py-8");
+	});
+
+	it("no 2xl effect at 1280: max-w-7xl is base, 2xl only expands at 1536+", () => {
+		const layout = read("app/(app)/layout.tsx");
+		const navbar = read("components/layout/Navbar.tsx");
+		// both must have base max-w-7xl without 2xl prefix as base, and 2xl variant separate
+		expect(layout).toMatch(/max-w-7xl/);
+		expect(navbar).toMatch(/max-w-7xl/);
+		// 2xl prefix must exist but not replace base
+		expect(layout).toContain("2xl:max-w-[1600px]");
+		expect(navbar).toContain("2xl:max-w-[1600px]");
+		// should not have lg:max-w-[1600px] which would affect 1280; xl check must not falsely match 2xl
+		expect(layout).not.toContain("lg:max-w-[1600px]");
+		expect(navbar).not.toContain("lg:max-w-[1600px]");
+		// ensure only 2xl variant exists, not standalone xl or lg
+		expect((layout.match(/max-w-\[1600px\]/g) || []).length).toBe(1);
+		expect((navbar.match(/max-w-\[1600px\]/g) || []).length).toBe(1);
+		expect(layout).toMatch(/2xl:max-w-\[1600px\]/);
+		// single max-w-7xl base ensures 1280 stays 7xl, not 1600
+	});
+
+	it("Services/Registro/Locations inherit same shell, no per-page duplicate max widths", () => {
+		const layout = read("app/(app)/layout.tsx");
+		const dashPage = read("app/(app)/dashboard/page.tsx");
+		const locPage = read("app/(app)/locations/page.tsx");
+		const regPage = read("app/(app)/service-events/page.tsx");
+		// shell owns max widths
+		expect(layout).toContain("max-w-7xl");
+		expect(layout).toContain("2xl:max-w-[1600px]");
+		// per-page files must NOT duplicate max widths
+		expect(dashPage).not.toContain("max-w-7xl");
+		expect(dashPage).not.toContain("2xl:max-w");
+		expect(locPage).not.toContain("max-w-7xl");
+		expect(regPage).not.toContain("max-w-7xl");
+		// pages should not have mx-auto px wrappers duplicating shell
+		expect(dashPage).not.toMatch(/mx-auto[^>]*px-4/);
+	});
+
+	it("Locations header and toolbar share operate rhythm (gap-4 mb-6, border-y bg-surface/50 px-4 py-3)", () => {
+		const loc = read("app/(app)/locations/locationsManager.tsx");
+		// header band
+		expect(loc).toMatch(/gap-4/);
+		expect(loc).toMatch(/mb-6/);
+		// title is text-2xl font-semibold tracking-tight (h1 specific, stats may still have text-xl)
+		expect(loc).toMatch(
+			/<h1[^>]*text-2xl[^>]*font-semibold[^>]*tracking-tight[^>]*>\s*Gestión de Sedes/,
+		);
+		expect(loc).not.toMatch(/<h1[^>]*text-xl[^>]*font-bold/);
+		// toolbar band is border-y bg-surface/50 px-4 py-3, not card shadow rounded
+		expect(loc).toContain("border-y");
+		expect(loc).toContain("bg-surface/50");
+		expect(loc).toContain("px-4");
+		expect(loc).toContain("py-3");
+		expect(loc).not.toContain("bg-surface border border-border shadow-sm p-4 mb-6");
+	});
+});
