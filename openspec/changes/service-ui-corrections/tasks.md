@@ -4,11 +4,11 @@
 
 | Field | Value |
 |-------|-------|
-| Estimated changed lines | 1600–2200 |
+| Estimated changed lines | 1600–2200 + ~150 Stryker sandbox isolation (7.4) |
 | 400-line budget risk | High |
 | 800-line session budget | Exceeded as one PR |
 | Chained PRs recommended | Yes |
-| Suggested split | 10 gh-stack slices (7A–7D pre-implementation split) |
+| Suggested split | 11 gh-stack slices (7A–7D pre-implementation split + 11 Stryker sandbox isolation) |
 | Delivery strategy | auto-chain |
 | Chain strategy | stacked-to-main |
 
@@ -66,3 +66,7 @@ Choose chain strategy before apply; `gh stack` only. Archive-only: `PRODUCT.md`,
 - [x] 7.1 RED receipt tests + `tests/unit/visual.test.ts`: title `Comprobante de recepción y custodia`; disclaimer `Este documento acredita la recepción del equipo para servicio y custodia. No constituye documento tributario, no es boleta ni factura y no acredita pago. Sin validez tributaria ante el SII.`; 58mm; escape; no QR; lockup AA; print `Imprimir comprobante`.
 - [x] 7.2 GREEN `lib/custody-receipt.ts`, `components/services/ServicesDetailsModal.tsx`, `assets/brand/bodega-tecnica-mark.svg`, `components/brand/bodega-tecnica-mark.tsx` (drop filename `sr-only`).
 - [x] 7.3 GREEN `git rm` `ARCHITECTURE.md`; drop cites in `docs/CODEBASE-GUIDE.md`, `openspec/config.yaml` only. Check visual/shell tests.
+## Phase 7.4: Stryker Sandbox Isolation (user-authorized correction fix-stryker-sandbox)
+
+- [x] 7.4 RED/GREEN tests/unit/stryker-sandbox.test.ts: Stryker ignorePatterns must exclude .agents (+ .agents/**) and metadata, Vitest exclude must contain .stryker-tmp/** via supported config, preserve thresholds, mutate lib/**/*.ts, cleanup removes .stryker-tmp sandbox on success/failure.
+

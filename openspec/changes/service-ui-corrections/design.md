@@ -98,7 +98,7 @@ Security at app edges: bound `{:search}`/`{:rutSearch}` only; HTML-escape receip
 
 ## Migration / Rollout
 
-No schema migration. Stage `ARCHITECTURE.md` deletion in this change. Chained PRs likely vs 800-line review budget (tasks forecast).
+No schema migration. Stage `ARCHITECTURE.md` deletion in this change. Chained PRs likely vs 800-line review budget (tasks forecast 11 slices).
 
 ## Open Questions
 
