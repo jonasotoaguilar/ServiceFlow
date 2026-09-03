@@ -108,12 +108,28 @@ None. Unit-3 implements shared `max-w-7xl 2xl:max-w-[1600px]` in main and Navbar
 - Previous slices: unit-1 ~519 lines, unit-2 ~9 lines, cumulative code ~532.
 
 ## Status
-6/13 tasks complete. Ready for next batch (unit-4 registro create). Stack: bottom `fix/service-ui-corrections` @ `91e0ba9`, middle `fix/service-ui-corrections-02-table-gutter` @ `b01cf97`, top `fix/service-ui-corrections-03-shell-locations` pending commit. No PR published; awaiting verification before `gh stack submit --auto`.
+6/13 tasks complete. Ready for next batch (unit-4 registro create). Stack: bottom `fix/service-ui-corrections` @ `91e0ba9` (#82), middle `fix/service-ui-corrections-02-table-gutter` @ `b01cf97` (#83), top `fix/service-ui-corrections-03-shell-locations` @ `a48b61b` (#84) — all draft, verified via `gh stack view --json`. Dedicated Herdr worktree at `/home/jona/projects/serviceflow-worktrees/fix-service-ui-corrections` owns the stack branch; primary checkout on `main` preserves dirty `ARCHITECTURE.md` deletion + untracked OpenSpec artifacts losslessly. Issue #81 `status:approved` (enhancement, Frontend/UI) authorizes slices 1–3.
+
+## Recovery Reconciliation — 2026-09-02 (Herdr + `gh stack submit --auto` remediation)
+
+**Dedicated Herdr worktree:** `/home/jona/projects/serviceflow-worktrees/fix-service-ui-corrections` on branch `fix/service-ui-corrections-03-shell-locations` — proven open via `herdr worktree list --json` (workspace `w8V`, is_linked_worktree true). Primary checkout `/home/jona/projects/serviceflow` now on `main`, no longer owns implementation branch. Dirty state preserved losslessly via `git stash push --include-untracked` then `stash apply` in Herdr: `D ARCHITECTURE.md` + `openspec/changes/service-ui-corrections/{design,exploration,preproposal,proposal,research,specs/*,ui-design}.md` (tracked deletion for unit 7 remains uncommitted on purpose).
+
+**Issue reconciliation:** No conforming equivalent existed (search `service-ui-corrections` + `service ui` over open+closed → 0). Created #81 `fix: service UI corrections — dashboard filter, table gutter, shell rhythm, registro, identity, RUT, custody` via `feature_request.yml` (Frontend/UI, `enhancement` + `status:needs-review`), then atomic `status:approved` with `MAINTAIN`/`ADMIN` authority (`viewerPermission` `ADMIN`) and current-session pre-approval. Read-back confirmed `status:approved` + `enhancement`.
+
+**Stack registration (pre-existing, preserved, not rewritten):** `stacked-to-main`, trunk `main` @ `9b48a7961e07107e460464420b34d818de53abef`. No fourth branch created.
+
+| Slice | Branch | Commit SHA | Immediate Base | PR | Review Budget | Focused Checks (Herdr re-verified) | Rollback Boundary |
+|-------|--------|------------|----------------|----|---------------|-----------------------------------|-------------------|
+| 1 | `fix/service-ui-corrections` | `91e0ba9dc2db11699fe2b347a35234dbf7f45dfd` | `main` @ `9b48a796` | #82 https://github.com/jonasotoaguilar/serviceflow/pull/82 (draft, `type:feature`, `Closes #81`, base `main`) | 537 / 800 | `pnpm test tests/unit/dashboard-operate-plus.test.tsx --run` 27/27 isolated, now 32/32 cumulative; `tsc --noEmit` 0 | `ServicesDashboard.tsx` + `route.ts` + test |
+| 2 | `fix/service-ui-corrections-02-table-gutter` | `b01cf97a93ec802202106f656db788874a4b1b12` | `91e0ba9` | #83 https://github.com/jonasotoaguilar/serviceflow/pull/83 (draft, `type:feature`, `Related to #81`, base `fix/service-ui-corrections`) | 272 / 400 | `pnpm test tests/unit/dashboard-operate-plus.test.tsx --run` 32/32 (5 gutter RED→GREEN); `tsc` 0; jsdom geometry N/A — DOM verified | `ServicesTable.tsx` + Dashboard parent |
+| 3 | `fix/service-ui-corrections-03-shell-locations` | `a48b61b9fd5565683c2637d0dfc6799488ec700b` | `b01cf97` | #84 https://github.com/jonasotoaguilar/serviceflow/pull/84 (draft, `type:feature`, `Related to #81`, base `fix/service-ui-corrections-02-table-gutter`) | 250 / 400 | `pnpm test tests/unit/shell.test.ts tests/unit/locations.test.ts --run` 52/52 + combined 84/84; `tsc` 0 | `layout.tsx`, `Navbar.tsx`, `locationsManager.tsx` + 2 tests |
+
+**Workflow recovery note:** This `gh stack submit --auto` (PRs #82–#84, stack #85) is explicit remediation of prior deferred submission where three slices were committed without draft identities, violating `stacker-pr` `Draft before next slice`. It is **not** an approved future pattern; subsequent slices (units 4–7) must follow branch-before-code and draft-before-next-slice gates. Chain context, dependency diagrams, and rollback boundaries are recorded in each PR body; all PRs remain draft and target immediate parent (or `main` for slice 1). Check snapshot: PR #82 `Check Issue Reference` pass, `Check Issue Has status:approved` pass, `Check PR Has type:*` pass; `Check PR Cognitive Load` pass (PR83/84 pass, PR82 537 within 800); `quality`/`e2e` as per snapshot (quality fail on #82/#84 unrelated to slice gate, not waited upon per recovery instructions).
 
 ## Evidence Revision
 - Unit-1 Commit SHA: 91e0ba9dc2db11699fe2b347a35234dbf7f45dfd
 - Unit-2 Commit SHA: b01cf97a93ec802202106f656db788874a4b1b12
-- Unit-3 Commit SHA: pending (to be filled after work-unit commit on `fix/service-ui-corrections-03-shell-locations`)
+- Unit-3 Commit SHA: a48b61b9fd5565683c2637d0dfc6799488ec700b
 - Unit-1 Attempt token: sha256:66f7c75e9e2d9d31226dbf0d6eb069a79d8ed1a4f080141efae09fb7b67da65f
 - Unit-2 Attempt token: sha256:d63ae090348edd269cd9a774adfbe082434e5e2f526f286b5d0fc03b1af2c911
 - Unit-3 Attempt token: sha256:dadfd6658aab3f9fe389714e89d17b8312b4d6d406d9d6b7973ac76b61e16a3b
