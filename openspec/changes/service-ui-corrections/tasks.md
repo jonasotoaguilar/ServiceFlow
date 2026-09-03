@@ -53,8 +53,8 @@ Choose chain strategy before apply; `gh stack` only. Archive-only: `PRODUCT.md`,
 
 ## Phase 5: Identity
 
-- [ ] 5.1 RED `tests/schemas.test.ts`, `tests/services-lifecycle.test.ts`: PUT 400 `IDENTITY_PROTECTED`; storage omit; UI locked; 409 holds.
-- [ ] 5.2 GREEN `lib/schemas.ts` `GENERIC_EDIT_OMIT`; `app/api/services/route.ts` reject before Zod; `lib/storage.ts` omit; `components/services/ServicesModal.tsx` read-only. Check tests.
+- [x] 5.1 RED `tests/schemas.test.ts`, `tests/services-lifecycle.test.ts`: PUT 400 `IDENTITY_PROTECTED`; storage omit; UI locked; 409 holds.
+- [x] 5.2 GREEN `lib/schemas.ts` `GENERIC_EDIT_OMIT`; `app/api/services/route.ts` reject before Zod; `lib/storage.ts` omit; `components/services/ServicesModal.tsx` read-only. Check tests.
 
 ## Phase 6: RUT Lookup
 
