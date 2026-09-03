@@ -48,8 +48,8 @@ Choose chain strategy before apply; `gh stack` only. Archive-only: `PRODUCT.md`,
 
 ## Phase 4: Registro Create
 
-- [ ] 4.1 RED `tests/unit/registro-primary-surface.test.tsx`: true-empty `push("/dashboard?createService=1")`; filter-empty clears; one-shot; Suspense-safe.
-- [ ] 4.2 GREEN `app/(app)/service-events/serviceEventsManager.tsx`, `app/(app)/dashboard/page.tsx` await `searchParams`, `ServicesDashboard.tsx` open+`replace`. Check tests.
+- [x] 4.1 RED `tests/unit/registro-primary-surface.test.tsx`: true-empty `push("/dashboard?createService=1")`; filter-empty clears; one-shot; Suspense-safe.
+- [x] 4.2 GREEN `app/(app)/service-events/serviceEventsManager.tsx`, `app/(app)/dashboard/page.tsx` await `searchParams`, `ServicesDashboard.tsx` open+`replace`. Check tests.
 
 ## Phase 5: Identity
 
