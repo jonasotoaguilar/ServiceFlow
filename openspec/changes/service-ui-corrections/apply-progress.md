@@ -268,3 +268,17 @@ Unit-6 implements `isRutShapedLookup` (strip `[.\-\s]`, `^\d+[0-9Kk]?$`, 2–9 l
 **Chain**: stacked-to-main position 7 of 10 (forecast 10 slices); current PR7 base #88, follow-up 7B proposal/design/specs
 **PR**: type:docs, Related to #81, DRAFT, Chain Context 7/10
 **Status**: 12/13 tasks complete (6 units done, 7A docs versioned, 7.1-7.3 pending) — ready for 7B
+
+## Unit-7B — OpenSpec design+specs (passive docs slice) — 2026-09-03
+**Branch**: docs/service-ui-corrections-08-openspec-design-specs @ ba6d78b base docs/service-ui-corrections-07-openspec-research (#89)
+**Attempt**: sha256:cb8d73114497624d5b6b6d73c02583fb52d1694bb6ca2fb408ccd4c754ab7ee5 unit-7b-openspec-design-specs max800 parent-settles
+**Scope**: passive docs only — no runtime code; 7.1/7.2/7.3 remain [ ] (no 7.1+ completion in this slice)
+**Artifacts**: proposal.md 73, design.md 105, ui-design.md 41, specs subtotal 398 (7 files: 43+73+74+44+54+56+54); total 617 + apply-progress delta = <800; word count ui-design.md 519 <800
+**Readback**: all 10 files readable; proposal scope (In Scope 8 lines) matches design Technical Approach / File Changes and 7 specs (dashboard-operate-plus 74, registro-primary-surface 44, app-shell-page-rhythm 43, service-identity-immutability 56, service-search-normalization 54, service-custody-acknowledgment 54, bodega-tecnica-identity 73); ui-design.md 41 lines visual HOW (shared 1600px, gutter, lockup) under 800 words; no code changed
+**Verification**: structural readback only (passive docs) — proposal/design/specs/ui-design readable + scope consistent + spec files present is proportional check; passive docs require no artificial runtime test (no harness)
+**Budget**: 73+105+41+398=617 + tasks delta 0 + apply-progress delta (this note) <=800 — within budget; chain 8/10 budget guard satisfied
+**Rollback**: revert docs/service-ui-corrections-08-openspec-design-specs — remove staged proposal/design/ui-design/specs versioning + revert apply-progress.md delta; no runtime rollback; ARCHITECTURE.md deletion (D) + .herdr/ preserved untracked
+**No code**: verified via `git diff --stat HEAD` (only openspec/changes/service-ui-corrections/{proposal,design,ui-design,specs/*} + apply-progress.md, no lib/app/components change; `git diff --stat HEAD` excludes ARCHITECTURE.md deletion per preservation)
+**Chain**: stacked-to-main position 8 of 10 (forecast 10 slices); current PR8 base #89 (docs/service-ui-corrections-07 @ ba6d78b), follow-up 7C implementation slice
+**PR**: type:docs, Related to #81, DRAFT, Chain Context 8/10
+**Status**: 12/13 tasks complete (6 units done, 7A+7B docs versioned, 7.1-7.3 pending) — ready for 7C
