@@ -257,7 +257,7 @@ describe("Location invariants — at least one active, no default role (Unit 7)"
 				totalItems: 2,
 			});
 			mockLUpdate.mockResolvedValue({});
-			const { setDefaultLocation } = await import("@/lib/locations");
+			const { setDefaultLocation } = (await import("@/lib/locations")) as any;
 			const r = await setDefaultLocation(uid, "locB");
 			expect(r).toEqual(expect.objectContaining({ success: true }));
 			expect(mockLUpdate).toHaveBeenCalledWith(
@@ -284,7 +284,7 @@ describe("Location invariants — at least one active, no default role (Unit 7)"
 				],
 				totalItems: 2,
 			});
-			const { setDefaultLocation } = await import("@/lib/locations");
+			const { setDefaultLocation } = (await import("@/lib/locations")) as any;
 			const r = await setDefaultLocation(uid, "locB");
 			expect((r as any).error).toMatch(/activa|inactive|no puede/i);
 			expect(mockLUpdate).not.toHaveBeenCalled();
@@ -297,14 +297,14 @@ describe("Location invariants — at least one active, no default role (Unit 7)"
 				isActive: true,
 				isDefault: false,
 			});
-			const { setDefaultLocation } = await import("@/lib/locations");
+			const { setDefaultLocation } = (await import("@/lib/locations")) as any;
 			const r = await setDefaultLocation(uid, "locF");
 			expect((r as any).error).toMatch(/no encontrada|No autorizado/i);
 			expect(mockLUpdate).not.toHaveBeenCalled();
 		});
 		it("missing rejected", async () => {
 			mockLOne.mockRejectedValue(new Error("not found"));
-			const { setDefaultLocation } = await import("@/lib/locations");
+			const { setDefaultLocation } = (await import("@/lib/locations")) as any;
 			const r = await setDefaultLocation(uid, "missing");
 			expect((r as any).error).toMatch(/no encontrada/i);
 			expect(mockLUpdate).not.toHaveBeenCalled();
