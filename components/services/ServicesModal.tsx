@@ -10,27 +10,9 @@ import { Dialog } from "@/components/ui/dialog";
 import { Service } from "@/lib/types";
 import { Alert } from "@/components/ui/alert";
 import { formatRut, formatChileanPhone, formatCurrency, parseCurrency } from "@/lib/utils";
+import { ServiceSchema } from "@/lib/schemas";
 
-const serviceSchema = z.object({
-	entryDate: z.string().min(1, "La fecha es obligatoria"),
-	invoiceNumber: z.string().min(1, "El número de boleta es obligatorio"),
-	sku: z.string().min(1, "El SKU es obligatorio"),
-	clientName: z.string().min(1, "El cliente es obligatorio"),
-	rut: z.string().min(1, "El RUT es obligatorio"),
-	contact: z
-		.string()
-		.min(15, "El teléfono debe estar completo")
-		.regex(/^\+56 9 \d{4} \d{4}$/, "Formato de teléfono inválido"),
-	product: z.string().min(1, "El producto es obligatorio"),
-	locationId: z.string().min(1, "La sede es obligatoria"),
-	status: z.enum(["pending", "ready", "completed", "cancelled"]),
-	failureDescription: z.string().min(1, "La descripción del problema es obligatoria"),
-	email: z.string().email("Email inválido").optional().or(z.literal("")),
-	repairCost: z.number().min(0),
-	notes: z.string().optional(),
-});
-
-type ServiceFormData = z.infer<typeof serviceSchema>;
+type ServiceFormData = z.infer<typeof ServiceSchema>;
 
 function calculateStatusDates(
 	data: ServiceFormData,
@@ -122,7 +104,7 @@ export function ServiceModal({
 	const isEditing = !!ServiceToEdit;
 
 	const form = useForm<ServiceFormData>({
-		resolver: zodResolver(serviceSchema),
+		resolver: zodResolver(ServiceSchema),
 		defaultValues: {
 			entryDate: new Date().toISOString().split("T")[0],
 			invoiceNumber: "",
@@ -249,9 +231,20 @@ export function ServiceModal({
 					onClose();
 				}, 1500);
 			} else {
-				const data = await res.json().catch(() => ({}) as any);
-				const msg = (data as any).error || (data as any).message || "Error al guardar el servicio";
-				setAlert({ type: "error", message: String(msg) });
+				const dataJson = await res.json().catch(() => ({}) as any);
+				const fieldErrors = (dataJson as any).fieldErrors as Record<string, string> | undefined;
+				if (fieldErrors && typeof fieldErrors === "object" && Object.keys(fieldErrors).length > 0) {
+					Object.entries(fieldErrors).forEach(([field, msg]) => {
+						form.setError(field as keyof ServiceFormData, { type: "server", message: String(msg) });
+					});
+					setAlert({ type: "error", message: "Revisa los campos marcados con error" });
+					const first = Object.keys(fieldErrors)[0];
+					setTimeout(() => document.getElementById(first)?.focus(), 0);
+				} else {
+					const msg =
+						(dataJson as any).error || (dataJson as any).message || "Error al guardar el servicio";
+					setAlert({ type: "error", message: String(msg) });
+				}
 				setLoading(false);
 			}
 		} catch (error) {
@@ -263,6 +256,30 @@ export function ServiceModal({
 
 	const onSubmit = (data: ServiceFormData) => {
 		performSubmit(data);
+	};
+
+	const onInvalid = (errors: Record<string, unknown>) => {
+		setAlert({ type: "error", message: "Revisa los campos marcados con error" });
+		const order: (keyof ServiceFormData)[] = [
+			"entryDate",
+			"invoiceNumber",
+			"sku",
+			"clientName",
+			"rut",
+			"contact",
+			"product",
+			"locationId",
+			"failureDescription",
+			"email",
+			"repairCost",
+			"notes",
+		];
+		for (const key of order) {
+			if (errors[key]) {
+				document.getElementById(key)?.focus();
+				break;
+			}
+		}
 	};
 
 	if (!isOpen) return null;
@@ -284,7 +301,7 @@ export function ServiceModal({
 
 					<div className="px-6 py-6 overflow-y-auto custom-scrollbar">
 						{alert && (
-							<div className="mb-4">
+							<div className="mb-4" role="alert" aria-live="polite">
 								<Alert
 									variant={alert.type === "error" ? "error" : "success"}
 									message={alert.message}
@@ -293,7 +310,11 @@ export function ServiceModal({
 							</div>
 						)}
 
-						<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+						<form
+							onSubmit={form.handleSubmit(onSubmit, onInvalid)}
+							className="space-y-6"
+							noValidate
+						>
 							<fieldset disabled={loading} className="space-y-6 contents">
 								<div className="grid grid-cols-1 md:grid-cols-2 gap-5">
 									<div className="space-y-4">
@@ -312,11 +333,19 @@ export function ServiceModal({
 															type="date"
 															max={new Date().toISOString().split("T")[0]}
 															{...form.register("entryDate")}
-															className="w-full bg-surface border-input text-foreground rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary transition-all "
+															aria-invalid={!!form.formState.errors.entryDate}
+															aria-describedby={
+																form.formState.errors.entryDate ? "entryDate-error" : undefined
+															}
+															className={`w-full bg-surface border text-foreground rounded-lg px-4 py-2.5 focus:ring-2 transition-all ${form.formState.errors.entryDate ? "border-red-500 focus:ring-red-500 focus:border-red-500" : "border-input focus:ring-primary focus:border-primary"}`}
 														/>
 													</div>
 													{form.formState.errors.entryDate && (
-														<span className="text-red-500 text-xs mt-1 ml-1">
+														<span
+															id="entryDate-error"
+															role="alert"
+															className="text-red-500 text-xs mt-1 ml-1"
+														>
 															{form.formState.errors.entryDate.message}
 														</span>
 													)}
@@ -335,10 +364,16 @@ export function ServiceModal({
 														placeholder="Ej: PRD-7721-X"
 														maxLength={20}
 														{...form.register("sku")}
-														className="w-full bg-surface border-input text-foreground rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary transition-all placeholder:text-foreground-subtle"
+														aria-invalid={!!form.formState.errors.sku}
+														aria-describedby={form.formState.errors.sku ? "sku-error" : undefined}
+														className={`w-full bg-surface border text-foreground rounded-lg px-4 py-2.5 focus:ring-2 transition-all placeholder:text-foreground-subtle ${form.formState.errors.sku ? "border-red-500 focus:ring-red-500 focus:border-red-500" : "border-input focus:ring-primary focus:border-primary"}`}
 													/>
 													{form.formState.errors.sku && (
-														<span className="text-red-500 text-xs mt-1 ml-1">
+														<span
+															id="sku-error"
+															role="alert"
+															className="text-red-500 text-xs mt-1 ml-1"
+														>
 															{form.formState.errors.sku.message}
 														</span>
 													)}
@@ -359,13 +394,22 @@ export function ServiceModal({
 														{...form.register("rut", {
 															onChange: (event) => {
 																const formatted = formatRut(event.target.value);
-																form.setValue("rut", formatted, { shouldDirty: true });
+																form.setValue("rut", formatted, {
+																	shouldDirty: true,
+																	shouldValidate: true,
+																});
 															},
 														})}
-														className="w-full bg-surface border-input text-foreground rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary transition-all placeholder:text-foreground-subtle"
+														aria-invalid={!!form.formState.errors.rut}
+														aria-describedby={form.formState.errors.rut ? "rut-error" : undefined}
+														className={`w-full bg-surface border text-foreground rounded-lg px-4 py-2.5 focus:ring-2 transition-all placeholder:text-foreground-subtle ${form.formState.errors.rut ? "border-red-500 focus:ring-red-500 focus:border-red-500" : "border-input focus:ring-primary focus:border-primary"}`}
 													/>
 													{form.formState.errors.rut && (
-														<span className="text-red-500 text-xs mt-1 ml-1">
+														<span
+															id="rut-error"
+															role="alert"
+															className="text-red-500 text-xs mt-1 ml-1"
+														>
 															{form.formState.errors.rut.message}
 														</span>
 													)}
@@ -404,10 +448,16 @@ export function ServiceModal({
 												placeholder="cliente@ejemplo.com"
 												maxLength={320}
 												{...form.register("email")}
-												className="w-full bg-surface border-input text-foreground rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary transition-all placeholder:text-foreground-subtle"
+												aria-invalid={!!form.formState.errors.email}
+												aria-describedby={form.formState.errors.email ? "email-error" : undefined}
+												className={`w-full bg-surface border text-foreground rounded-lg px-4 py-2.5 focus:ring-2 transition-all placeholder:text-foreground-subtle ${form.formState.errors.email ? "border-red-500 focus:ring-red-500 focus:border-red-500" : "border-input focus:ring-primary focus:border-primary"}`}
 											/>
 											{form.formState.errors.email && (
-												<span className="text-red-500 text-xs mt-1 ml-1">
+												<span
+													id="email-error"
+													role="alert"
+													className="text-red-500 text-xs mt-1 ml-1"
+												>
 													{form.formState.errors.email.message}
 												</span>
 											)}
@@ -422,9 +472,14 @@ export function ServiceModal({
 												</label>
 												<div className="relative" ref={locationDropdownRef}>
 													<button
+														id="locationId"
 														type="button"
 														onClick={() => setShowLocationDropdown(!showLocationDropdown)}
-														className="w-full bg-surface border border-input text-foreground rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary transition-all flex items-center justify-between"
+														aria-invalid={!!form.formState.errors.locationId}
+														aria-describedby={
+															form.formState.errors.locationId ? "locationId-error" : undefined
+														}
+														className={`w-full bg-surface border text-foreground rounded-lg px-4 py-2.5 focus:ring-2 transition-all flex items-center justify-between ${form.formState.errors.locationId ? "border-red-500 focus:ring-red-500 focus:border-red-500" : "border-input focus:ring-primary focus:border-primary"}`}
 													>
 														<span className="truncate">
 															{LOCATIONS.find((l) => l.id === form.watch("locationId"))?.name ||
@@ -464,7 +519,11 @@ export function ServiceModal({
 													)}
 												</div>
 												{form.formState.errors.locationId && (
-													<span className="text-red-500 text-xs mt-1 ml-1">
+													<span
+														id="locationId-error"
+														role="alert"
+														className="text-red-500 text-xs mt-1 ml-1"
+													>
 														{form.formState.errors.locationId.message}
 													</span>
 												)}
@@ -488,10 +547,20 @@ export function ServiceModal({
 														placeholder="000123"
 														maxLength={20}
 														{...form.register("invoiceNumber")}
-														className="w-full bg-surface border-input text-foreground rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary transition-all placeholder:text-foreground-subtle"
+														aria-invalid={!!form.formState.errors.invoiceNumber}
+														aria-describedby={
+															form.formState.errors.invoiceNumber
+																? "invoiceNumber-error"
+																: undefined
+														}
+														className={`w-full bg-surface border text-foreground rounded-lg px-4 py-2.5 focus:ring-2 transition-all placeholder:text-foreground-subtle ${form.formState.errors.invoiceNumber ? "border-red-500 focus:ring-red-500 focus:border-red-500" : "border-input focus:ring-primary focus:border-primary"}`}
 													/>
 													{form.formState.errors.invoiceNumber && (
-														<span className="text-red-500 text-xs mt-1 ml-1">
+														<span
+															id="invoiceNumber-error"
+															role="alert"
+															className="text-red-500 text-xs mt-1 ml-1"
+														>
 															{form.formState.errors.invoiceNumber.message}
 														</span>
 													)}
@@ -510,10 +579,18 @@ export function ServiceModal({
 														placeholder="Nombre completo"
 														maxLength={25}
 														{...form.register("clientName")}
-														className="w-full bg-surface border-input text-foreground rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary transition-all placeholder:text-foreground-subtle"
+														aria-invalid={!!form.formState.errors.clientName}
+														aria-describedby={
+															form.formState.errors.clientName ? "clientName-error" : undefined
+														}
+														className={`w-full bg-surface border text-foreground rounded-lg px-4 py-2.5 focus:ring-2 transition-all placeholder:text-foreground-subtle ${form.formState.errors.clientName ? "border-red-500 focus:ring-red-500 focus:border-red-500" : "border-input focus:ring-primary focus:border-primary"}`}
 													/>
 													{form.formState.errors.clientName && (
-														<span className="text-red-500 text-xs mt-1 ml-1">
+														<span
+															id="clientName-error"
+															role="alert"
+															className="text-red-500 text-xs mt-1 ml-1"
+														>
 															{form.formState.errors.clientName.message}
 														</span>
 													)}
@@ -532,10 +609,18 @@ export function ServiceModal({
 														placeholder="Nombre del equipo"
 														maxLength={40}
 														{...form.register("product")}
-														className="w-full bg-surface border-input text-foreground rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary transition-all placeholder:text-foreground-subtle"
+														aria-invalid={!!form.formState.errors.product}
+														aria-describedby={
+															form.formState.errors.product ? "product-error" : undefined
+														}
+														className={`w-full bg-surface border text-foreground rounded-lg px-4 py-2.5 focus:ring-2 transition-all placeholder:text-foreground-subtle ${form.formState.errors.product ? "border-red-500 focus:ring-red-500 focus:border-red-500" : "border-input focus:ring-primary focus:border-primary"}`}
 													/>
 													{form.formState.errors.product && (
-														<span className="text-red-500 text-xs mt-1 ml-1">
+														<span
+															id="product-error"
+															role="alert"
+															className="text-red-500 text-xs mt-1 ml-1"
+														>
 															{form.formState.errors.product.message}
 														</span>
 													)}
@@ -593,13 +678,24 @@ export function ServiceModal({
 												{...form.register("contact", {
 													onChange: (event) => {
 														const formatted = formatChileanPhone(event.target.value);
-														form.setValue("contact", formatted, { shouldDirty: true });
+														form.setValue("contact", formatted, {
+															shouldDirty: true,
+															shouldValidate: true,
+														});
 													},
 												})}
-												className="w-full bg-surface border-input text-foreground rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary transition-all placeholder:text-foreground-subtle"
+												aria-invalid={!!form.formState.errors.contact}
+												aria-describedby={
+													form.formState.errors.contact ? "contact-error" : undefined
+												}
+												className={`w-full bg-surface border text-foreground rounded-lg px-4 py-2.5 focus:ring-2 transition-all placeholder:text-foreground-subtle ${form.formState.errors.contact ? "border-red-500 focus:ring-red-500 focus:border-red-500" : "border-input focus:ring-primary focus:border-primary"}`}
 											/>
 											{form.formState.errors.contact && (
-												<span className="text-red-500 text-xs mt-1 ml-1">
+												<span
+													id="contact-error"
+													role="alert"
+													className="text-red-500 text-xs mt-1 ml-1"
+												>
 													{form.formState.errors.contact.message}
 												</span>
 											)}
@@ -622,14 +718,25 @@ export function ServiceModal({
 													onChange={(event) => {
 														const num = parseCurrency(event.target.value);
 														if (num <= 999999999) {
-															form.setValue("repairCost", num, { shouldDirty: true });
+															form.setValue("repairCost", num, {
+																shouldDirty: true,
+																shouldValidate: true,
+															});
 														}
 													}}
-													className="w-full bg-surface border-input text-foreground rounded-lg pl-8 pr-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary transition-all placeholder:text-foreground-subtle"
+													aria-invalid={!!form.formState.errors.repairCost}
+													aria-describedby={
+														form.formState.errors.repairCost ? "repairCost-error" : undefined
+													}
+													className={`w-full bg-surface border text-foreground rounded-lg pl-8 pr-4 py-2.5 focus:ring-2 transition-all placeholder:text-foreground-subtle ${form.formState.errors.repairCost ? "border-red-500 focus:ring-red-500 focus:border-red-500" : "border-input focus:ring-primary focus:border-primary"}`}
 												/>
 											</div>
 											{form.formState.errors.repairCost && (
-												<span className="text-red-500 text-xs mt-1 ml-1">
+												<span
+													id="repairCost-error"
+													role="alert"
+													className="text-red-500 text-xs mt-1 ml-1"
+												>
 													{form.formState.errors.repairCost.message}
 												</span>
 											)}
@@ -652,10 +759,20 @@ export function ServiceModal({
 											maxLength={500}
 											rows={4}
 											{...form.register("failureDescription")}
-											className="w-full bg-surface border-input text-foreground rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary transition-all placeholder:text-foreground-subtle custom-scrollbar"
+											aria-invalid={!!form.formState.errors.failureDescription}
+											aria-describedby={
+												form.formState.errors.failureDescription
+													? "failureDescription-error"
+													: undefined
+											}
+											className={`w-full bg-surface border text-foreground rounded-lg px-4 py-2.5 focus:ring-2 transition-all placeholder:text-foreground-subtle custom-scrollbar ${form.formState.errors.failureDescription ? "border-red-500 focus:ring-red-500 focus:border-red-500" : "border-input focus:ring-primary focus:border-primary"}`}
 										/>
 										{form.formState.errors.failureDescription && (
-											<span className="text-red-500 text-xs mt-1 ml-1">
+											<span
+												id="failureDescription-error"
+												role="alert"
+												className="text-red-500 text-xs mt-1 ml-1"
+											>
 												{form.formState.errors.failureDescription.message}
 											</span>
 										)}
@@ -674,10 +791,16 @@ export function ServiceModal({
 											maxLength={500}
 											rows={3}
 											{...form.register("notes")}
-											className="w-full bg-surface border-input text-foreground rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary transition-all placeholder:text-foreground-subtle custom-scrollbar"
+											aria-invalid={!!form.formState.errors.notes}
+											aria-describedby={form.formState.errors.notes ? "notes-error" : undefined}
+											className={`w-full bg-surface border text-foreground rounded-lg px-4 py-2.5 focus:ring-2 transition-all placeholder:text-foreground-subtle custom-scrollbar ${form.formState.errors.notes ? "border-red-500 focus:ring-red-500 focus:border-red-500" : "border-input focus:ring-primary focus:border-primary"}`}
 										/>
 										{form.formState.errors.notes && (
-											<span className="text-red-500 text-xs mt-1 ml-1">
+											<span
+												id="notes-error"
+												role="alert"
+												className="text-red-500 text-xs mt-1 ml-1"
+											>
 												{form.formState.errors.notes.message}
 											</span>
 										)}
@@ -699,8 +822,8 @@ export function ServiceModal({
 						<button
 							type="submit"
 							disabled={loading || (isEditing && !form.formState.isDirty)}
-							onClick={form.handleSubmit(onSubmit)}
-							className="px-8 py-2.5 rounded-lg text-sm font-semibold text-on-primary bg-primary hover:bg-primary-hover"
+							onClick={form.handleSubmit(onSubmit, onInvalid)}
+							className="px-8 py-2.5 rounded-lg text-sm font-semibold text-on-primary bg-primary hover:bg-primary-hover flex items-center gap-2"
 						>
 							<Save className="h-4 w-4" />
 							{getSubmitButtonText(loading, isEditing)}

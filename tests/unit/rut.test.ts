@@ -87,6 +87,17 @@ describe("RUT normalize + modulo-11 — lib/rut.ts (Unit 6 RED 3.3)", () => {
 			expect(isValidRut("14-K")).toBe(false); // 14 should be 0 not K
 		});
 
+		it("regression 41.421.442-1 is invalid, 41.421.442-8 is valid (DV 8)", async () => {
+			const { isValidRut, computeCheckDigit, normalizeRut } = await import("@/lib/rut");
+			expect(computeCheckDigit("41421442")).toBe("8");
+			expect(normalizeRut("41.421.442-1")).toBe("414214421");
+			expect(normalizeRut("41.421.442-8")).toBe("414214428");
+			expect(isValidRut("41.421.442-1")).toBe(false);
+			expect(isValidRut("41.421.442-8")).toBe(true);
+			expect(isValidRut("414214421")).toBe(false);
+			expect(isValidRut("414214428")).toBe(true);
+		});
+
 		it("malformed body is rejected: missing DV, letters, DV too long, embedded letters", async () => {
 			const { isValidRut } = await import("@/lib/rut");
 			expect(isValidRut("12.345.678")).toBe(false); // missing DV
@@ -147,10 +158,13 @@ describe("RUT normalize + modulo-11 — lib/rut.ts (Unit 6 RED 3.3)", () => {
 			const { ServiceSchema } = await import("@/lib/schemas");
 			const base = {
 				invoiceNumber: "INV-1",
+				sku: "SKU-1",
 				clientName: "Juan Perez",
 				contact: "+56 9 1234 5678",
 				product: "Laptop",
 				locationId: "loc_1",
+				failureDescription: "Falla",
+				entryDate: "2024-01-01",
 			};
 			const res = ServiceSchema.safeParse({ ...base, rut: "12.345.678-5" });
 			expect(res.success).toBe(true);
@@ -188,10 +202,13 @@ describe("RUT normalize + modulo-11 — lib/rut.ts (Unit 6 RED 3.3)", () => {
 			const { ServiceSchema } = await import("@/lib/schemas");
 			const base = {
 				invoiceNumber: "INV-1",
+				sku: "SKU-1",
 				clientName: "Juan Perez",
 				contact: "+56 9 1234 5678",
 				product: "Laptop",
 				locationId: "loc_1",
+				failureDescription: "Falla",
+				entryDate: "2024-01-01",
 			};
 			expect(ServiceSchema.safeParse({ ...base, rut: "12.345.678-0" }).success).toBe(false);
 			expect(ServiceSchema.safeParse({ ...base, rut: "6-0" }).success).toBe(false);
@@ -202,10 +219,13 @@ describe("RUT normalize + modulo-11 — lib/rut.ts (Unit 6 RED 3.3)", () => {
 			const { ServiceSchema } = await import("@/lib/schemas");
 			const base = {
 				invoiceNumber: "INV-1",
+				sku: "SKU-1",
 				clientName: "Juan Perez",
 				contact: "+56 9 1234 5678",
 				product: "Laptop",
 				locationId: "loc_1",
+				failureDescription: "Falla",
+				entryDate: "2024-01-01",
 			};
 			expect(ServiceSchema.safeParse({ ...base, rut: "12.345.678" }).success).toBe(false);
 			expect(ServiceSchema.safeParse({ ...base, rut: "abcdefgh-k" }).success).toBe(false);
@@ -224,10 +244,13 @@ describe("RUT normalize + modulo-11 — lib/rut.ts (Unit 6 RED 3.3)", () => {
 			// New edit that includes same invalid rut must be rejected until valid supplied
 			const base = {
 				invoiceNumber: "INV-1",
+				sku: "SKU-1",
 				clientName: "Juan Perez",
 				contact: "+56 9 1234 5678",
 				product: "Laptop",
 				locationId: "loc_1",
+				failureDescription: "Falla",
+				entryDate: "2024-01-01",
 			};
 			expect(ServiceSchema.safeParse({ ...base, rut: historicInvalid }).success).toBe(false);
 			expect(ServiceSchema.safeParse({ ...base, rut: "12.345.678-5" }).success).toBe(true);
@@ -238,10 +261,13 @@ describe("RUT normalize + modulo-11 — lib/rut.ts (Unit 6 RED 3.3)", () => {
 			// Simulate server bypass: direct JSON payload with invalid RUT
 			const payload = {
 				invoiceNumber: "INV-999",
+				sku: "SKU-999",
 				clientName: "Bypass Test",
 				contact: "+56 9 9999 9999",
 				product: "Phone",
 				locationId: "loc_99",
+				failureDescription: "Falla",
+				entryDate: "2024-01-01",
 				rut: "12.345.678-0", // invalid but client could be bypassed
 			};
 			const serverResult = ServiceSchema.safeParse(payload);

@@ -19,20 +19,22 @@ export const ServiceSchema = z.object({
 	id: z.string().optional(),
 	invoiceNumber: z
 		.string()
-		.min(1, "El número de orden es requerido")
-		.transform((val) => val.trim()),
+		.min(1, "El número de boleta es obligatorio")
+		.transform((val) => val.trim())
+		.pipe(z.string().min(1, "El número de boleta es obligatorio")),
 	clientName: z
 		.string()
-		.min(2, "El nombre del cliente debe tener al menos 2 caracteres")
-		.transform((val) => val.trim()),
+		.min(1, "El cliente es obligatorio")
+		.transform((val) => val.trim())
+		.pipe(z.string().min(1, "El cliente es obligatorio")),
 	rut: z
-		.string({ error: "El RUT es requerido" })
-		.min(1, { message: "El RUT es requerido" })
+		.string({ error: "El RUT es obligatorio" })
+		.min(1, { message: "El RUT es obligatorio" })
 		.transform((val) => normalizeRut(val))
 		.pipe(
 			z
 				.string()
-				.min(1, { message: "El RUT es requerido" })
+				.min(1, { message: "El RUT es obligatorio" })
 				.refine(isValidRut, { message: "RUT inválido" }),
 		),
 	email: z
@@ -43,25 +45,66 @@ export const ServiceSchema = z.object({
 		.transform((val) => (val === "" ? undefined : val)),
 	contact: z
 		.string()
-		.min(6, "El teléfono de contacto es requerido")
-		.transform((val) => val.trim()),
+		.min(15, "El teléfono debe estar completo")
+		.regex(/^\+56 9 \d{4} \d{4}$/, "Formato de teléfono inválido"),
 	product: z
 		.string()
-		.min(2, "El producto es requerido")
-		.transform((val) => val.trim()),
-	sku: z.string().optional(),
-	failureDescription: z.string().optional(),
-	locationId: z.string().min(1, "La ubicación es requerida"),
-	entryDate: z.string().optional(),
+		.min(1, "El producto es obligatorio")
+		.transform((val) => val.trim())
+		.pipe(z.string().min(1, "El producto es obligatorio")),
+	sku: z
+		.string()
+		.min(1, "El SKU es obligatorio")
+		.transform((val) => val.trim())
+		.pipe(z.string().min(1, "El SKU es obligatorio")),
+	failureDescription: z
+		.string()
+		.min(1, "La descripción del problema es obligatoria")
+		.transform((val) => val.trim())
+		.pipe(z.string().min(1, "La descripción del problema es obligatoria")),
+	locationId: z.string().min(1, "La sede es obligatoria"),
+	entryDate: z.string().min(1, "La fecha es obligatoria"),
 	deliveryDate: z.string().optional().nullable(),
 	readyDate: z.string().optional().nullable(),
 	cancellationDate: z.string().optional().nullable(),
 	status: z.enum(["pending", "ready", "completed", "cancelled"]).default("pending"),
-	repairCost: z.number().min(0).optional(),
+	repairCost: z.number().min(0, "El costo no puede ser negativo").optional(),
 	notes: z.string().optional(),
 });
 
 export type ServiceValues = z.infer<typeof ServiceSchema>;
+
+export const ALLOWED_SERVICE_FIELDS = [
+	"invoiceNumber",
+	"sku",
+	"clientName",
+	"rut",
+	"contact",
+	"product",
+	"locationId",
+	"status",
+	"failureDescription",
+	"email",
+	"repairCost",
+	"notes",
+	"entryDate",
+	"deliveryDate",
+	"readyDate",
+	"cancellationDate",
+	"id",
+] as const;
+
+export function toServiceFieldErrors(error: z.ZodError): Record<string, string> {
+	const map: Record<string, string> = {};
+	for (const issue of error.issues) {
+		const field = String(issue.path[0] ?? "");
+		if (!field) continue;
+		if (!(ALLOWED_SERVICE_FIELDS as readonly string[]).includes(field)) continue;
+		if (map[field]) continue;
+		map[field] = issue.message;
+	}
+	return map;
+}
 
 // Generic edit may not mutate lifecycle nor identity — keep in sync with PUT guard and storage omit
 export const GENERIC_EDIT_OMIT = [
