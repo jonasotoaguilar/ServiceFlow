@@ -19,13 +19,22 @@ export type ServiceEventOperationKeyParams = {
 	serviceId: string;
 	operationKey: string;
 };
+import { normalizeRut, isRutShapedLookup } from "./rut";
+
 export type Binding = { filter: string; params: Record<string, unknown> };
 export function serviceListBinding(p: ServiceListParams): Binding {
 	const parts = ["userId = {:uid}"];
 	const params: Record<string, unknown> = { uid: p.userId };
 	if (p.search !== undefined && p.search !== null && String(p.search).length > 0) {
-		parts.push("(clientName ~ {:search} || invoiceNumber ~ {:search} || rut ~ {:search})");
-		params.search = p.search;
+		const raw = String(p.search);
+		if (isRutShapedLookup(raw)) {
+			parts.push("(clientName ~ {:search} || invoiceNumber ~ {:search} || rut ~ {:rutSearch})");
+			params.search = raw;
+			(params as Record<string, unknown>).rutSearch = normalizeRut(raw);
+		} else {
+			parts.push("(clientName ~ {:search} || invoiceNumber ~ {:search} || rut ~ {:search})");
+			params.search = raw;
+		}
 	}
 	if (p.status && p.status.length > 0) {
 		const allowed = p.status.filter((s) => ALLOWED_STATUSES.has(s));

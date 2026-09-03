@@ -58,8 +58,8 @@ Choose chain strategy before apply; `gh stack` only. Archive-only: `PRODUCT.md`,
 
 ## Phase 6: RUT Lookup
 
-- [ ] 6.1 RED `tests/unit/rut.test.ts`, `tests/pocketbase-filter.test.ts`: `isRutShapedLookup`; bound `{:rutSearch}` vs raw; `isValidRut` writes unchanged.
-- [ ] 6.2 GREEN `lib/rut.ts`, `lib/pocketbase-filter.ts`, GET search in `app/api/services/route.ts`. Check tests.
+- [x] 6.1 RED `tests/unit/rut.test.ts`, `tests/pocketbase-filter.test.ts`: `isRutShapedLookup`; bound `{:rutSearch}` vs raw; `isValidRut` writes unchanged.
+- [x] 6.2 GREEN `lib/rut.ts`, `lib/pocketbase-filter.ts`, GET search in `app/api/services/route.ts`. Check tests.
 
 ## Phase 7: Custody, Lockup, Docs
 

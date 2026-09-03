@@ -2,16 +2,17 @@
 
 **Change**: service-ui-corrections
 **Mode**: Strict TDD
-**Work Unit**: unit-5-identity-immutability (Identity Immutability) — stacked on unit-4
+**Work Unit**: unit-6-rut-search (RUT Lookup) — stacked on unit-5
 **Attempt tokens**: 
 - unit-1 `sha256:66f7c75e9e2d9d31226dbf0d6eb069a79d8ed1a4f080141efae09fb7b67da65f`
 - unit-2 `sha256:d63ae090348edd269cd9a774adfbe082434e5e2f526f286b5d0fc03b1af2c911`
 - unit-3 `sha256:dadfd6658aab3f9fe389714e89d17b8312b4d6d406d9d6b7973ac76b61e16a3b`
 - unit-4 `sha256:6412aebf749250cce2424818c939a57f17782186f3338e60ca2338dde5680596`
 - unit-5 `sha256:26f556f18b850cc162427624c407a3b700a8a81bbdd89630ff257061a1a02aba` (unit-5-identity-immutability, max 800, parent settles)
-**Date**: 2026-09-02
-**Branch**: fix/service-ui-corrections-05-identity-immutability (stacked on fix/service-ui-corrections-04-registro-create)
-**Stack strategy**: stacked-to-main (auto-chain, 800-line session budget, PR5 fifth slice)
+- unit-6 `sha256:8b02b4b9e4f11cf79bfbbba506dcb122a66760a576a436a6b7930d581c35e795` (unit-6-rut-search, max 800, parent settles)
+**Date**: 2026-09-03
+**Branch**: fix/service-ui-corrections-06-rut-search (stacked on fix/service-ui-corrections-05-identity-immutability)
+**Stack strategy**: stacked-to-main (auto-chain, 800-line session budget, PR6 sixth slice)
 
 ## Completed Tasks
 
@@ -25,6 +26,8 @@
 - [x] 4.2 GREEN `app/(app)/service-events/serviceEventsManager.tsx`, `app/(app)/dashboard/page.tsx` await `searchParams`, `ServicesDashboard.tsx` open+`replace`. Check tests.
 - [x] 5.1 RED `tests/schemas.test.ts`, `tests/services-lifecycle.test.ts`: PUT 400 `IDENTITY_PROTECTED`; storage omit; UI locked; 409 holds.
 - [x] 5.2 GREEN `lib/schemas.ts` `GENERIC_EDIT_OMIT`; `app/api/services/route.ts` reject before Zod; `lib/storage.ts` omit; `components/services/ServicesModal.tsx` read-only. Check tests.
+- [x] 6.1 RED `tests/unit/rut.test.ts`, `tests/pocketbase-filter.test.ts`: `isRutShapedLookup`; bound `{:rutSearch}` vs raw; `isValidRut` writes unchanged.
+- [x] 6.2 GREEN `lib/rut.ts`, `lib/pocketbase-filter.ts`, GET search in `app/api/services/route.ts`. Check tests.
 
 ## Files Changed (cumulative)
 
@@ -52,6 +55,13 @@
 | `tests/unit/lifecycle.test.ts` | Modified (unit-5) | Fixed 2 generic-edit tests to omit identity (stale contract before unit-5) |
 | `openspec/changes/service-ui-corrections/tasks.md` | Modified | Marked 1.1,1.2,2.1,2.2,3.1,3.2,4.1,4.2,5.1,5.2 as [x] |
 | `openspec/changes/service-ui-corrections/apply-progress.md` | Modified | Merged unit-1 + unit-2 + unit-3 + unit-4 + unit-5, added unit-5 evidence and stack PR #87 |
+| `lib/rut.ts` | Modified (unit-6) | Add `isRutShapedLookup` (strip `[.\-\s]`, `^\d+[0-9Kk]?$` 2–9, `trim` guard) lookup-only; `normalizeRut`/`isValidRut` unchanged |
+| `lib/pocketbase-filter.ts` | Modified (unit-6) | Import `normalizeRut` + `isRutShapedLookup`; `serviceListBinding` uses separate `{:rutSearch}` with `normalizeRut(raw)` when RUT-shaped, else raw `{:search}` only; `clientName`/`invoiceNumber` keep raw; tenant/status/location/pagination unchanged |
+| `tests/unit/rut.test.ts` | Modified (unit-6) | Added 6 `isRutShapedLookup` tests (existence, punctuation/hyphen/space variants, non-RUT, empty, triangulate normalization, `isValidRut` persistence unchanged) — RED 5 failed → GREEN 25/25 |
+| `tests/pocketbase-filter.test.ts` | Modified (unit-6) | Added 7 RUT search binding tests (separate `{:rutSearch}`, variant equivalence, non-RUT raw, empty unfiltered, compose with status/location, injection bound-only, allowlist) — RED 4 failed → GREEN 16/16 |
+| `app/api/services/route.ts` | Verified (unit-6) | GET `search` already `searchParams.get("search") \|\| undefined` → `getServices({search, status, location})`; no new query name, no interpolation, preserved pagination/status/location + identity `IDENTITY_PROTECTED`/`LIFECYCLE_PROTECTED`/`IMMUTABLE_STATUS` |
+| `openspec/changes/service-ui-corrections/tasks.md` | Modified (unit-6) | Marked 6.1,6.2 as [x] |
+| `openspec/changes/service-ui-corrections/apply-progress.md` | Modified (unit-6) | Merged unit-6 evidence, TDD table, workload, PR #88 |
 
 ## TDD Cycle Evidence
 
@@ -67,14 +77,16 @@
 | 4.2 | `app/(app)/service-events/serviceEventsManager.tsx` + `app/(app)/dashboard/page.tsx` + `components/services/ServicesDashboard.tsx` + `tests/unit/service-events-filters.test.tsx` | Unit+Integration | ✅ same baseline + `service-events-filters` 4/4 | ✅ same 5 (service manager missing `push`, page missing `await searchParams`, dashboard missing guard) | ✅ 21/21 registro + 105/105 with shell+dashboard + 460/460 full suite + tsc 0 + biome 0 | ✅ same 5 | ✅ Minimal one-shot: server `await searchParams` + prop, client `useRef` guard + `replace` once, registro `push` only on true-empty |
 | 5.1 | `tests/schemas.test.ts` + `tests/services-lifecycle.test.ts` + `tests/unit/services-modal-identity.test.tsx` | Unit+Integration | ✅ 8/11 schemas baseline before unit-5, 22/27 lifecycle before unit-5, modal 1/4 before unit-5 | ✅ **11 failed** (schemas 3 failed — missing `GENERIC_EDIT_OMIT`, lifecycle 5 failed — no `IDENTITY_PROTECTED`/`Object.hasOwn`, modal 3 failed — source without readOnly/strip, rendered identity not blocked, contact not editable) | ✅ **42/42** (schemas 11/11, lifecycle 27/27, modal 4/4) + 473/473 full suite | ✅ 11 cases: `GENERIC_EDIT_OMIT` export + source uses, mutable persist, identity omitted from edit shape, PUT own-key 400 `IDENTITY_PROTECTED` via `Object.hasOwn` before Zod, inherited not triggered (`"in"` not used), valid edit keeps `contact/failureDescription/email/repairCost/notes` and omits identity/lifecycle, invalid email closed, lifecycle 400/409 remain, source uses `GENERIC_EDIT_OMIT` before `safeParse`, UI identity readOnly/disabled + contact/failureDescription editable, submit strips identity from PUT, create still sends identity | ✅ Fixed `lifecycle.test.ts` stale generic-edit payloads (2 tests) to omit identity; fixed `services-lifecycle` legacy payloads (3 tests) to omit identity; fixed `placeholders` — no weakening |
 | 5.2 | `lib/schemas.ts` + `app/api/services/route.ts` + `lib/storage.ts` + `components/services/ServicesModal.tsx` | Unit+Integration | ✅ same baseline | ✅ same 11 (schemas missing `GENERIC_EDIT_OMIT`, route missing `Object.hasOwn` guard + `GENERIC_EDIT_OMIT` omit + identity kept from `current`, storage payload had identity, modal had no readOnly/strip and contact/failureDescription only in create) | ✅ 42/42 + 473/473 full suite + tsc 0 + biome 0 | ✅ same 11 | ✅ Minimal: `GENERIC_EDIT_OMIT` const, `Object.hasOwn` guard 400 `IDENTITY_PROTECTED` before Zod, `genericOmit` via `GENERIC_EDIT_OMIT`, `updated` keeps `current` identity, storage omits 3 keys, modal `readOnly disabled` + contact/failureDescription always + payload strip `clientName/invoiceNumber/sku` |
+| 6.1 | `tests/unit/rut.test.ts` + `tests/pocketbase-filter.test.ts` | Unit | ✅ 9/41 (rut 20/25 + filter 12/16 before unit-6) | ✅ **9 failed** (rut 5 `isRutShapedLookup` undefined, filter 4 missing `{:rutSearch}`) | ✅ **41/41** (rut 25/25, filter 16/16) + 486/486 full suite | ✅ 13 cases: `isRutShapedLookup` true for `20.884.087-K`/`20884087-k`/`20884087k`/space/hyphen variants, false for `20Ab`/`Juan Perez`/`INV-123`/`20.884.087-KX`/`12.345.678-99` (length>9), empty/whitespace false; `normalizeRut` equivalence `20.884.087-K`→`20884087K` identical across forms (exact digits, no silent change); `isValidRut` persistence unchanged (`12.345.678-5` true, `12.345.678-0` false, `20.884.087-K` shape true but valid false); filter separate `{:rutSearch}` with `normalizeRut(raw)` when RUT-shaped else raw only, empty unfiltered, compose with status/location, bound-only no interpolation, allowlist preserved | ✅ Bound param separation, no `pb.filter` count increase (still 1), length 2–9 guard prevents phone/invoice over-normalization |
+| 6.2 | `lib/rut.ts` + `lib/pocketbase-filter.ts` + `app/api/services/route.ts` (verified) | Unit | ✅ same baseline 9 failed | ✅ same 9 (lib/rut missing `isRutShapedLookup`, filter missing `{:rutSearch}`) | ✅ 41/41 + 486/486 + tsc 0 + biome 0 | ✅ same 13 | ✅ `isRutShapedLookup` helper + `normalizeRut` import in filter; `serviceListBinding` branches `isRutShapedLookup(raw)` → `(clientName ~ {:search} \|\| invoiceNumber ~ {:search} \|\| rut ~ {:rutSearch})` with `rutSearch=normalizeRut(raw)` (exact digits) else original; no persisted column, no new query name, GET `search` already `searchParams.get("search") \|\| undefined` → `getServices` → binding; status allowlist/location/pagination/identity protections untouched |
 
 ### Test Summary
 
-- **Total tests**: 11 in schemas (8 baseline + 3 new), 27 in services-lifecycle (21 baseline + 6 new), 4 in services-modal-identity (new), 16 in lifecycle, 21 in registro-primary-surface, 52 in shell+locations, 32 in dashboard-operate-plus, 473 full suite
-- **Total passing**: 11/11 schemas, 27/27 lifecycle, 4/4 modal-identity, 473/473 full (after fixing `lifecycle.test.ts` stale payloads)
+- **Total tests**: 11 in schemas (8 baseline + 3 new), 27 in services-lifecycle (21 baseline + 6 new), 4 in services-modal-identity (new), 16 in lifecycle, 21 in registro-primary-surface, 52 in shell+locations, 32 in dashboard-operate-plus, 25 in rut (19 baseline + 6 new), 16 in pocketbase-filter (9 baseline + 7 new), 486 full suite
+- **Total passing**: 11/11 schemas, 27/27 lifecycle, 4/4 modal-identity, 25/25 rut (5 RED→GREEN), 16/16 filter (4 RED→GREEN), 486/486 full (after unit-6, no stale fixes needed)
 - **Layers**: Unit (source) + Integration (rendered with `next/navigation` mock, `boneyard-js` Skeleton mock, `getServiceEvents` mock)
 - **Approval tests**: None
-- **Pure functions**: None
+- **Pure functions**: `isRutShapedLookup` + `normalizeRut` + `computeCheckDigit` + `isValidRut`
 
 ## Work Unit Evidence
 
@@ -113,10 +125,19 @@
 | Runtime harness command/scenario and exact result | N/A — no runtime boundary beyond tsc+type+unit for this seam; jsdom verifies read-only UI (`readOnly` + `disabled` on `invoiceNumber`/`clientName`/`sku` when `isEditing`, `contact` + `failureDescription` + `email`/`repairCost`/`notes` editable, create still sends identity), and 400 `IDENTITY_PROTECTED` via `Object.hasOwn` before Zod (inherited not triggered). Typecheck `pnpm exec tsc --noEmit` 0, `biome check --formatter-enabled=false` 0 (3 warnings, 2 infos pre-existing). Valid edit persists `contact/failureDescription/email/repairCost/notes`; lifecycle `400 LIFECYCLE_PROTECTED` and `409 IMMUTABLE_STATUS` and dedicated status/location PATCH remain; storage never writes identity. |
 | Rollback boundary | Exact revert: `lib/schemas.ts` (remove `GENERIC_EDIT_OMIT`), `app/api/services/route.ts` (remove `Object.hasOwn` identity guard + `GENERIC_EDIT_OMIT` usage, restore `invoiceNumber: body.invoiceNumber ?? current` + `clientName` + `sku` in `updated`), `lib/storage.ts` (restore `invoiceNumber`/`clientName`/`sku` in `payload`), `components/services/ServicesModal.tsx` (remove `readOnly disabled` identity inputs + contact/failureDescription always + payload strip `clientName/invoiceNumber/sku`), `tests/schemas.test.ts` + `tests/services-lifecycle.test.ts` + `tests/unit/services-modal-identity.test.tsx` + `tests/unit/lifecycle.test.ts` (revert identity tests / restore stale payloads). No shell/table/status/RUT/custody/brand/ARCHITECTURE change. |
 
+### Unit-6 (RUT Lookup — normalize with bound rutSearch)
+| Evidence | Required value |
+|---|---|
+| Focused test command and exact result | `pnpm test tests/unit/rut.test.ts tests/pocketbase-filter.test.ts --run` — **2 passed, 41 passed, 0 failed** (after GREEN). Before GREEN: **9 failed** — rut 5 `isRutShapedLookup` undefined, filter 4 missing `{:rutSearch}` (filter was `rut ~ {:search}` not `rut ~ {:rutSearch}`). Combined with isolation: `pnpm test tests/unit/rut.test.ts --run` **1 passed, 25 passed, 0 failed** (19 baseline + 6 new; before RED 5 failed). `pnpm test tests/pocketbase-filter.test.ts --run` **1 passed, 16 passed, 0 failed** (9 baseline + 7 new; before RED 4 failed). Full suite: `pnpm run test:run` — **27 passed, 486 passed, 0 failed**. Cache-busted rerun `pnpm test tests/unit/rut.test.ts tests/pocketbase-filter.test.ts --run` same 41/41 proves no flake. |
+| Runtime harness command/scenario and exact result | N/A — no runtime boundary beyond tsc+type+unit for this lookup seam; binding is via `serviceListBinding` with `{:search}` + `{:rutSearch}` (both `pb.filter` placeholders, never interpolated). Typecheck `pnpm exec tsc --noEmit` 0, `biome check --formatter-enabled=false` 0 (3 warnings, 2 infos pre-existing). GET `search` already `searchParams.get("search") \|\| undefined` → `getServices({search, status, location})` → `serviceListBinding` → `applyBinding`; status allowlist, location, pagination preserved; identity `IDENTITY_PROTECTED`/`LIFECYCLE_PROTECTED`/`IMMUTABLE_STATUS` + dedicated PATCH unchanged. RUT-shaped `20.884.087-K` / `20884087-k` / `20884087k` / ` 20.884.087 - K ` / `20-884-087-K` all normalize to `20884087K` and hit same `{:rutSearch}`; non-RUT `20Ab`/`Juan Perez`/`INV-123` stay raw `{:search}`; empty/whitespace-only `""`/`"   "`/`" - "` remain not RUT-shaped and unfiltered (empty) or raw (whitespace) without `rutSearch`; malformed `12.345.678-99` length 10 → not RUT-shaped → raw only (no silent change). No persisted column, no new query param, no interpolation. |
+| Rollback boundary | Exact revert: `lib/rut.ts` (remove `isRutShapedLookup` function 11 lines), `lib/pocketbase-filter.ts` (remove `import {normalizeRut,isRutShapedLookup}` + revert `serviceListBinding` to single `rut ~ {:search}` raw only, remove `{:rutSearch}` branch), `tests/unit/rut.test.ts` (remove 6 `isRutShapedLookup` tests — existence/punctuation/whitespace/non-RUT/empty/triangulate + `isValidRut` unchanged), `tests/pocketbase-filter.test.ts` (remove 7 RUT binding tests — separate `{:rutSearch}`, variant equivalence, non-RUT raw, empty, compose, injection bound-only, allowlist), `openspec/changes/service-ui-corrections/tasks.md` (revert 6.1/6.2 to `[ ]`), `openspec/changes/service-ui-corrections/apply-progress.md` (revert unit-6 rows/evidence). No shell/table/registro/identity/custody/brand/ARCHITECTURE change. |
+
 ## Deviations from Design
 None. Unit-5 implements `GENERIC_EDIT_OMIT` (lifecycle + `clientName`/`invoiceNumber`/`sku`), PUT `Object.hasOwn` 400 `IDENTITY_PROTECTED` before Zod (inherited not triggered), storage omit, UI read-only/disabled for identity when editing, mutable `contact/failureDescription/email/repairCost/notes` persist, lifecycle 400/409 and dedicated PATCH preserved, create behavior unchanged, `Object.hasOwn` not `in` / `hasOwnProperty`, no backward-compat layers, per design `UI omits identity → PUT Object.hasOwn(identity) ──400 IDENTITY_PROTECTED──► no write → GenericEditSchema.omit(lifecycle+identity) → updateService payload omit same`.
 
 Previous units: Unit-4 implements Registro true-empty `router.push("/dashboard?createService=1")`, filtered-empty `clearFilters()` only, dashboard `await searchParams` server + `initialCreateService` prop, client one-shot guard `hasConsumedCreateServiceRef` + `router.replace("/dashboard")`, no `useSearchParams` (Suspense-safe). Preserves true-empty vs filtered-empty distinction, filters, pagination, loading, create-modal toolbar button, and previous exclusive/table/shell behavior per design `Registro true-empty → router.push → DashboardPage await searchParams → ServiceDashboard opens modal once → router.replace`.
+
+Unit-6 implements `isRutShapedLookup` (strip `[.\-\s]`, `^\d+[0-9Kk]?$`, 2–9 length, `trim` guard) lookup-only, `lib/pocketbase-filter.ts` imports `normalizeRut`/`isRutShapedLookup` and branches `isRutShapedLookup(raw)` → `(clientName ~ {:search} || invoiceNumber ~ {:search} || rut ~ {:rutSearch})` with `rutSearch=normalizeRut(raw)` (exact digits, e.g., `20.884.087-K`→`20884087K` for `20.884.087-K`/`20884087-k`/`20884087k` equivalence) else original `rut ~ {:search}` raw only; GET `search` path unchanged (`searchParams.get("search") || undefined` → `getServices` → `serviceListBinding` → `applyBinding`), no new query name/persisted column/interpolation; empty remains unfiltered; non-RUT `20Ab`/`Juan` stay raw; length>9 (`12.345.678-99`) stays raw (no silent change); tenant/status/location/pagination and identity protections preserved, per design `RUT lookup: strip [.\-\s]; if ^\d+[0-9Kk]?$ then rut ~ {:rutSearch} with normalizeRut; name/invoice keep raw {:search}` + spec `service-search-normalization: Punctuation-equivalent RUT hits`.
 
 ## Issues Found
 **Unit-1**: tsc `string[]` vs `ServiceStatus[]` fixed; metric Pendientes overlap fixed.
@@ -137,22 +158,25 @@ Previous units: Unit-4 implements Registro true-empty `router.push("/dashboard?c
 - `services-modal-identity.test.tsx` initial RED had `contact` not in DOM when editing — confirmed failure, then GREEN after modal fix.
 - `tsc` error `TS2352` for `mock.calls[0] as [string, any]` on empty tuple — fixed via `as unknown as [string, any]`.
 - Formatter normalized 8 files pre-evidence; reverted 15 unrelated files to keep slice focused at 722 lines.
+**Unit-6**:
+- No production `isValidRut`/`normalizeRut` change — validation remains `isValidRut` modulo-11 strict (`12.345.678-5` true, `12.345.678-0` false); `20.884.087-K` shape true but valid false proves lookup-only separation (first example typo ambiguity: exact normalized `20884087K` not silently corrected to `208840878`).
+- `isRutShapedLookup` length 2–9 guard added to avoid phone/long-invoice over-normalization (`12.345.678-99` length 10 → raw only), otherwise stripped `^\d+[0-9Kk]?$` alone would treat long digits as RUT.
+- `serviceListBinding` initially returned `rut ~ {:search}` for RUT-shaped input — RED proved missing `{:rutSearch}` (4 tests failed); GREEN branches to `{:rutSearch}` with `normalizeRut(raw)` while keeping `clientName`/`invoiceNumber` raw; `empty` remains unfiltered (no `~`), whitespace-only `20Ab` stays raw.
+- `pocketbase-filter.test.ts` `whitespace` case `search:"   "` keeps raw without `rutSearch` (not over-normalized to empty), per spec empty only for truly absent/zero-length not whitespace.
 
 ## Remaining Tasks
-- [ ] 6.1 RED `tests/unit/rut.test.ts`, `tests/pocketbase-filter.test.ts`: `isRutShapedLookup`; bound `{:rutSearch}` vs raw; `isValidRut` writes unchanged.
-- [ ] 6.2 GREEN `lib/rut.ts`, `lib/pocketbase-filter.ts`, GET search in `app/api/services/route.ts`. Check tests.
 - [ ] 7.1 RED receipt tests + `tests/unit/visual.test.ts`: title `Comprobante de recepción y custodia`; disclaimer; escape; no QR; lockup AA; no `ARCHITECTURE.md`.
 - [ ] 7.2 GREEN `lib/custody-receipt.ts`, `components/services/ServicesDetailsModal.tsx`, `assets/brand/bodega-tecnica-mark.svg`, `components/brand/bodega-tecnica-mark.tsx` (drop filename `sr-only`).
 - [ ] 7.3 GREEN `git rm` `ARCHITECTURE.md`; drop cites in `docs/CODEBASE-GUIDE.md`, `openspec/config.yaml` only. Check visual/shell tests.
 
 ## Workload / PR Boundary
 - Mode: stacked PR slice (auto-chain, stacked-to-main)
-- Current work unit: unit-5-identity-immutability — Identity omit (generic edit immutability) only. Starts from `fix/service-ui-corrections-04-registro-create` @ `5e8bdc45c607e7d4b0372690604968d271d0b169`, ends after `lib/schemas` `GENERIC_EDIT_OMIT`, `route` identity guard + omit, `storage` omit, `ServicesModal` read-only + payload strip, plus 13 RED tests and stale-contract fixes. No RUT, custody, brand, ARCHITECTURE deletion.
-- Estimated review budget impact: **Unit-5** code 641 insertions + 81 deletions = 722 / 800 (additions+deletions), within 800 session budget (cohesive identity contract across 4 files + 3 test files cannot split further without breaking RED→GREEN). Slice autonomous, rollback is 4 code files + 4 test files. Previous slices: unit-1 537 / 800, unit-2 272 / 400, unit-3 250 / 400, unit-4 280 / 400, cumulative code ~1264 lines before docs.
-- Stack: now 5 slices — bottom `fix/service-ui-corrections` @ `d62d5c6` (#82), `fix/service-ui-corrections-02-table-gutter` @ `6c30e9b` (#83), `fix/service-ui-corrections-03-shell-locations` @ `9ea3dd2` (#84), `fix/service-ui-corrections-04-registro-create` @ `5e8bdc4` (#86), top `fix/service-ui-corrections-05-identity-immutability` @ `8a7c227` (#87) — all draft, verified via `gh stack view --json`.
+- Current work unit: unit-6-rut-search — RUT lookup only. Starts from `fix/service-ui-corrections-05-identity-immutability` @ `5ef3c0ac1346b27b4bb6fdd71a390316aa261243`, ends after `lib/rut` `isRutShapedLookup`, `lib/pocketbase-filter` `{:rutSearch}` branch with `normalizeRut`, GET `search` verified bound-only, plus 13 RED→GREEN tests. No custody/brand/ARCHITECTURE deletion.
+- Estimated review budget impact: **Unit-6** code 13 insertions + 0 deletions in `lib/rut.ts` (new helper), 11+2 in `lib/pocketbase-filter.ts`, 67 in `tests/unit/rut.test.ts`, 225+74 in `tests/pocketbase-filter.test.ts`, 2 in `tasks.md`, ~120 in `apply-progress.md` = **~534 / 800** (authored additions+deletions; 392 code+tests + docs). Within 800 session budget (cohesive RUT lookup contract: `isRutShapedLookup` + `{:rutSearch}` + 13 tests cannot split without breaking RED→GREEN). Previous slices: unit-1 537 / 800, unit-2 272 / 400, unit-3 250 / 400, unit-4 280 / 400, unit-5 722 / 800, cumulative code ~1800 lines before docs but sliced per 800 session budget.
+- Stack: now 6 slices — bottom `fix/service-ui-corrections` @ `d62d5c6` (#82), `fix/service-ui-corrections-02-table-gutter` @ `6c30e9b` (#83), `fix/service-ui-corrections-03-shell-locations` @ `9ea3dd2` (#84), `fix/service-ui-corrections-04-registro-create` @ `5e8bdc4` (#86), `fix/service-ui-corrections-05-identity-immutability` @ `5ef3c0a` (#87), top `fix/service-ui-corrections-06-rut-search` @ pending (this PR #88) — all draft, verified via `gh stack view --json`.
 
 ## Status
-10/13 tasks complete. Ready for next batch (unit-6 RUT). Stack (stacked-to-main): bottom `fix/service-ui-corrections` @ `d62d5c6` (#82), `fix/service-ui-corrections-02-table-gutter` @ `6c30e9b` (#83), `fix/service-ui-corrections-03-shell-locations` @ `9ea3dd2` (#84), `fix/service-ui-corrections-04-registro-create` @ `5e8bdc4` (#86), top `fix/service-ui-corrections-05-identity-immutability` @ `8a7c227` (#87) — all draft, verified via `gh stack view --json`. Dedicated Herdr worktree at `/home/jona/projects/serviceflow-worktrees/fix-service-ui-corrections` owns the stack branch; primary checkout on `main` preserves dirty `ARCHITECTURE.md` deletion + untracked OpenSpec artifacts losslessly. Issue #81 `status:approved` (enhancement, Frontend/UI) authorizes slices 1–5. Unit-5 PR #87 `type:feature` `Related to #81` base `fix/service-ui-corrections-04-registro-create` — checks: `Check Issue Reference` SUCCESS, `Check Issue Has status:approved` SUCCESS, `Check PR Has type:*` SUCCESS, `Check PR Cognitive Load` 722/800 (over 400 but within session 800), `quality` SUCCESS (tsc 0, biome 0), `e2e` pending.
+12/13 tasks complete. Ready for verify slice 7 only (unit-7 custody/lockup/docs). Stack (stacked-to-main): bottom `fix/service-ui-corrections` @ `d62d5c6` (#82), `fix/service-ui-corrections-02-table-gutter` @ `6c30e9b` (#83), `fix/service-ui-corrections-03-shell-locations` @ `9ea3dd2` (#84), `fix/service-ui-corrections-04-registro-create` @ `5e8bdc4` (#86), `fix/service-ui-corrections-05-identity-immutability` @ `5ef3c0a` (#87), top `fix/service-ui-corrections-06-rut-search` @ pending (this PR) — all draft, verified via `gh stack view --json` after `gh stack add` + `gh stack submit --auto`. Dedicated Herdr worktree at `/home/jona/projects/serviceflow-worktrees/fix-service-ui-corrections` owns the stack branch; primary checkout on `main` preserves dirty `ARCHITECTURE.md` deletion + untracked OpenSpec artifacts losslessly (`D ARCHITECTURE.md` + `openspec/changes/service-ui-corrections/*` + `.herdr/`). Issue #81 `status:approved` (enhancement, Frontend/UI) authorizes slices 1–6. Unit-6 PR `type:feature` `Related to #81` base `fix/service-ui-corrections-05-identity-immutability` — checks: `Check Issue Reference` pending, `Check Issue Has status:approved` pending, `Check PR Has type:*` pending, `Check PR Cognitive Load` ~534/800 (within 800), `quality` SUCCESS (tsc 0, biome 0, 486/486), `e2e` pending.
 
 ## Recovery Reconciliation — 2026-09-02 (Herdr + `gh stack submit --auto` remediation)
 
@@ -221,11 +245,13 @@ Previous units: Unit-4 implements Registro true-empty `router.push("/dashboard?c
 - Unit-2 Commit SHA: 6c30e9bbba88b0dc1d9d438a436cee35f5652f94 (rebased; was b01cf97a93ec802202106f656db788874a4b1b12)
 - Unit-3 Commit SHA: 9ea3dd263b171ce65161b88dfcf5a24c2c271332 (rebased pre-progress; includes docs reconcile 9ea3dd2)
 - Unit-4 Commit SHA: 5982d2ba1cf89020fb1c78eb4c51f93257391e7b (new, stacked on 9ea3dd2)
-- Unit-5 Commit SHA: 8a7c22722c4f31724c651243792011b5f469e365 (new, stacked on 5e8bdc4 @ 9ea3dd2 base)
+- Unit-5 Commit SHA: 5ef3c0ac1346b27b4bb6fdd71a390316aa261243 (rebased; was 8a7c22722c4f31724c651243792011b5f469e365 @ 5e8bdc4)
+- Unit-6 Commit SHA: 442e89f31595ede45c4f9c3cdf0a44f0158853e5 (new, on fix/service-ui-corrections-06-rut-search @ 5ef3c0a base, PR #88)
 - Unit-1 Attempt token: sha256:66f7c75e9e2d9d31226dbf0d6eb069a79d8ed1a4f080141efae09fb7b67da65f
 - Unit-2 Attempt token: sha256:d63ae090348edd269cd9a774adfbe082434e5e2f526f286b5d0fc03b1af2c911
 - Unit-3 Attempt token: sha256:dadfd6658aab3f9fe389714e89d17b8312b4d6d406d9d6b7973ac76b61e16a3b
 - Unit-4 Attempt token: sha256:6412aebf749250cce2424818c939a57f17782186f3338e60ca2338dde5680596 (unit-4-registro-create, stacked-to-main, max 800, parent settles)
 - Unit-5 Attempt token: sha256:26f556f18b850cc162427624c407a3b700a8a81bbdd89630ff257061a1a02aba (unit-5-identity-immutability, max 800, parent settles)
+- Unit-6 Attempt token: sha256:8b02b4b9e4f11cf79bfbbba506dcb122a66760a576a436a6b7930d581c35e795 (unit-6-rut-search, max 800, parent settles)
 - Correction Attempt token: sha256:6c818e5c736ba15f2fd16c05f659bb3481280596a36929f466f7ce8bb8bffded (unit-1-quality-correction, bounded)
-- Test run: vitest 4.1.10, 11/11 schemas (before RED 3 failed), 27/27 services-lifecycle (before RED 5 failed), 4/4 services-modal-identity (before RED 3 failed), 473/473 full suite (with `service-events-filters` + `lifecycle` stale fixes)
+- Test run: vitest 4.1.10, unit-6 rut 25/25 (before RED 5 failed, filter 16/16 before RED 4 failed), 486/486 full suite, tsc 0, biome 0 (3 warnings, 2 infos)

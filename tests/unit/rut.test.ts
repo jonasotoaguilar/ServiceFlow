@@ -251,4 +251,71 @@ describe("RUT normalize + modulo-11 — lib/rut.ts (Unit 6 RED 3.3)", () => {
 			}
 		});
 	});
+
+	describe("isRutShapedLookup — Unit 6 RUT search shape (RED 6.1)", () => {
+		it("isRutShapedLookup exists and detects RUT-shaped stripped input", async () => {
+			const { isRutShapedLookup } = await import("@/lib/rut");
+			expect(typeof isRutShapedLookup).toBe("function");
+			// Formatted, plain, and K-case variants are RUT-shaped after stripping [.\\-\\s]
+			expect(isRutShapedLookup("20.884.087-K")).toBe(true);
+			expect(isRutShapedLookup("20884087-k")).toBe(true);
+			expect(isRutShapedLookup("20884087k")).toBe(true);
+			expect(isRutShapedLookup(" 20.884.087 - K ")).toBe(true);
+			expect(isRutShapedLookup("12.345.678-5")).toBe(true);
+			expect(isRutShapedLookup("12.345.678 - 5")).toBe(true);
+			expect(isRutShapedLookup("123456785")).toBe(true);
+		});
+
+		it("whitespace and hyphen variants stay RUT-shaped", async () => {
+			const { isRutShapedLookup } = await import("@/lib/rut");
+			expect(isRutShapedLookup(" 20 884 087 K ")).toBe(true);
+			expect(isRutShapedLookup("20-884-087-K")).toBe(true);
+			expect(isRutShapedLookup("20 884.087- k")).toBe(true);
+		});
+
+		it("non-RUT-shaped text stays not RUT-shaped", async () => {
+			const { isRutShapedLookup } = await import("@/lib/rut");
+			expect(isRutShapedLookup("20Ab")).toBe(false);
+			expect(isRutShapedLookup("Juan Perez")).toBe(false);
+			expect(isRutShapedLookup("INV-123")).toBe(false);
+			expect(isRutShapedLookup("20.884.087-KX")).toBe(false);
+			expect(isRutShapedLookup("abc")).toBe(false);
+			expect(isRutShapedLookup("12.345.678-99")).toBe(false);
+		});
+
+		it("empty and whitespace-only are not RUT-shaped and remain unfiltered", async () => {
+			const { isRutShapedLookup } = await import("@/lib/rut");
+			expect(isRutShapedLookup("")).toBe(false);
+			expect(isRutShapedLookup("   ")).toBe(false);
+			expect(isRutShapedLookup(" - ")).toBe(false);
+			expect(isRutShapedLookup(" . ")).toBe(false);
+		});
+
+		it("triangulate: equivalent spellings normalize identically and all are RUT-shaped", async () => {
+			const { isRutShapedLookup, normalizeRut } = await import("@/lib/rut");
+			// Use exact normalized digits for the formatted value; never silently change digits (typo note)
+			expect(normalizeRut("20.884.087-K")).toBe("20884087K");
+			expect(normalizeRut("20884087-k")).toBe("20884087K");
+			expect(normalizeRut("20884087k")).toBe("20884087K");
+			expect(isRutShapedLookup("20.884.087-K")).toBe(true);
+			expect(isRutShapedLookup("20884087-k")).toBe(true);
+			expect(isRutShapedLookup("20884087k")).toBe(true);
+			// distinct valid RUT also equivalence
+			expect(normalizeRut("12.345.678-5")).toBe("123456785");
+			expect(normalizeRut("12345678-5")).toBe("123456785");
+			expect(normalizeRut("123456785")).toBe("123456785");
+		});
+
+		it("isValidRut persistence unchanged — normalizeRut + isValidRut still enforce modulo-11", async () => {
+			const { isValidRut, normalizeRut } = await import("@/lib/rut");
+			// Valid cases still pass
+			expect(isValidRut("12.345.678-5")).toBe(true);
+			expect(isValidRut("6-K")).toBe(true);
+			// Wrong check digit still rejected
+			expect(isValidRut("12.345.678-0")).toBe(false);
+			// isRutShapedLookup does NOT weaken validation — it is lookup-only
+			expect(isValidRut("20.884.087-K")).toBe(false); // stripped is K but DV mismatch → false, shape true ≠ valid
+			expect(normalizeRut("20.884.087-K")).toBe("20884087K");
+		});
+	});
 });

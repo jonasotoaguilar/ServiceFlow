@@ -59,6 +59,19 @@ export function isValidRut(value: string): boolean {
 }
 
 /**
+ * Detect whether a search term is RUT-shaped for lookup normalization.
+ * Strip dots, hyphens, whitespace then test ^\d+[0-9Kk]?$ with plausible length.
+ * Lookup-only: true does NOT mean the value is a valid RUT (modulo-11 still required for writes).
+ */
+export function isRutShapedLookup(value: string): boolean {
+	if (typeof value !== "string") return false;
+	if (value.trim().length === 0) return false;
+	const stripped = value.replace(/[.\-\s]/g, "");
+	if (stripped.length < 2 || stripped.length > 9) return false;
+	return /^\d+[0-9Kk]?$/.test(stripped);
+}
+
+/**
  * Alias for Zod integration — same validation but also usable as predicate.
  */
 export const validateRut = isValidRut;
