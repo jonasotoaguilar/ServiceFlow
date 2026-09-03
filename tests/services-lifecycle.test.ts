@@ -284,7 +284,7 @@ describe("services read WU4 — getServices PocketBase tenant scope + GET route"
 		expect(await res.json()).toEqual({ error: "Unauthorized" });
 		expect(mockCreatePocketBaseClient).not.toHaveBeenCalled();
 	});
-	it("GET keeps query params and passes userId from auth only triangulates comma-separated status", async () => {
+	it("GET keeps query params and passes userId from auth only — exclusive single status first allowlisted token", async () => {
 		mockGetAuthUser.mockResolvedValue({ id: "auth-user-123", email: "a@b.com", name: "A" });
 		mockServicesGetList.mockResolvedValue({
 			items: [pbRecord({ id: "pb15charsvc00020" })],
@@ -316,7 +316,7 @@ describe("services read WU4 — getServices PocketBase tenant scope + GET route"
 		expect(p.uid).toBe("auth-user-123");
 		expect(p.search).toBe("Acme");
 		expect(Object.values(p)).toContain("pending");
-		expect(Object.values(p)).toContain("ready");
+		expect(Object.values(p)).not.toContain("ready");
 		expect(p.locationId).toBe("loc_pb_15_chars1");
 	});
 });
