@@ -53,11 +53,11 @@ onRecordUpdateRequest((e) => {
 		const userId = record.get("userId");
 		const actives = $app.findRecordsByFilter(
 			"locations",
-			`userId = {:uid} && isActive = true`,
-			"-created",
+			`userId = {:uid} && isActive = {:active}`,
+			"",
 			100,
 			0,
-			{ uid: userId },
+			{ uid: userId, active: true },
 		);
 		const isTargetInActives = actives.some((r) => r.id === record.id);
 		if (isTargetInActives && actives.length <= 1) {
@@ -90,11 +90,11 @@ onRecordDeleteRequest((e) => {
 	if (record.get("isActive") !== false) {
 		const actives = $app.findRecordsByFilter(
 			"locations",
-			`userId = {:uid} && isActive = true`,
-			"-created",
+			`userId = {:uid} && isActive = {:active}`,
+			"",
 			100,
 			0,
-			{ uid: userId },
+			{ uid: userId, active: true },
 		);
 		if (actives.length <= 1) {
 			throw new BadRequestError("Debe mantener al menos una sede activa");
