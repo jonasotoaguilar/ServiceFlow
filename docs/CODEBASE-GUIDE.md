@@ -71,7 +71,7 @@ If any of Dashboard path, `batch.enabled`, `batch.maxRequests`, `batch.timeout`,
 2. `lib/env.ts` and `lib/pocketbase.ts` (request client)
 3. `lib/pocketbase-filter.ts` (bound filters)
 4. `pocketbase/v1.collections.json` (schema)
-5. `ARCHITECTURE.md` (system map) and `PRD.md` (product intent)
+5. `PRODUCT.md` (product intent) and `DESIGN.md` (visual system)
 
 ## Checklist
 
@@ -81,4 +81,4 @@ If any of Dashboard path, `batch.enabled`, `batch.maxRequests`, `batch.timeout`,
 
 ## Next step
 
-Open `ARCHITECTURE.md` for the system map or `lib/pocketbase.ts` to trace a request.
+Open `DESIGN.md` for the visual system or `lib/pocketbase.ts` to trace a request, and `PRODUCT.md` for product intent.

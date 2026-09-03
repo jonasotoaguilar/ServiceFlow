@@ -324,4 +324,43 @@ Unit-6 implements `isRutShapedLookup` (strip `[.\-\s]`, `^\d+[0-9Kk]?$`, 2–9 l
 | Rollback boundary | Exact revert: delete helper, restore modal inline, restore SVG 8,8 16 rx1, restore component 2px, delete tests, revert dark-contrast, tasks, progress |
 
 **Status**
-14/15 tasks complete (7.1,7.2 done, 7.3 pending). Stack 9 slices — top 09 @ pending.
+15/15 tasks complete (7.1,7.2,7.3 done). Stack 10/10 complete — ready for verify.
+
+## Unit-7D — Architecture Cleanup (passive docs/config) — 2026-09-03
+**Branch**: docs/service-ui-corrections-10-architecture-cleanup @ pending base fix/service-ui-corrections-09-custody-lockup (#91) @ 901087d
+**Attempt**: sha256:c3d5209e919adc88da77307f6eff171526d778a8c3ba74a878ee0b88dc81f63c unit-7d-architecture-cleanup max800 parent-settles
+**Scope**: passive docs/config only — delete tracked root ARCHITECTURE.md (git rm, no restore/replace/rename/archive/pointer), update stale active references only in docs/CODEBASE-GUIDE.md and openspec/config.yaml; PRODUCT.md/DESIGN.md untouched; no code/tests/assets/specs/research
+**Readback**: ARCHITECTURE.md absent in candidate; stale cites removed; YAML parses; docs read naturally
+**Verification**: structural — ARCHITECTURE absent; no active references outside historical openspec/changes/**; YAML parse 0; visual/shell check-only N/A for passive deletion
+**Budget**: ARCHITECTURE 140 deletions + 3+3 docs edits + 1 tasks line + progress delta = ~143 / 800 — within budget; cohesive passive slice cannot split
+**Rollback**: revert docs/service-ui-corrections-10-architecture-cleanup — restore ARCHITECTURE.md from parent, revert CODEBASE-GUIDE.md reading-path + Next step, revert config.yaml conventions, revert tasks.md 7.3 and progress delta; no runtime rollback; Herdr runtime files preserved
+
+### Files Changed (this slice)
+
+| File | Action | What Was Done |
+|------|--------|---------------|
+| ARCHITECTURE.md | Deleted | git rm tracked root file; no replacement, no pointer, no archive |
+| docs/CODEBASE-GUIDE.md | Modified | Reading path: replace ARCHITECTURE.md system map with PRODUCT.md product intent and DESIGN.md visual system; Next step: replace ARCHITECTURE.md with DESIGN.md + PRODUCT.md guidance — no active reference remains |
+| openspec/config.yaml | Modified | Conventions: replace ARCHITECTURE.md with PRODUCT.md — now PRD.md / PRODUCT.md / DESIGN.md; YAML parses |
+| openspec/changes/service-ui-corrections/tasks.md | Modified | Mark 7.3 [x] — all 15 tasks complete |
+| openspec/changes/service-ui-corrections/apply-progress.md | Modified | Add unit-7D evidence and merge cumulative |
+
+### Work Unit Evidence
+
+| Evidence | Required value |
+|---|---|
+| Focused test command and exact result | pnpm test tests/unit/visual.test.ts tests/unit/shell.test.ts --run — check-only for passive deletion; N/A harness justified (no runtime seam) — structural readback is proportional check; YAML parse via python yaml.safe_load — 0 |
+| Runtime harness command/scenario and exact result | N/A — passive docs/config cleanup has no runtime boundary; Herdr runtime files preserved; no server/browser harness needed |
+| Rollback boundary | Exact revert: ARCHITECTURE.md restore from 901087d, docs/CODEBASE-GUIDE.md revert reading-path + Next step, openspec/config.yaml revert conventions, tasks.md revert 7.3 to [ ], apply-progress.md revert unit-7D delta — no code/tests/assets/specs/research touch |
+
+### Structural Verification
+
+- Candidate check: git ls-files | grep ARCHITECTURE — 0 (absent in candidate and worktree index)
+- Active references: grep -r ARCHITECTURE.md --exclude-dir=openspec/changes — 0 outside historical evidence (only openspec/changes/** historical mentions remain as intentional record, 0 in active docs/config)
+- YAML: python yaml.safe_load parse — 0
+- Docs: CODEBASE-GUIDE reading-path + Next step read naturally referencing PRODUCT.md/DESIGN.md ownership accurately; no broken link to deleted file
+- Preserved: .herdr/ runtime files untouched; no PRODUCT.md/DESIGN.md mutation
+
+**Chain**: stacked-to-main position 10/10 (forecast 10 slices); current PR10 base #91 (fix/service-ui-corrections-09 @ 901087d), no follow-up implementation — chain complete
+**PR**: type:docs, Related to #81, DRAFT, Chain Context 10/10, base #91
+**Status**: 15/15 tasks complete — ready for verify
