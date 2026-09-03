@@ -327,7 +327,7 @@ Unit-6 implements `isRutShapedLookup` (strip `[.\-\s]`, `^\d+[0-9Kk]?$`, 2–9 l
 15/15 tasks complete (7.1,7.2,7.3 done). Stack 10/10 complete — ready for verify.
 
 ## Unit-7D — Architecture Cleanup (passive docs/config) — 2026-09-03
-**Branch**: docs/service-ui-corrections-10-architecture-cleanup @ pending base fix/service-ui-corrections-09-custody-lockup (#91) @ 901087d
+**Branch**: docs/service-ui-corrections-10-architecture-cleanup @ df5a0b29929a5fb22994ec6dadb3b8c06613ce36 base fix/service-ui-corrections-09-custody-lockup (#91) @ 901087d
 **Attempt**: sha256:c3d5209e919adc88da77307f6eff171526d778a8c3ba74a878ee0b88dc81f63c unit-7d-architecture-cleanup max800 parent-settles
 **Scope**: passive docs/config only — delete tracked root ARCHITECTURE.md (git rm, no restore/replace/rename/archive/pointer), update stale active references only in docs/CODEBASE-GUIDE.md and openspec/config.yaml; PRODUCT.md/DESIGN.md untouched; no code/tests/assets/specs/research
 **Readback**: ARCHITECTURE.md absent in candidate; stale cites removed; YAML parses; docs read naturally
