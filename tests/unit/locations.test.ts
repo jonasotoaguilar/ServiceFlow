@@ -226,7 +226,234 @@ describe("Location invariants — at least one active, no default role (Unit 7)"
 			expect(mockLUpdate).not.toHaveBeenCalled();
 		});
 	});
-
+	describe.skip("setDefaultLocation safe change", () => {
+		it("moves default A→B previous active non-default", async () => {
+			mockLOne.mockResolvedValue({
+				id: "locB",
+				userId: uid,
+				name: "Sede B",
+				isActive: true,
+				isDefault: false,
+			});
+			mockLList.mockResolvedValue({
+				items: [
+					{
+						id: "locA",
+						userId: uid,
+						name: "Sede A",
+						isActive: true,
+						isDefault: true,
+						createdAt: now,
+					},
+					{
+						id: "locB",
+						userId: uid,
+						name: "Sede B",
+						isActive: true,
+						isDefault: false,
+						createdAt: now,
+					},
+				],
+				totalItems: 2,
+			});
+			mockLUpdate.mockResolvedValue({});
+			const { setDefaultLocation } = (await import("@/lib/locations")) as any;
+			const r = await setDefaultLocation(uid, "locB");
+			expect(r).toEqual(expect.objectContaining({ success: true }));
+			expect(mockLUpdate).toHaveBeenCalledWith(
+				"locA",
+				expect.objectContaining({ isDefault: false }),
+			);
+			expect(mockLUpdate).toHaveBeenCalledWith(
+				"locB",
+				expect.objectContaining({ isDefault: true }),
+			);
+		});
+		it("inactive target rejected", async () => {
+			mockLOne.mockResolvedValue({
+				id: "locB",
+				userId: uid,
+				name: "Sede B",
+				isActive: false,
+				isDefault: false,
+			});
+			mockLList.mockResolvedValue({
+				items: [
+					{ id: "locA", userId: uid, name: "Sede A", isActive: true, isDefault: true },
+					{ id: "locB", userId: uid, name: "Sede B", isActive: false, isDefault: false },
+				],
+				totalItems: 2,
+			});
+			const { setDefaultLocation } = (await import("@/lib/locations")) as any;
+			const r = await setDefaultLocation(uid, "locB");
+			expect((r as any).error).toMatch(/activa|inactive|no puede/i);
+			expect(mockLUpdate).not.toHaveBeenCalled();
+		});
+		it("foreign rejected", async () => {
+			mockLOne.mockResolvedValue({
+				id: "locF",
+				userId: "other",
+				name: "Other",
+				isActive: true,
+				isDefault: false,
+			});
+			const { setDefaultLocation } = (await import("@/lib/locations")) as any;
+			const r = await setDefaultLocation(uid, "locF");
+			expect((r as any).error).toMatch(/no encontrada|No autorizado/i);
+			expect(mockLUpdate).not.toHaveBeenCalled();
+		});
+		it("missing rejected", async () => {
+			mockLOne.mockRejectedValue(new Error("not found"));
+			const { setDefaultLocation } = (await import("@/lib/locations")) as any;
+			const r = await setDefaultLocation(uid, "missing");
+			expect((r as any).error).toMatch(/no encontrada/i);
+			expect(mockLUpdate).not.toHaveBeenCalled();
+		});
+	});
+	describe.skip("guards delete/deactivate", () => {
+		it("default delete rejected", async () => {
+			mockGetAuthUser.mockResolvedValue({ id: uid, email: "a@b.com", name: "A" });
+			mockLOne.mockResolvedValue({
+				id: "locDefault",
+				userId: uid,
+				name: "Sede Principal",
+				isActive: true,
+				isDefault: true,
+			});
+			mockSList.mockResolvedValue({ items: [], totalItems: 0 });
+			mockLogList.mockResolvedValue({ items: [], totalItems: 0 });
+			const { deleteLocation } = await import("@/app/actions/locations");
+			const r = await deleteLocation("locDefault", "Sede Principal");
+			expect((r as any).error).toMatch(/predeterminada|default|No se puede eliminar/i);
+			expect(mockLDelete).not.toHaveBeenCalled();
+		});
+		it("last active deactivate rejected", async () => {
+			mockLOne.mockResolvedValue({
+				id: "locOnly",
+				userId: uid,
+				name: "Sede Principal",
+				isActive: true,
+				isDefault: true,
+			});
+			mockLList.mockResolvedValue({
+				items: [
+					{ id: "locOnly", userId: uid, name: "Sede Principal", isActive: true, isDefault: true },
+				],
+				totalItems: 1,
+			});
+			const { toggleLocationActive } = await import("@/app/actions/locations");
+			const r = await toggleLocationActive("locOnly", false);
+			expect((r as any).error).toMatch(/activa|predeterminada|al menos/i);
+			expect(mockLUpdate).not.toHaveBeenCalled();
+		});
+		it("default deactivate rejected even with another active", async () => {
+			mockLOne.mockResolvedValue({
+				id: "locDefault",
+				userId: uid,
+				name: "Sede A",
+				isActive: true,
+				isDefault: true,
+			});
+			mockLList.mockResolvedValue({
+				items: [
+					{ id: "locDefault", userId: uid, name: "Sede A", isActive: true, isDefault: true },
+					{ id: "locB", userId: uid, name: "Sede B", isActive: true, isDefault: false },
+				],
+				totalItems: 2,
+			});
+			const { toggleLocationActive } = await import("@/app/actions/locations");
+			const r = await toggleLocationActive("locDefault", false);
+			expect((r as any).error).toMatch(/predeterminada|default/i);
+			expect(mockLUpdate).not.toHaveBeenCalled();
+		});
+		it("deactivate non-default with another active succeeds", async () => {
+			mockLOne.mockResolvedValue({
+				id: "locB",
+				userId: uid,
+				name: "Sede B",
+				isActive: true,
+				isDefault: false,
+			});
+			mockLList.mockResolvedValue({
+				items: [
+					{ id: "locA", userId: uid, name: "Sede A", isActive: true, isDefault: true },
+					{ id: "locB", userId: uid, name: "Sede B", isActive: true, isDefault: false },
+				],
+				totalItems: 2,
+			});
+			mockLUpdate.mockResolvedValue({ id: "locB", isActive: false });
+			const { toggleLocationActive } = await import("@/app/actions/locations");
+			const r = await toggleLocationActive("locB", false);
+			expect(r).toEqual(expect.objectContaining({ success: true }));
+			expect(mockLUpdate).toHaveBeenCalledWith(
+				"locB",
+				expect.objectContaining({ isActive: false }),
+			);
+		});
+		it("hard-delete blocked if referenced", async () => {
+			mockGetAuthUser.mockResolvedValue({ id: uid, email: "a@b.com", name: "A" });
+			mockLList.mockResolvedValue({
+				items: [
+					{ id: "locB", userId: uid, isActive: true, isDefault: false },
+					{ id: "locA", userId: uid, isActive: true, isDefault: true },
+				],
+				totalItems: 2,
+			});
+			mockLOne.mockResolvedValue({
+				id: "locB",
+				userId: uid,
+				name: "Sede B",
+				isActive: true,
+				isDefault: false,
+			});
+			mockSList.mockResolvedValue({ items: [{ id: "svc1", locationId: "locB" }], totalItems: 1 });
+			mockLogList.mockResolvedValue({ items: [], totalItems: 0 });
+			const { deleteLocation } = await import("@/app/actions/locations");
+			expect(((await deleteLocation("locB", "Sede B")) as any).error).toMatch(
+				/historial|No se puede eliminar/i,
+			);
+			expect(mockLDelete).not.toHaveBeenCalled();
+			mockSList.mockResolvedValue({ items: [], totalItems: 0 });
+			mockLogList.mockResolvedValue({
+				items: [{ id: "log1", fromLocationId: "locB" }],
+				totalItems: 1,
+			});
+			expect(((await deleteLocation("locB", "Sede B")) as any).error).toMatch(
+				/historial|No se puede eliminar/i,
+			);
+			expect(mockLDelete).not.toHaveBeenCalled();
+		});
+	});
+	describe.skip("wiring", () => {
+		it("auth.ts imports and calls ensureDefaultLocation in login and register", () => {
+			const s = read("app/actions/auth.ts");
+			expect(s).toContain("ensureDefaultLocation");
+			const li = s.indexOf("export async function login"),
+				ri = s.indexOf("export async function register");
+			expect(li).toBeGreaterThanOrEqual(0);
+			expect(ri).toBeGreaterThanOrEqual(0);
+			expect(s.slice(li, li + 4000)).toContain("ensureDefaultLocation");
+			expect(s.slice(ri, ri + 6000)).toContain("ensureDefaultLocation");
+		});
+		it("layout imports ensure and calls with user.id", () => {
+			const s = read("app/(app)/layout.tsx");
+			expect(s).toContain("ensureDefaultLocation");
+			expect(s).toContain("getAuthUser");
+			const a = s.indexOf("getAuthUser"),
+				e = s.indexOf("ensureDefaultLocation");
+			expect(a).toBeGreaterThanOrEqual(0);
+			expect(e).toBeGreaterThan(a);
+			expect(s).toMatch(/ensureDefaultLocation\s*\(\s*user\.id/);
+		});
+		it("lib/locations uses bound filters no interpolation", () => {
+			const s = read("lib/locations.ts");
+			expect(s).toContain("createPocketBaseClient");
+			expect(s).toContain("ensureDefaultLocation");
+			expect(s).toContain("setDefaultLocation");
+			expect(s).toContain("applyBinding");
+			expect(s).toContain('collection("locations")');
+		});
+	});
 	describe("tenant isolation", () => {
 		it("getLocations binds userId", async () => {
 			mockLList.mockResolvedValue({ items: [], totalItems: 0 });
