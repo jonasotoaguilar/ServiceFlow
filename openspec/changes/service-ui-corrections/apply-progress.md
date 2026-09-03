@@ -108,7 +108,7 @@ None. Unit-3 implements shared `max-w-7xl 2xl:max-w-[1600px]` in main and Navbar
 - Previous slices: unit-1 ~519 lines, unit-2 ~9 lines, cumulative code ~532.
 
 ## Status
-6/13 tasks complete. Ready for next batch (unit-4 registro create). Stack: bottom `fix/service-ui-corrections` @ `91e0ba9` (#82), middle `fix/service-ui-corrections-02-table-gutter` @ `b01cf97` (#83), top `fix/service-ui-corrections-03-shell-locations` @ `a48b61b` (#84) — all draft, verified via `gh stack view --json`. Dedicated Herdr worktree at `/home/jona/projects/serviceflow-worktrees/fix-service-ui-corrections` owns the stack branch; primary checkout on `main` preserves dirty `ARCHITECTURE.md` deletion + untracked OpenSpec artifacts losslessly. Issue #81 `status:approved` (enhancement, Frontend/UI) authorizes slices 1–3.
+6/13 tasks complete. Ready for next batch (unit-4 registro create). Stack (rebased post-correction, still stacked-to-main): bottom `fix/service-ui-corrections` @ `d62d5c6` (#82), middle `fix/service-ui-corrections-02-table-gutter` @ `6c30e9b` (#83), top `fix/service-ui-corrections-03-shell-locations` @ `b4f5de7` pre-progress / new SHA post-progress (#84) — all draft, verified via `gh stack view --json`. Dedicated Herdr worktree at `/home/jona/projects/serviceflow-worktrees/fix-service-ui-corrections` owns the stack branch; primary checkout on `main` preserves dirty `ARCHITECTURE.md` deletion + untracked OpenSpec artifacts losslessly. Issue #81 `status:approved` (enhancement, Frontend/UI) authorizes slices 1–3. Correction `unit-1-quality-correction` @ `sha256:6c818e5c736ba15f2fd16c05f659bb3481280596a36929f466f7ce8bb8bffded` is bounded tests-only; no new tasks marked complete.
 
 ## Recovery Reconciliation — 2026-09-02 (Herdr + `gh stack submit --auto` remediation)
 
@@ -126,11 +126,56 @@ None. Unit-3 implements shared `max-w-7xl 2xl:max-w-[1600px]` in main and Navbar
 
 **Workflow recovery note:** This `gh stack submit --auto` (PRs #82–#84, stack #85) is explicit remediation of prior deferred submission where three slices were committed without draft identities, violating `stacker-pr` `Draft before next slice`. It is **not** an approved future pattern; subsequent slices (units 4–7) must follow branch-before-code and draft-before-next-slice gates. Chain context, dependency diagrams, and rollback boundaries are recorded in each PR body; all PRs remain draft and target immediate parent (or `main` for slice 1). Check snapshot: PR #82 `Check Issue Reference` pass, `Check Issue Has status:approved` pass, `Check PR Has type:*` pass; `Check PR Cognitive Load` pass (PR83/84 pass, PR82 537 within 800); `quality`/`e2e` as per snapshot (quality fail on #82/#84 unrelated to slice gate, not waited upon per recovery instructions).
 
+## Correction — unit-1-quality-correction (2026-09-02 bounded)
+
+**Work Unit**: unit-1-quality-correction — bounded RED/contract correction for existing slice 1 (no new behavior, no slice 4)
+**Attempt token**: `sha256:6c818e5c736ba15f2fd16c05f659bb3481280596a36929f466f7ce8bb8bffded` (parent settles; do not acquire/settle per native attempt)
+**Mode**: Strict TDD remains active; this is a regression-test correction discovered by remote CI after the behavior contract changed
+**Branch**: `fix/service-ui-corrections` (bottom slice, Herdr worktree `gh stack checkout fix/service-ui-corrections`)
+**Stack strategy**: stacked-to-main preserved; `max 800`, `single-pr` exception not needed (test-only slice)
+
+**Root cause**: PR #82 and cumulative #84 `quality` failed only `tests/services-lifecycle.test.ts:319` — old test expected both `pending` and `ready` for `status=pending,ready`. New approved spec (dashboard-operate-plus exclusive single status) requires at most one status and first allowlisted token only. Main passed because old API allowed both via `statusParam.split(",")`. Route `app/api/services/route.ts` is correct (`first = statusParam.split(",")[0]?.trim(); if (ALLOWED_STATUSES.has(first)) status=[first]`); stale test was wrong.
+
+**Correction (RED → GREEN, tests only)**:
+- **File**: `tests/services-lifecycle.test.ts` — 2 lines, tests-only, no production change
+  - Rename: `it("GET keeps query params ... triangulates comma-separated status")` → `it("GET keeps query params ... exclusive single status first allowlisted token")`
+  - Assert: `expect(Object.values(p)).toContain("pending")` kept; `expect(Object.values(p)).toContain("ready")` → `expect(Object.values(p)).not.toContain("ready")` — proves first-token exclusive behavior (`pending` included, `ready` excluded)
+  - No weakening: all other asserts preserved (`uid`, `search`, `locationId`, page/limit/total, sort, status 200)
+- **Behavioral invariant**: `GET /api/services?status=pending,ready` carries at most one allowlisted status (`pending`) and never stacks — second token (`ready`) is ignored. `p` contains exactly one status (`pending`) among allowlisted set, `ready` absent.
+
+**Evidence — correction slice verified in Herdr worktree**:
+| Evidence | Command / Result |
+|---|---|
+| Focused test (RED→GREEN) | `pnpm test tests/services-lifecycle.test.ts --run` — **21/21 passed** (1 corrected exclusive test + 20 others); before correction this file failed at `expect(Object.values(p)).toContain("ready")` |
+| Dashboard exclusive | `pnpm test tests/unit/dashboard-operate-plus.test.tsx --run` — **27/27 passed** on bottom slice (and 32/32 cumulative on top after rebase) — scalar `ServiceStatus | ""`, close-on-pick, no multi-toggle |
+| Full suite (proportional) | `pnpm run test:run` — **26 passed, 438/438 passed** with correction applied (proves no regression) |
+| Typecheck | `pnpm exec tsc --noEmit` — **0** |
+| Lint | `pnpm exec biome check --formatter-enabled=false` — **0** (3 warnings, 2 infos, 0 errors) — normalize only if required pre-evidence; source already normalized via lint-staged on commit |
+| Runtime harness | N/A — no runtime boundary for this GET filter seam beyond tsc+type+unit; jsdom cannot prove PocketBase filter over network, integration is via `mockFilter` seam |
+
+**Commit**: `d62d5c64848a281cd80ad88aa76f073edc6759c8` on `fix/service-ui-corrections` — `test(services): enforce exclusive single-status first token in lifecycle contract` (tests only, conventional, no AI attribution)
+
+**Rebase preservation** (`gh stack rebase --upstack` — mechanical, no ambiguous conflicts):
+| Slice | Branch | Previous Head | Rebased Head | Immediate Base | PR |
+|---|---|---|---|---|---|
+| 1 | `fix/service-ui-corrections` | `91e0ba9dc2db11699fe2b347a35234dbf7f45dfd` | `d62d5c64848a281cd80ad88aa76f073edc6759c8` | `main` @ `9b48a7961e07107e460464420b34d818de53abef` | #82 https://github.com/jonasotoaguilar/serviceflow/pull/82 |
+| 2 | `fix/service-ui-corrections-02-table-gutter` | `b01cf97a93ec802202106f656db788874a4b1b12` | `6c30e9bbba88b0dc1d9d438a436cee35f5652f94` | `d62d5c64848a281cd80ad88aa76f073edc6759c8` | #83 https://github.com/jonasotoaguilar/serviceflow/pull/83 |
+| 3 | `fix/service-ui-corrections-03-shell-locations` | `a48b61b9fd5565683c2637d0dfc6799488ec700b` | `b4f5de7e1b581b5a5b0968a54c93d52496494419` (pre-progress-update) | `6c30e9bbba88b0dc1d9d438a436cee35f5652f94` | #84 https://github.com/jonasotoaguilar/serviceflow/pull/84 |
+
+**Submit**: `gh stack submit --auto` after rebase — pushed and synced 3 branches; PRs #82/#83/#84 remain draft `type:feature` (`Closes #81` on #82, `Related to #81` on #83/#84), bases `main` / `fix/service-ui-corrections` / `fix/service-ui-corrections-02-table-gutter` verified via `gh stack view --json` and `gh pr view --json baseRefName,headRefName,isDraft`
+
+**Dirty preservation**: `D ARCHITECTURE.md` + `M next-env.d.ts` + untracked `openspec/changes/service-ui-corrections/{design,exploration,preproposal,proposal,research,specs/*,ui-design}.md` + `.herdr/` preserved losslessly via `git stash push --include-untracked` before rebase and `git stash pop` after (temp stash `temp preserve before rebase correction 2026-09-02`); intentional `ARCHITECTURE.md` deletion remains uncommitted for unit 7 as designed
+
+**Scope guard**: No slice 4 or new behavior implemented. No `git push` or `gh pr create` used; only `gh stack` primitives. No new tasks marked complete — `tasks.md` remains 1.1,1.2,2.1,2.2,3.1,3.2 [x], 4.1+ pending. This cumulative top-branch progress update is the sole change on `fix/service-ui-corrections-03-shell-locations`; committed as `docs(openspec): reconcile service-ui-corrections correction + rebased heads` if bytes changed.
+
+**Rollback boundary (correction)**: Revert single commit `d62d5c6` on `fix/service-ui-corrections` — restores stale test (2 lines) without touching `app/api/services/route.ts`, dashboard, shell, or units 2/3. No production rollback needed.
+
 ## Evidence Revision
-- Unit-1 Commit SHA: 91e0ba9dc2db11699fe2b347a35234dbf7f45dfd
-- Unit-2 Commit SHA: b01cf97a93ec802202106f656db788874a4b1b12
-- Unit-3 Commit SHA: a48b61b9fd5565683c2637d0dfc6799488ec700b
+- Unit-1 Commit SHA: d62d5c64848a281cd80ad88aa76f073edc6759c8 (corrected; was 91e0ba9dc2db11699fe2b347a35234dbf7f45dfd)
+- Unit-2 Commit SHA: 6c30e9bbba88b0dc1d9d438a436cee35f5652f94 (rebased; was b01cf97a93ec802202106f656db788874a4b1b12)
+- Unit-3 Commit SHA: b4f5de7e1b581b5a5b0968a54c93d52496494419 (rebased pre-progress; new top SHA after this progress commit to be recorded on next view)
 - Unit-1 Attempt token: sha256:66f7c75e9e2d9d31226dbf0d6eb069a79d8ed1a4f080141efae09fb7b67da65f
 - Unit-2 Attempt token: sha256:d63ae090348edd269cd9a774adfbe082434e5e2f526f286b5d0fc03b1af2c911
 - Unit-3 Attempt token: sha256:dadfd6658aab3f9fe389714e89d17b8312b4d6d406d9d6b7973ac76b61e16a3b
-- Test run: vitest 4.1.10, 52/52 shell+locations, 84/84 combined
+- Correction Attempt token: sha256:6c818e5c736ba15f2fd16c05f659bb3481280596a36929f466f7ce8bb8bffded (unit-1-quality-correction, bounded)
+- Test run: vitest 4.1.10, 21/21 services-lifecycle (exclusive), 27/27 dashboard-operate-plus (exclusive, bottom), 52/52 shell+locations, 84/84 combined dashboard+shell, 438/438 full
