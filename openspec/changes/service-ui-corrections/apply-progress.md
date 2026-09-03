@@ -364,3 +364,91 @@ Unit-6 implements `isRutShapedLookup` (strip `[.\-\s]`, `^\d+[0-9Kk]?$`, 2–9 l
 **Chain**: stacked-to-main position 10/10 (forecast 10 slices); current PR10 base #91 (fix/service-ui-corrections-09 @ 901087d), no follow-up implementation — chain complete
 **PR**: type:docs, Related to #81, DRAFT, Chain Context 10/10, base #91
 **Status**: 15/15 tasks complete — ready for verify
+
+## Remediation — custody-contract (2026-09-03 bounded, remediate-custody-contract)
+
+**Attempt token**: `sha256:edca7a8b3cdd1ded3b7e8c4b170b5dfc0ff877ae5821ae057ef0cf804dcaa1d7` (max800, parent settles)
+**Remediated failed evidence**: `sha256:39ce1ff26539a7c25b7d950ab55daf4ae69916abafdadfbc29d4d5d2f7712f5b`
+**Correction evidence**: `sha256:dc5f2238ab42577646c4717f3f0510b7c2bb77e8414c93492b7430bd51c11ff2` (distinct passing, custody contract)
+**Branch**: `fix/service-ui-corrections-09-custody-lockup` (PR #91 owner, `gh stack checkout fix/service-ui-corrections-09-custody-lockup`), no new slice
+**Base**: `docs/service-ui-corrections-08-openspec-design-specs` @ `da20b84791685e7d52ea878c1101fdc992c6cd2c` (#90)
+**Scope**: bounded remediation only — custody receipt title/disclaimer authoritative spec copy + stale print label `Imprimir Etiqueta` → `Imprimir comprobante`; tasks wording contradiction eliminated; no SII claim, no Registro heading, no PRODUCT.md, no coverage/mutation config
+
+### Authoritative Copy (spec/design verbatim)
+
+- **Spec**: `openspec/changes/service-ui-corrections/specs/service-custody-acknowledgment/spec.md` — Requirement `Custody Purpose And Classified Copy`
+- **Design**: `openspec/changes/service-ui-corrections/design.md` — Receipt copy
+- **Proposal**: `openspec/changes/service-ui-corrections/proposal.md` — Intent Approach inference C-01–C-04
+
+| Field | Old (shipped, tasks 7.1 text) | New (authoritative spec/design) |
+|-------|-------------------------------|---------------------------------|
+| Title | `COMPROBANTE DE RECEPCIÓN Y CUSTODIA` | `Comprobante de recepción y custodia` |
+| Disclaimer | `Este documento acredita únicamente la recepción y custodia del producto. No constituye boleta, factura, DTE, comprobante de pago ni certificado de garantía.` | `Este documento acredita la recepción del equipo para servicio y custodia. No constituye documento tributario, no es boleta ni factura y no acredita pago. Sin validez tributaria ante el SII.` |
+| Print label | `Imprimir Etiqueta` (ServicesDetailsModal title attr) | `Imprimir comprobante` |
+
+### RED before GREEN
+
+| Step | Command | Result |
+|------|---------|--------|
+| RED (old helper, new tests) | `pnpm test tests/unit/custody-receipt.test.ts --run` | **1 failed, 4 failed | 8 passed (12)** — title, disclaimer, optional-title, print-label all fail: expected new title/disclaimer/comprobante not found, old variant present, `Imprimir comprobante` missing |
+| GREEN (after helper+modal fix) | `pnpm test tests/unit/custody-receipt.test.ts tests/unit/bodega-lockup.test.ts --run` | **2 passed, 20 passed, 0 failed** (custody 12 + bodega 8) — title/disclaimer exact + OLD variant rejection + print label passes |
+| Full configured clean (no .stryker-tmp) | `pnpm test:run` | **29 passed, 506 passed, 0 failed** — exit 0, hash distinct from polluted `d846bf...` (now clean, .stryker-tmp absent, no source workaround) |
+| Typecheck | `pnpm exec tsc --noEmit` | **0** |
+| Lint check-only | `pnpm exec biome check --formatter-enabled=false .` | **0** (3 warnings, 2 infos pre-existing) |
+| Build | `pnpm run build` | **0** — Next.js 16.3.0 compiled successfully |
+
+### Files Changed (remediation slice)
+
+| File | Action | What Was Done |
+|------|--------|---------------|
+| `lib/custody-receipt.ts` | Modified | `TITLE` `Comprobante de recepción y custodia`; `DISCLAIMER` SII sentence verbatim spec |
+| `components/services/ServicesDetailsModal.tsx` | Modified | `title="Imprimir comprobante"` (was `Imprimir Etiqueta`) — same receipt surface |
+| `tests/unit/custody-receipt.test.ts` | Modified | Assert authoritative TITLE/DISCLAIMER, reject OLD_TITLE/OLD_DISCLAIMER (uppercase + old disclaimer), add print-label test `Imprimir comprobante` not `Etiqueta` |
+| `openspec/changes/service-ui-corrections/tasks.md` | Modified | 7.1 wording `COMPROBANTE...` + old disclaimer → authoritative title/disclaimer + `Imprimir comprobante`; keep `[x]` complete, eliminate internal contradiction |
+| `openspec/changes/service-ui-corrections/apply-progress.md` | Modified | This remediation section; cumulative 15/15 preserved |
+
+### Work Unit Evidence (remediation)
+
+| Evidence | Required value |
+|---|---|
+| Focused test command and exact result | `pnpm test tests/unit/custody-receipt.test.ts tests/unit/bodega-lockup.test.ts --run` — **2 passed, 20 passed, 0 failed** after GREEN (before 4 failed RED) |
+| Runtime harness command/scenario and exact result | N/A — pure helper + window.open seam, 58mm CSS verified (`width:58mm`, `@page margin:0`, no 210mm/A4, no QR), lockup tokens unchanged, tsc 0, biome 0, build 0 — same as unit-7C, now with correct copy |
+| Rollback boundary | Exact revert: `lib/custody-receipt.ts` (restore uppercase title + old disclaimer 2 lines), `components/services/ServicesDetailsModal.tsx` (restore `Imprimir Etiqueta`), `tests/unit/custody-receipt.test.ts` (restore old TITLE/DISCLAIMER consts + remove OLD_* rejection + remove print-label test), `openspec/changes/service-ui-corrections/tasks.md` (restore old 7.1 wording), `apply-progress.md` (remove this remediation delta) — no shell/table/status/RUT/identity/ARCHITECTURE/PRODUCT.md change |
+
+### Diff / Budget
+
+- **Stat (remediation commit 8bbe81f)**: 4 files, 19 insertions(+), 7 deletions(-) = **26 changed lines** (`--stat` excludes `next-env.d.ts` auto-generated, reverted)
+- **Budget**: **26 / 800** (max800 parent settles) — well within, cohesive correction cannot split
+- **Topology**: 10-slice stacked-to-main preserved; no new branch; parent settles
+
+### Commits & Rebased Heads
+
+| Slice | Branch | Previous Head | New Head | Immediate Base | PR |
+|-------|--------|---------------|----------|----------------|----|
+| 9 (owner) | `fix/service-ui-corrections-09-custody-lockup` | `901087d77900cb4eb7d1ff2a78190e10d0f59d38` | `8bbe81f84cbdb0c39431e5388a04b250e06fa0b9` | `da20b84` (#90) | #91 https://github.com/jonasotoaguilar/serviceflow/pull/91 (draft) |
+| 10 (top) | `docs/service-ui-corrections-10-architecture-cleanup` | `075d1c5058d8d2442f1b6650c0831b23a570c360` | `61e120fc31f1c90b76c8a7525b1ad2fd35d847ca` (rebased, before apply-progress evidence commit) → `pending` after this evidence commit | `8bbe81f` (#91) | #92 https://github.com/jonasotoaguilar/serviceflow/pull/92 (draft) |
+
+**Rebase**: `gh stack rebase --upstack` from `fix/service-ui-corrections-09-custody-lockup` — mechanical, no conflicts, Herdr runtime preserved
+**Submit**: `gh stack submit --auto` — pushed 10 branches, synced, PRs remain draft, bases verified
+
+### Draft PR Identities
+
+- #91 `fix/service-ui-corrections-09-custody-lockup` — `isDraft: true`, base `docs/service-ui-corrections-08-openspec-design-specs`, head `8bbe81f`, `type:feature` `Related to #81`
+- #92 `docs/service-ui-corrections-10-architecture-cleanup` — `isDraft: true`, base `fix/service-ui-corrections-09-custody-lockup`, head `61e120f` (pre-evidence) → pending, `type:docs` `Related to #81`
+- Chain #85 — trunk `main` @ `9b48a7961e07107e460464420b34d818de53abef`, heads #82 `d62d5c6` (#82), #83 `6c30e9b` (#83), #84 `9ea3dd2` (#84), #86 `5e8bdc4` (#86), #87 `5ef3c0a` (#87), #88 `1a3a5fc` (#88), #89 `ba6d78b` (#89), #90 `da20b84` (#90), #91 `8bbe81f` (#91), #92 `61e120f` → pending (#92)
+
+### Failed Verify-Report Preservation
+
+- Untracked `openspec/changes/service-ui-corrections/verify-report.md` with `evidence_revision: sha256:39ce1ff26539a7c25b7d950ab55daf4ae69916abafdadfbc29d4d5d2f7712f5b` preserved losslessly at top (`git status` shows `?? verify-report.md` before and after rebase/commit; never staged/committed)
+- Herdr runtime state preserved (no .herdr mutation, worktree linked)
+- All unrelated work preserved (no Registro heading, no PRODUCT.md, no coverage/mutation config)
+
+### Correction Evidence Distinct
+
+- **Failed**: `sha256:39ce1ff26539a7c25b7d950ab55daf4ae69916abafdadfbc29d4d5d2f7712f5b` — `verdict: fail`, `Custody Purpose And Classified Copy` FAILING (title/disclaimer followed tasks not spec), `pnpm test:run` exit 1 via `.stryker-tmp`
+- **Correction**: `sha256:dc5f2238ab42577646c4717f3f0510b7c2bb77e8414c93492b7430bd51c11ff2` — custody scenario now COMPLIANT (title `Comprobante de recepción y custodia` + SII disclaimer exact), print label `Imprimir comprobante`, `pnpm test:run` **exit 0** 506/506 clean (no `.stryker-tmp`, no source workaround), tsc 0, biome 0, build 0 — distinct hash, passing
+
+### Status
+
+15/15 tasks complete preserved (7.1 wording corrected not reopened, 7.2/7.3 remain [x]). Stack 10/10 complete — ready for re-verify. This remediation does not acquire/settle native token (parent settles per `max800`).
+
