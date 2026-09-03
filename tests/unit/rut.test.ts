@@ -183,10 +183,13 @@ describe("RUT normalize + modulo-11 — lib/rut.ts (Unit 6 RED 3.3)", () => {
 			const { ServiceSchema } = await import("@/lib/schemas");
 			const base = {
 				invoiceNumber: "INV-1",
+				sku: "SKU-1",
 				clientName: "Juan Perez",
 				contact: "+56 9 1234 5678",
 				product: "Laptop",
 				locationId: "loc_1",
+				failureDescription: "Falla",
+				entryDate: "2024-01-01",
 			};
 			expect(ServiceSchema.safeParse({ ...base, rut: "" }).success).toBe(false);
 			expect(ServiceSchema.safeParse({ ...base, rut: "   " }).success).toBe(false);

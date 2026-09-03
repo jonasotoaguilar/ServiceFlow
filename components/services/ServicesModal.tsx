@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo, useRef } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, type FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { X, Save, ChevronDown, CheckCircle2 } from "lucide-react";
@@ -12,7 +12,9 @@ import { Alert } from "@/components/ui/alert";
 import { formatRut, formatChileanPhone, formatCurrency, parseCurrency } from "@/lib/utils";
 import { ServiceSchema } from "@/lib/schemas";
 
-type ServiceFormData = z.infer<typeof ServiceSchema>;
+type ServiceInput = z.input<typeof ServiceSchema>;
+type ServiceOutput = z.output<typeof ServiceSchema>;
+type ServiceFormData = ServiceOutput;
 
 function calculateStatusDates(
 	data: ServiceFormData,
@@ -103,8 +105,8 @@ export function ServiceModal({
 	const LOCATIONS = useMemo(() => availableLocations, [availableLocations]);
 	const isEditing = !!ServiceToEdit;
 
-	const form = useForm<ServiceFormData>({
-		resolver: zodResolver(ServiceSchema as any) as any,
+	const form = useForm<ServiceInput, unknown, ServiceOutput>({
+		resolver: zodResolver(ServiceSchema),
 		defaultValues: {
 			entryDate: new Date().toISOString().split("T")[0],
 			invoiceNumber: "",
@@ -193,7 +195,7 @@ export function ServiceModal({
 			// Generic create/edit: never send status or location via generic path
 			// POST keeps locationId but ignores status/dates (server forces pending)
 			// PUT rejects status/locationId and identity (server 400) — we strip them here
-			let payload: any;
+			let payload: Record<string, unknown>;
 			if (isEditing) {
 				const {
 					status: _status,
@@ -202,13 +204,13 @@ export function ServiceModal({
 					invoiceNumber: _invoiceNumber,
 					sku: _sku,
 					...rest
-				} = data as any;
+				} = data;
 				payload = {
 					...rest,
 					id: ServiceToEdit?.id,
 				};
 			} else {
-				const { status: _status, ...rest } = data as any;
+				const { status: _status, ...rest } = data;
 				payload = { ...rest };
 			}
 			// Ensure no status dates leak via generic payload
@@ -254,13 +256,13 @@ export function ServiceModal({
 		}
 	};
 
-	const onSubmit = (data: ServiceFormData) => {
+	const onSubmit = (data: ServiceOutput) => {
 		performSubmit(data);
 	};
 
-	const onInvalid = (errors: Record<string, unknown>) => {
+	const onInvalid = (errors: FieldErrors<ServiceInput>) => {
 		setAlert({ type: "error", message: "Revisa los campos marcados con error" });
-		const order: (keyof ServiceFormData)[] = [
+		const order: (keyof ServiceInput)[] = [
 			"entryDate",
 			"invoiceNumber",
 			"sku",
@@ -311,7 +313,7 @@ export function ServiceModal({
 						)}
 
 						<form
-							onSubmit={form.handleSubmit(onSubmit as any, onInvalid as any)}
+							onSubmit={form.handleSubmit(onSubmit, onInvalid)}
 							className="space-y-6"
 							noValidate
 						>
@@ -822,7 +824,7 @@ export function ServiceModal({
 						<button
 							type="submit"
 							disabled={loading || (isEditing && !form.formState.isDirty)}
-							onClick={form.handleSubmit(onSubmit as any, onInvalid as any)}
+							onClick={form.handleSubmit(onSubmit, onInvalid)}
 							className="px-8 py-2.5 rounded-lg text-sm font-semibold text-on-primary bg-primary hover:bg-primary-hover flex items-center gap-2"
 						>
 							<Save className="h-4 w-4" />
