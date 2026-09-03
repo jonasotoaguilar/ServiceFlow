@@ -210,10 +210,17 @@ export function ServiceModal({
 
 			// Generic create/edit: never send status or location via generic path
 			// POST keeps locationId but ignores status/dates (server forces pending)
-			// PUT rejects status/locationId (server 400) — we strip them here
+			// PUT rejects status/locationId and identity (server 400) — we strip them here
 			let payload: any;
 			if (isEditing) {
-				const { status: _status, locationId: _locationId, ...rest } = data as any;
+				const {
+					status: _status,
+					locationId: _locationId,
+					clientName: _clientName,
+					invoiceNumber: _invoiceNumber,
+					sku: _sku,
+					...rest
+				} = data as any;
 				payload = {
 					...rest,
 					id: ServiceToEdit?.id,
@@ -365,6 +372,24 @@ export function ServiceModal({
 												</div>
 											</>
 										)}
+										{isEditing && (
+											<div>
+												<label
+													htmlFor="sku"
+													className="block text-xs font-semibold text-foreground-muted uppercase tracking-wider mb-1.5 ml-1"
+												>
+													SKU
+												</label>
+												<input
+													id="sku"
+													type="text"
+													readOnly
+													disabled
+													value={ServiceToEdit?.sku ?? ""}
+													className="w-full bg-surface-muted border-input text-foreground-muted rounded-lg px-4 py-2.5 opacity-70"
+												/>
+											</div>
+										)}
 
 										<div>
 											<label
@@ -496,33 +521,6 @@ export function ServiceModal({
 
 												<div>
 													<label
-														htmlFor="contact"
-														className="block text-xs font-semibold text-foreground-muted uppercase tracking-wider mb-1.5 ml-1"
-													>
-														Teléfono <span className="text-red-500">*</span>
-													</label>
-													<input
-														id="contact"
-														type="tel"
-														placeholder="+56 9 1234 5678"
-														maxLength={15}
-														{...form.register("contact", {
-															onChange: (event) => {
-																const formatted = formatChileanPhone(event.target.value);
-																form.setValue("contact", formatted, { shouldDirty: true });
-															},
-														})}
-														className="w-full bg-surface border-input text-foreground rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary transition-all placeholder:text-foreground-subtle"
-													/>
-													{form.formState.errors.contact && (
-														<span className="text-red-500 text-xs mt-1 ml-1">
-															{form.formState.errors.contact.message}
-														</span>
-													)}
-												</div>
-
-												<div>
-													<label
 														htmlFor="product"
 														className="block text-xs font-semibold text-foreground-muted uppercase tracking-wider mb-1.5 ml-1"
 													>
@@ -544,6 +542,68 @@ export function ServiceModal({
 												</div>
 											</>
 										)}
+										{isEditing && (
+											<>
+												<div>
+													<label
+														htmlFor="invoiceNumber"
+														className="block text-xs font-semibold text-foreground-muted uppercase tracking-wider mb-1.5 ml-1"
+													>
+														N° Boleta
+													</label>
+													<input
+														id="invoiceNumber"
+														type="text"
+														readOnly
+														disabled
+														value={ServiceToEdit?.invoiceNumber ?? ""}
+														className="w-full bg-surface-muted border-input text-foreground-muted rounded-lg px-4 py-2.5 opacity-70"
+													/>
+												</div>
+												<div>
+													<label
+														htmlFor="clientName"
+														className="block text-xs font-semibold text-foreground-muted uppercase tracking-wider mb-1.5 ml-1"
+													>
+														Cliente
+													</label>
+													<input
+														id="clientName"
+														type="text"
+														readOnly
+														disabled
+														value={ServiceToEdit?.clientName ?? ""}
+														className="w-full bg-surface-muted border-input text-foreground-muted rounded-lg px-4 py-2.5 opacity-70"
+													/>
+												</div>
+											</>
+										)}
+										<div>
+											<label
+												htmlFor="contact"
+												className="block text-xs font-semibold text-foreground-muted uppercase tracking-wider mb-1.5 ml-1"
+											>
+												Teléfono <span className="text-red-500">*</span>
+											</label>
+											<input
+												id="contact"
+												type="tel"
+												placeholder="+56 9 1234 5678"
+												maxLength={15}
+												{...form.register("contact", {
+													onChange: (event) => {
+														const formatted = formatChileanPhone(event.target.value);
+														form.setValue("contact", formatted, { shouldDirty: true });
+													},
+												})}
+												className="w-full bg-surface border-input text-foreground rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary transition-all placeholder:text-foreground-subtle"
+											/>
+											{form.formState.errors.contact && (
+												<span className="text-red-500 text-xs mt-1 ml-1">
+													{form.formState.errors.contact.message}
+												</span>
+											)}
+										</div>
 
 										<div>
 											<label
@@ -578,29 +638,28 @@ export function ServiceModal({
 								</div>
 
 								<div className="space-y-4 pt-2">
-									{!isEditing && (
-										<div>
-											<label
-												htmlFor="failureDescription"
-												className="block text-xs font-semibold text-foreground-muted uppercase tracking-wider mb-1.5 ml-1"
-											>
-												Descripción del Problema <span className="text-red-500">*</span>
-											</label>
-											<textarea
-												id="failureDescription"
-												placeholder="Describa detalladamente la falla reportada por el cliente..."
-												maxLength={500}
-												rows={4}
-												{...form.register("failureDescription")}
-												className="w-full bg-surface border-input text-foreground rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary transition-all placeholder:text-foreground-subtle custom-scrollbar"
-											/>
-											{form.formState.errors.failureDescription && (
-												<span className="text-red-500 text-xs mt-1 ml-1">
-													{form.formState.errors.failureDescription.message}
-												</span>
-											)}
-										</div>
-									)}
+									<div>
+										<label
+											htmlFor="failureDescription"
+											className="block text-xs font-semibold text-foreground-muted uppercase tracking-wider mb-1.5 ml-1"
+										>
+											Descripción del Problema{" "}
+											{!isEditing && <span className="text-red-500">*</span>}
+										</label>
+										<textarea
+											id="failureDescription"
+											placeholder="Describa detalladamente la falla reportada por el cliente..."
+											maxLength={500}
+											rows={4}
+											{...form.register("failureDescription")}
+											className="w-full bg-surface border-input text-foreground rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary transition-all placeholder:text-foreground-subtle custom-scrollbar"
+										/>
+										{form.formState.errors.failureDescription && (
+											<span className="text-red-500 text-xs mt-1 ml-1">
+												{form.formState.errors.failureDescription.message}
+											</span>
+										)}
+									</div>
 
 									<div>
 										<label

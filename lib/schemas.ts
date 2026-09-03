@@ -63,6 +63,18 @@ export const ServiceSchema = z.object({
 
 export type ServiceValues = z.infer<typeof ServiceSchema>;
 
+// Generic edit may not mutate lifecycle nor identity — keep in sync with PUT guard and storage omit
+export const GENERIC_EDIT_OMIT = [
+	"status",
+	"locationId",
+	"deliveryDate",
+	"readyDate",
+	"cancellationDate",
+	"clientName",
+	"invoiceNumber",
+	"sku",
+] as const;
+
 const trimmedAddress = z
 	.string()
 	.optional()

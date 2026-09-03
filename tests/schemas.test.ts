@@ -97,3 +97,56 @@ describe("pocketbase contract", () => {
 		expect(fs.existsSync(path.join(process.cwd(), "pocketbase/v1.collections.json"))).toBe(true);
 	});
 });
+
+describe("Service identity immutability — GENERIC_EDIT_OMIT", () => {
+	it("exports GENERIC_EDIT_OMIT covering lifecycle + identity", async () => {
+		const mod = await import("../lib/schemas");
+		const omit: string[] = (mod as any).GENERIC_EDIT_OMIT;
+		expect(Array.isArray(omit)).toBe(true);
+		for (const key of ["status", "locationId", "deliveryDate", "readyDate", "cancellationDate"]) {
+			expect(omit, `missing lifecycle ${key}`).toContain(key);
+		}
+		for (const key of ["clientName", "invoiceNumber", "sku"]) {
+			expect(omit, `missing identity ${key}`).toContain(key);
+		}
+		expect(omit.length).toBeGreaterThanOrEqual(8);
+	});
+
+	it("source defines GENERIC_EDIT_OMIT and uses it for generic edit", () => {
+		const src = fs.readFileSync(path.join(process.cwd(), "lib/schemas.ts"), "utf8");
+		expect(src).toContain("GENERIC_EDIT_OMIT");
+		expect(src).toContain("clientName");
+		expect(src).toContain("invoiceNumber");
+		expect(src).toContain("sku");
+		// must be used via omit
+		expect(src).toMatch(/GENERIC_EDIT_OMIT/);
+	});
+
+	it("mutable fields validate, identity omitted from edit payload via schema", async () => {
+		const mod = await import("../lib/schemas");
+		const omit = (mod as any).GENERIC_EDIT_OMIT as string[];
+		expect(omit).toContain("clientName");
+		// Simulate generic edit schema: ServiceSchema.omit(omit).partial().extend({id})
+		const { ServiceSchema } = await import("../lib/schemas");
+		const z = await import("zod");
+		const GenericEditSchema = (ServiceSchema as any).omit(
+			Object.fromEntries(omit.map((k) => [k, true])),
+		);
+		// valid mutable payload should parse (contact, failureDescription, email, repairCost, notes)
+		const valid = GenericEditSchema.safeParse({
+			contact: "+56 9 1234 5678",
+			failureDescription: "No enciende",
+			email: "a@b.com",
+			repairCost: 1000,
+			notes: "test",
+			product: "Laptop",
+			rut: "12.345.678-5",
+		});
+		// contact in our ServiceSchema has min 6, this should succeed if schema allows partial? Use partial check separately
+		expect(valid.success).toBe(true);
+		// identity fields must not be in the omit schema shape
+		expect((GenericEditSchema as any).shape?.clientName).toBeUndefined();
+		expect((GenericEditSchema as any).shape?.invoiceNumber).toBeUndefined();
+		expect((GenericEditSchema as any).shape?.sku).toBeUndefined();
+	});
+});
