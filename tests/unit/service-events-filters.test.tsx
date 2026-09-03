@@ -10,6 +10,13 @@ vi.mock("@/lib/format-date", () => ({
 	formatEntryDate: (d: string) => d,
 }));
 
+vi.mock("next/navigation", () => ({
+	useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+	usePathname: () => "/service-events",
+	redirect: vi.fn(),
+	useSearchParams: () => new URLSearchParams(),
+}));
+
 import ServiceEventsManager from "@/app/(app)/service-events/serviceEventsManager";
 
 const locations = [

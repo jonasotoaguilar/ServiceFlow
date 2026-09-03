@@ -5,12 +5,23 @@ import { getServices } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
 
-export default async function DashboardPage() {
+type DashboardPageProps = {
+	searchParams?: Promise<{ createService?: string | string[] }>;
+};
+
+export default async function DashboardPage({ searchParams }: DashboardPageProps) {
 	const user = await getAuthUser();
 
 	if (!user) {
 		redirect("/login");
 	}
+
+	const resolvedParams = searchParams ? await searchParams : undefined;
+	const rawCreateService = resolvedParams?.createService;
+	const createServiceValue = Array.isArray(rawCreateService)
+		? rawCreateService[0]
+		: rawCreateService;
+	const initialCreateService = createServiceValue === "1";
 
 	const initialData = await getServices({
 		page: 1,
@@ -19,5 +30,11 @@ export default async function DashboardPage() {
 		status: ["pending", "ready"],
 	});
 
-	return <ServiceDashboard initialData={initialData} user={user} />;
+	return (
+		<ServiceDashboard
+			initialData={initialData}
+			user={user}
+			initialCreateService={initialCreateService}
+		/>
+	);
 }

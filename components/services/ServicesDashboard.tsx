@@ -24,6 +24,7 @@ import {
 import { ConfirmationDialog } from "@/components/ui/confirmationDialog";
 import { Dialog } from "@/components/ui/dialog";
 import { Skeleton } from "boneyard-js/react";
+import { useRouter } from "next/navigation";
 
 export const STATUS_CARD = {
 	pending: "bg-pending-bg text-pending-fg border-pending-border",
@@ -52,9 +53,14 @@ interface ServiceDashboardProps {
 		name: string;
 		email?: string | null;
 	} | null;
+	initialCreateService?: boolean;
 }
 
-export function ServiceDashboard({ initialData, user }: Readonly<ServiceDashboardProps>) {
+export function ServiceDashboard({
+	initialData,
+	user,
+	initialCreateService = false,
+}: Readonly<ServiceDashboardProps>) {
 	// State Management
 	const [Services, setServices] = useState<Service[]>(initialData?.data || []);
 	const [totalRecords, setTotalRecords] = useState(initialData?.total || 0);
@@ -213,6 +219,17 @@ export function ServiceDashboard({ initialData, user }: Readonly<ServiceDashboar
 		document.addEventListener("mousedown", handleClickOutside);
 		return () => document.removeEventListener("mousedown", handleClickOutside);
 	}, []);
+
+	const router = useRouter();
+	const hasConsumedCreateServiceRef = useRef(false);
+	useEffect(() => {
+		if (initialCreateService && !hasConsumedCreateServiceRef.current) {
+			hasConsumedCreateServiceRef.current = true;
+			setEditingService(null);
+			setIsModalOpen(true);
+			router.replace("/dashboard");
+		}
+	}, [initialCreateService, router]);
 
 	// Handlers
 	const handleEdit = (Service: Service) => {
