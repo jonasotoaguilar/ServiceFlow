@@ -273,14 +273,8 @@ describe("Unit 8 lifecycle — create/edit 4.3 RED (create pending owned locatio
 			// Check that locationId input exists and is gated by !isEditing after fix
 			const hasLocation = src.includes('htmlFor="locationId"');
 			expect(hasLocation).toBe(true);
-			// Check that create path (!isEditing) still shows location: location block before status removal should be inside !isEditing
-			// After fix, location block should be inside !isEditing
-			const modalSlice = src.slice(
-				src.indexOf("export function ServiceModal"),
-				src.indexOf("export function ServiceModal") + 12000,
-			);
-			// location should be within a !isEditing guard
-			expect(modalSlice).toMatch(/!isEditing[\s\S]*?htmlFor="locationId"/);
+			// Prefer whole-file semantic match over brittle char window (location moved beyond 12k)
+			expect(src).toMatch(/!isEditing[\s\S]*?htmlFor="locationId"/);
 		});
 
 		it("Client status is ignored — POST with completed forces pending and no dates", async () => {
