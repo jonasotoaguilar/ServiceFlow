@@ -3,8 +3,9 @@
 // Enforce at least one active location per tenant at DB level.
 // Covers direct PocketBase mutations and concurrent last-active races.
 onBootstrap((e) => {
+	e.next();
 	try {
-		const db = e.app.db();
+		const db = $app.db();
 		db.newQuery(`
       CREATE TRIGGER IF NOT EXISTS trg_locations_no_last_active_deactivate
       BEFORE UPDATE ON locations
@@ -41,20 +42,16 @@ onBootstrap((e) => {
 	} catch (err) {
 		console.log("locations triggers setup failed:", err);
 	}
-	e.next();
 });
 
 // JS-level guard for clearer 400 messages (mirrors triggers)
-onRecordBeforeUpdateRequest((e) => {
+onRecordUpdateRequest((e) => {
 	if (e.collection.name !== "locations") return e.next();
 	const record = e.record;
-	const data = e.httpContext?.request?.data || {};
-	// Check isActive transition to false
-	const newActive = data.isActive;
+	const newActive = record.get("isActive");
 	if (newActive === false || newActive === 0 || newActive === "false") {
 		const userId = record.get("userId");
-		const dao = $app.dao();
-		const actives = dao.findRecordsByFilter(
+		const actives = $app.findRecordsByFilter(
 			"locations",
 			`userId = {:uid} && isActive = true`,
 			"-created",
@@ -62,23 +59,22 @@ onRecordBeforeUpdateRequest((e) => {
 			0,
 			{ uid: userId },
 		);
-		const isTargetActive = record.get("isActive") !== false;
-		if (isTargetActive && actives.length <= 1) {
+		const isTargetInActives = actives.some((r) => r.id === record.id);
+		if (isTargetInActives && actives.length <= 1) {
 			throw new BadRequestError("Debe mantener al menos una sede activa");
 		}
 	}
 	e.next();
 }, "locations");
 
-onRecordBeforeDeleteRequest((e) => {
+onRecordDeleteRequest((e) => {
 	if (e.collection.name !== "locations") return e.next();
 	const record = e.record;
 	const userId = record.get("userId");
-	const dao = $app.dao();
-	const svc = dao.findRecordsByFilter("services", `locationId = {:lid}`, "", 1, 0, {
+	const svc = $app.findRecordsByFilter("services", `locationId = {:lid}`, "", 1, 0, {
 		lid: record.id,
 	});
-	const logs = dao.findRecordsByFilter(
+	const logs = $app.findRecordsByFilter(
 		"service_events",
 		`fromLocationId = {:lid} || toLocationId = {:lid}`,
 		"",
@@ -92,7 +88,7 @@ onRecordBeforeDeleteRequest((e) => {
 		);
 	}
 	if (record.get("isActive") !== false) {
-		const actives = dao.findRecordsByFilter(
+		const actives = $app.findRecordsByFilter(
 			"locations",
 			`userId = {:uid} && isActive = true`,
 			"-created",
