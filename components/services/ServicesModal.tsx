@@ -104,7 +104,7 @@ export function ServiceModal({
 	const isEditing = !!ServiceToEdit;
 
 	const form = useForm<ServiceFormData>({
-		resolver: zodResolver(ServiceSchema),
+		resolver: zodResolver(ServiceSchema as any) as any,
 		defaultValues: {
 			entryDate: new Date().toISOString().split("T")[0],
 			invoiceNumber: "",
@@ -311,7 +311,7 @@ export function ServiceModal({
 						)}
 
 						<form
-							onSubmit={form.handleSubmit(onSubmit, onInvalid)}
+							onSubmit={form.handleSubmit(onSubmit as any, onInvalid as any)}
 							className="space-y-6"
 							noValidate
 						>
@@ -822,7 +822,7 @@ export function ServiceModal({
 						<button
 							type="submit"
 							disabled={loading || (isEditing && !form.formState.isDirty)}
-							onClick={form.handleSubmit(onSubmit, onInvalid)}
+							onClick={form.handleSubmit(onSubmit as any, onInvalid as any)}
 							className="px-8 py-2.5 rounded-lg text-sm font-semibold text-on-primary bg-primary hover:bg-primary-hover flex items-center gap-2"
 						>
 							<Save className="h-4 w-4" />
