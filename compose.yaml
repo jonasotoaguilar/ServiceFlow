@@ -6,7 +6,7 @@ services:
       - "127.0.0.1:8090:8090"
     volumes:
       - pocketbase-data:/pocketbase
-      - ./pb_hooks:/pb/pb_hooks:ro
+      - ./pb_hooks:/pocketbase/hooks:ro
     env_file:
       - path: .env
         required: false
