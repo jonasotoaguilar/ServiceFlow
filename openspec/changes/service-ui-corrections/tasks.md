@@ -8,13 +8,13 @@
 | 400-line budget risk | High |
 | 800-line session budget | Exceeded as one PR |
 | Chained PRs recommended | Yes |
-| Suggested split | 7 gh-stack slices |
+| Suggested split | 10 gh-stack slices (7A–7D pre-implementation split) |
 | Delivery strategy | auto-chain |
-| Chain strategy | pending |
+| Chain strategy | stacked-to-main |
 
 Decision needed before apply: Yes
 Chained PRs recommended: Yes
-Chain strategy: pending
+Chain strategy: stacked-to-main
 400-line budget risk: High
 
 Choose chain strategy before apply; `gh stack` only. Archive-only: `PRODUCT.md`, `DESIGN.md`. Threat matrix N/A. FBC: PR1=tracker; later PRs base on prior.
@@ -29,7 +29,7 @@ Choose chain strategy before apply; `gh stack` only. Archive-only: `PRODUCT.md`,
 | 4 | Registro create | PR 4 | `tests/unit/registro-primary-surface.test.tsx` | True-empty once; filter-empty clears | events + dashboard trigger |
 | 5 | Identity omit | PR 5 | `tests/schemas.test.ts` `tests/services-lifecycle.test.ts` | Read-only; PUT 400 | schemas, route, storage, modal |
 | 6 | RUT lookup | PR 6 | `tests/unit/rut.test.ts` `tests/pocketbase-filter.test.ts` | `20.884.087-K` hits | rut, filter, GET |
-| 7 | Custody + lockup + docs | PR 7 | `tests/unit/visual.test.ts` `tests/unit/shell.test.ts` | 58mm no QR; Navbar AA | custody, brand, `ARCHITECTURE.md`, guide, config |
+| 7A | OpenSpec research (7B proposal, 7C 7.1/7.2, 7D 7.3) | PR 7 | Structural readback | readable | `exploration.md` (186) + `research.md` (207) + `preproposal.yaml` (197) |
 
 ## Phase 1: Exclusive Status
 

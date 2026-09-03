@@ -255,3 +255,16 @@ Unit-6 implements `isRutShapedLookup` (strip `[.\-\s]`, `^\d+[0-9Kk]?$`, 2–9 l
 - Unit-6 Attempt token: sha256:8b02b4b9e4f11cf79bfbbba506dcb122a66760a576a436a6b7930d581c35e795 (unit-6-rut-search, max 800, parent settles)
 - Correction Attempt token: sha256:6c818e5c736ba15f2fd16c05f659bb3481280596a36929f466f7ce8bb8bffded (unit-1-quality-correction, bounded)
 - Test run: vitest 4.1.10, unit-6 rut 25/25 (before RED 5 failed, filter 16/16 before RED 4 failed), 486/486 full suite, tsc 0, biome 0 (3 warnings, 2 infos)
+
+## Unit-7A — OpenSpec research (passive docs slice) — 2026-09-03
+**Branch**: docs/service-ui-corrections-07-openspec-research @ 1a3a5fc base fix/service-ui-corrections-06-rut-search (#88)
+**Attempt**: sha256:6879e918c1e7c816595e7d3f4d88d8c6d90001caa75ddb30c92dcbb0be51184c unit-7a max800 parent-settles
+**Scope**: passive docs only — no runtime code; 7.1/7.2/7.3 remain [ ]
+**Readback**: exploration.md 186 lines readable, research.md 207 lines outcome done, preproposal.yaml 197 lines proposal_ready true + product_decisions confirmed + refs valid
+**Verification**: structural readback only (passive docs) — no code changed, no semantic verifier, no test harness; files readable + references valid is proportional check
+**Budget**: target subtotal 186+207+197=590 + tasks.md delta + apply-progress delta <=800 — within budget
+**Rollback**: revert docs/service-ui-corrections-07-openspec-research — remove staged exploration/research/preproposal versioning + revert tasks.md + apply-progress.md delta; no runtime rollback; ARCHITECTURE deletion + .herdr preserved
+**No code**: verified via git diff --stat HEAD (only openspec docs + tasks.md + apply-progress.md, no lib/app/components change)
+**Chain**: stacked-to-main position 7 of 10 (forecast 10 slices); current PR7 base #88, follow-up 7B proposal/design/specs
+**PR**: type:docs, Related to #81, DRAFT, Chain Context 7/10
+**Status**: 12/13 tasks complete (6 units done, 7A docs versioned, 7.1-7.3 pending) — ready for 7B
