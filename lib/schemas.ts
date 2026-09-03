@@ -45,25 +45,17 @@ export const ServiceSchema = z.object({
 		.transform((val) => (val === "" ? undefined : val)),
 	contact: z
 		.string()
-		.min(15, "El teléfono debe estar completo")
-		.regex(/^\+56 9 \d{4} \d{4}$/, "Formato de teléfono inválido"),
+		.min(6, "El teléfono de contacto es requerido")
+		.transform((val) => val.trim()),
 	product: z
 		.string()
 		.min(1, "El producto es obligatorio")
 		.transform((val) => val.trim())
 		.pipe(z.string().min(1, "El producto es obligatorio")),
-	sku: z
-		.string()
-		.min(1, "El SKU es obligatorio")
-		.transform((val) => val.trim())
-		.pipe(z.string().min(1, "El SKU es obligatorio")),
-	failureDescription: z
-		.string()
-		.min(1, "La descripción del problema es obligatoria")
-		.transform((val) => val.trim())
-		.pipe(z.string().min(1, "La descripción del problema es obligatoria")),
+	sku: z.string().optional(),
+	failureDescription: z.string().optional(),
 	locationId: z.string().min(1, "La sede es obligatoria"),
-	entryDate: z.string().min(1, "La fecha es obligatoria"),
+	entryDate: z.string().optional(),
 	deliveryDate: z.string().optional().nullable(),
 	readyDate: z.string().optional().nullable(),
 	cancellationDate: z.string().optional().nullable(),
