@@ -2,7 +2,7 @@
 
 **Change**: service-ui-corrections
 **Mode**: Strict TDD
-**Work Unit**: unit-6-rut-search (RUT Lookup) — stacked on unit-5
+**Work Unit**: unit-7c-custody-lockup (Custody + Lockup) — stacked on docs 08
 **Attempt tokens**: 
 - unit-1 `sha256:66f7c75e9e2d9d31226dbf0d6eb069a79d8ed1a4f080141efae09fb7b67da65f`
 - unit-2 `sha256:d63ae090348edd269cd9a774adfbe082434e5e2f526f286b5d0fc03b1af2c911`
@@ -10,9 +10,10 @@
 - unit-4 `sha256:6412aebf749250cce2424818c939a57f17782186f3338e60ca2338dde5680596`
 - unit-5 `sha256:26f556f18b850cc162427624c407a3b700a8a81bbdd89630ff257061a1a02aba` (unit-5-identity-immutability, max 800, parent settles)
 - unit-6 `sha256:8b02b4b9e4f11cf79bfbbba506dcb122a66760a576a436a6b7930d581c35e795` (unit-6-rut-search, max 800, parent settles)
+- unit-7c `sha256:435ddb2fdf69313f67dc25976d17daa6bcda1f4cd5fa5de7205a3fd625c51b51` (unit-7c-custody-lockup, max800, parent settles)
 **Date**: 2026-09-03
-**Branch**: fix/service-ui-corrections-06-rut-search (stacked on fix/service-ui-corrections-05-identity-immutability)
-**Stack strategy**: stacked-to-main (auto-chain, 800-line session budget, PR6 sixth slice)
+**Branch**: fix/service-ui-corrections-09-custody-lockup (stacked on docs/service-ui-corrections-08-openspec-design-specs)
+**Stack strategy**: stacked-to-main (auto-chain, 800-line session budget, PR9 ninth slice, base #90)
 
 ## Completed Tasks
 
@@ -28,6 +29,8 @@
 - [x] 5.2 GREEN `lib/schemas.ts` `GENERIC_EDIT_OMIT`; `app/api/services/route.ts` reject before Zod; `lib/storage.ts` omit; `components/services/ServicesModal.tsx` read-only. Check tests.
 - [x] 6.1 RED `tests/unit/rut.test.ts`, `tests/pocketbase-filter.test.ts`: `isRutShapedLookup`; bound `{:rutSearch}` vs raw; `isValidRut` writes unchanged.
 - [x] 6.2 GREEN `lib/rut.ts`, `lib/pocketbase-filter.ts`, GET search in `app/api/services/route.ts`. Check tests.
+- [x] 7.1 RED `tests/unit/custody-receipt.test.ts` + `tests/unit/bodega-lockup.test.ts`: title `COMPROBANTE DE RECEPCIÓN Y CUSTODIA`, disclaimer, 58mm, escape, no QR, lockup AA
+- [x] 7.2 GREEN `lib/custody-receipt.ts`, `components/services/ServicesDetailsModal.tsx`, `assets/brand/bodega-tecnica-mark.svg`, `components/brand/bodega-tecnica-mark.tsx` (refined 1.5px, rx1.5, sync, a11y)
 
 ## Files Changed (cumulative)
 
@@ -282,3 +285,43 @@ Unit-6 implements `isRutShapedLookup` (strip `[.\-\s]`, `^\d+[0-9Kk]?$`, 2–9 l
 **Chain**: stacked-to-main position 8 of 10 (forecast 10 slices); current PR8 base #89 (docs/service-ui-corrections-07 @ ba6d78b), follow-up 7C implementation slice
 **PR**: type:docs, Related to #81, DRAFT, Chain Context 8/10
 **Status**: 12/13 tasks complete (6 units done, 7A+7B docs versioned, 7.1-7.3 pending) — ready for 7C
+
+## Unit-7C — Custody + Lockup (RED + GREEN) — 2026-09-03
+**Branch**: fix/service-ui-corrections-09-custody-lockup @ da20b84 base docs/service-ui-corrections-08-openspec-design-specs (#90)
+**Attempt**: sha256:435ddb2fdf69313f67dc25976d17daa6bcda1f4cd5fa5de7205a3fd625c51b51 unit-7c-custody-lockup max800 parent-settles
+**Mode**: Strict TDD
+**Scope**: custody receipt pure helper + modal refactor + refined shelf-grid lockup sync; no ARCHITECTURE deletion, no 7D cites
+
+**TDD Cycle Evidence**
+
+| Task | Test File | Layer | Safety Net | RED | GREEN | TRIANGULATE | REFACTOR |
+|------|-----------|-------|------------|-----|-------|-------------|----------|
+| 7.1 | `tests/unit/custody-receipt.test.ts` (11 tests) + `tests/unit/bodega-lockup.test.ts` (8 tests) | Unit + Integration (TL) | ✅ 505/505 full suite baseline before 7C (unit-6) | ✅ **5 failed** — `lib/custody-receipt.ts` missing (suite fail), `bodega-lockup` 4 failed (stroke 2 vs 1.5, rx1 vs 1.5, filename sr-only, hidden count 1) | ✅ **19/19** custody+bodega (11+8) + **505/505** full suite after GREEN (includes dark-contrast updated) | ✅ 19 cases: escapeHtml, title, disclaimer exact, 58mm, required fields + Folio interno, optional omit, no QR, tax/warranty, XSS escaped, modal seam, SVG 1.5/rx1.5 | ✅ Pure helper, no dep, modal preserves seam |
+| 7.2 | `lib/custody-receipt.ts` + `components/services/ServicesDetailsModal.tsx` + `assets/brand/bodega-tecnica-mark.svg` + `components/brand/bodega-tecnica-mark.tsx` | Unit | ✅ same baseline 5 failed | ✅ same 5 | ✅ 19/19 + 505/505 + tsc 0 + biome 0 + build 0 | ✅ same 19 | ✅ Helper 176 lines pure, modal 3 lines, SVG 7,7 18 1.5 sync, component 1.5 sync |
+
+**Test Summary**
+- Total: custody-receipt 11, bodega-lockup 8, dark-contrast updated 2, full suite 505/505
+- Passing: 19/19 focused + 505/505 full
+
+**Files Changed (this slice)**
+
+| File | Action | What Was Done |
+|------|--------|---------------|
+| `lib/custody-receipt.ts` | Created | Pure escapeHtml + renderCustodyReceiptHtml (58mm, title, disclaimer, Folio interno, fields, optional omit, no QR, XSS escaped) |
+| `components/services/ServicesDetailsModal.tsx` | Modified | Import helper, replace inline template with helper + window.open guard |
+| `assets/brand/bodega-tecnica-mark.svg` | Modified | Refine stroke 1.5, outer 7,7 18 rx1.5, filled 7,7 9 |
+| `components/brand/bodega-tecnica-mark.tsx` | Modified | Sync to SVG 1.5, remove sr-only filename |
+| `tests/unit/custody-receipt.test.ts` | Created | 11 RED tests |
+| `tests/unit/bodega-lockup.test.ts` | Created | 8 RED tests |
+| `tests/unit/dark-contrast.test.ts` | Modified | Update to 1.5 + no filename |
+
+**Work Unit Evidence**
+
+| Evidence | Required value |
+|---|---|
+| Focused test command and exact result | `pnpm test tests/unit/custody-receipt.test.ts tests/unit/bodega-lockup.test.ts --run` — 2 passed, 19 passed, 0 failed (after GREEN). Before GREEN: 2 failed. Full suite 29 passed, 505 passed, 0 failed |
+| Runtime harness command/scenario and exact result | N/A — pure helper + window.open seam, 58mm CSS verified, lockup tokens, tsc 0, biome 0, build 0 |
+| Rollback boundary | Exact revert: delete helper, restore modal inline, restore SVG 8,8 16 rx1, restore component 2px, delete tests, revert dark-contrast, tasks, progress |
+
+**Status**
+14/15 tasks complete (7.1,7.2 done, 7.3 pending). Stack 9 slices — top 09 @ pending.

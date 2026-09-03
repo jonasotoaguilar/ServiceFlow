@@ -63,6 +63,6 @@ Choose chain strategy before apply; `gh stack` only. Archive-only: `PRODUCT.md`,
 
 ## Phase 7: Custody, Lockup, Docs
 
-- [ ] 7.1 RED receipt tests + `tests/unit/visual.test.ts`: title `Comprobante de recepción y custodia`; disclaimer; escape; no QR; lockup AA; no `ARCHITECTURE.md`.
-- [ ] 7.2 GREEN `lib/custody-receipt.ts`, `components/services/ServicesDetailsModal.tsx`, `assets/brand/bodega-tecnica-mark.svg`, `components/brand/bodega-tecnica-mark.tsx` (drop filename `sr-only`).
+- [x] 7.1 RED receipt tests + `tests/unit/visual.test.ts`: title `COMPROBANTE DE RECEPCIÓN Y CUSTODIA`; disclaimer `Este documento acredita únicamente la recepción y custodia del producto. No constituye boleta, factura, DTE, comprobante de pago ni certificado de garantía.`; 58mm; escape; no QR; lockup AA; no `ARCHITECTURE.md`.
+- [x] 7.2 GREEN `lib/custody-receipt.ts`, `components/services/ServicesDetailsModal.tsx`, `assets/brand/bodega-tecnica-mark.svg`, `components/brand/bodega-tecnica-mark.tsx` (drop filename `sr-only`).
 - [ ] 7.3 GREEN `git rm` `ARCHITECTURE.md`; drop cites in `docs/CODEBASE-GUIDE.md`, `openspec/config.yaml` only. Check visual/shell tests.
