@@ -26,6 +26,25 @@ Verify   → confirmVerification(token) → 302 /verify?status=ok|fail (no token
 Guard    → authRefresh → verified===true else clear + null
 ```
 
+## Sequence
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant A as App
+    participant P as PocketBase
+    U->>A: register
+    A->>P: users.create + requestVerification
+    A-->>U: /login?registered=1 (no cookie)
+    P-->>U: {APP_URL}/verify?token={TOKEN}
+    U->>A: GET /verify?token={TOKEN}
+    A->>P: confirmVerification(token)
+    A-->>U: 302 /verify?status=ok|fail (no token)
+    U->>A: login (authWithPassword)
+    P-->>A: token | 400
+    A-->>U: cookie only on token
+```
+
 ## File Changes
 
 | File | Action | Description |

@@ -32,7 +32,7 @@ Apply-time (research rev 2): live GET then PATCH+GET `authRule`; always set SMTP
 
 - [x] 1.1 RED `tests/schema-artifact.test.ts`: `users.authRule === "verified = true"`; template `{APP_URL}/verify?token={TOKEN}`.
 - [x] 1.2 GREEN those fields in `pocketbase/v1.collections.json`.
-- [ ] 1.3 `openspec/config.yaml`: server 0.40.1 vs SDK `pocketbase ^0.28.0`. Sequence register→verify→login on `openspec/changes/account-email-verification/design.md` (not N/A). `openspec/changes/account-email-verification/ui-design.md`: w-8 SVG in w-16 tile. (config+tile done; diagram blocked, see apply-progress)
+- [x] 1.3 `openspec/config.yaml`: server 0.40.1 vs SDK `pocketbase ^0.28.0`. Sequence register→verify→login on `openspec/changes/account-email-verification/design.md` (not N/A). `openspec/changes/account-email-verification/ui-design.md`: w-8 SVG in w-16 tile. (config+tile+diagram done)
 - [x] 1.4 RED/GREEN `scripts/pb-init.mjs`: GET `authRule`; PATCH+GET if wrong; exit 1 if still wrong. Skip SMTP if `PB_SMTP_PASSWORD` unset; fail-closed if partial; always PATCH password from env (`smtp.resend.com`, `resend`, 465, tls, PLAIN). Sender/origin per design. Never log secrets.
 - [x] 1.5 `PB_SMTP_PASSWORD` + optional `PB_META_APP_URL` on `pocketbase-init` only in `compose.yaml` and `.env.example` (never `app`).
 - [x] 1.6 REFACTOR 1.4–1.5; `pnpm test:run tests/schema-artifact.test.ts`.
