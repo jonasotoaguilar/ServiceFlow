@@ -1,12 +1,12 @@
 services:
   pocketbase:
     image: adrianmusante/pocketbase:0.40.1@sha256:4e70ab9cccb220e73edae0c9e94a5ba6a41777829d0039b72c2f1eb47681b986
-    container_name: serviceflow-pocketbase-local
     ports:
-      - "127.0.0.1:8090:8090"
+      - "127.0.0.1:${POCKETBASE_PORT:-8090}:8090"
     volumes:
       - pocketbase-data:/pocketbase
       - ./pb_hooks:/pocketbase/hooks:ro
+      - ./pb_migrations:/pocketbase/migrations:ro
     env_file:
       - path: .env
         required: false
@@ -43,9 +43,8 @@ services:
 
   app:
     build: .
-    container_name: serviceflow-app-local
     ports:
-      - "127.0.0.1:3000:3000"
+      - "127.0.0.1:${APP_PORT:-3000}:3000"
     environment:
       POCKETBASE_URL: http://pocketbase:8090
     depends_on:
@@ -64,4 +63,7 @@ services:
 
 volumes:
   pocketbase-data:
-    name: serviceflow-pocketbase-local-data
+    # Project-scoped volume. Previously fixed as serviceflow-pocketbase-local-data.
+    # To preserve existing local data, copy it once:
+    #   docker run --rm -v serviceflow-pocketbase-local-data:/from -v <project>_pocketbase-data:/to alpine cp -a /from/. /to/
+    # where <project> is your COMPOSE_PROJECT_NAME (default: directory name).

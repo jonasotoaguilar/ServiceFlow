@@ -3,6 +3,11 @@ node_modules
 .next
 build
 dist
+.agents
+.herdr
+.codegraph
+pb_data
+.sdd
 
 # Dependencias de entorno local
 .env
