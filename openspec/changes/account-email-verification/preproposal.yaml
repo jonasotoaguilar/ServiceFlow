@@ -1,0 +1,273 @@
+schema: gentle-ai.sdd-preproposal/v1
+revision: 2
+change: account-email-verification
+rerun_of: 1
+rerun_reason: gatekeeper_retry_version_authority_v0401
+exploration:
+  ref: openspec/changes/account-email-verification/exploration.md
+  outcome: ready_for_proposal
+  status: exploration_complete_read_only
+research_request:
+  questions:
+    - id: Q1
+      question: "PocketBase 0.40 auth collection: exact server-side rule/setting that blocks every auth method for `verified = false`, including password auth, and whether `authRule: \"verified = true\"` is the supported expression."
+      status: supported
+    - id: Q2
+      question: "PocketBase JS SDK and REST methods/signatures for `requestVerification` and `confirmVerification`, their error/response behavior relevant to a Next.js server action/page."
+      status: supported
+    - id: Q3
+      question: "PocketBase verification email template placeholders and exact action URL construction for a frontend callback carrying the token."
+      status: supported
+    - id: Q4
+      question: "PocketBase settings API/schema for SMTP, sender identity, TLS/auth, verification templates, and whether a superuser can automate these settings safely; identify exact fields and update semantics."
+      status: supported
+    - id: Q5
+      question: "Resend SMTP official host, ports/TLS mode, username convention, API-key password usage, sender-domain verification requirements, and DNS records/constraints for `serviceflow.jonasotoaguilar.space`."
+      status: supported
+    - id: Q6
+      question: "Security guidance for neutral resend responses, token handling, no-session-before-verification, and a test strategy that does not require real SMTP except one explicit staging deliverability check."
+      status: supported
+  classes:
+    documentation:
+      - context7_resolve-library-id
+      - context7_query-docs
+      - ctx_fetch_and_index
+      - ctx_search
+    open_web:
+      - ctx_fetch_and_index
+      - ctx_search
+  artifact_store: openspec
+  requested_lanes: 6
+  selection: selected
+  selection_reason: mandatory_pre_proposal_gate
+  selection_date: 2026-09-04
+  selection_note: "External evidence for PocketBase-native email verification with Resend SMTP; no product code inspection."
+admission:
+  requested:
+    documentation:
+      granted: true
+      provider: context7_and_ctx_fetch
+      source_ids: [P-01, P-02, P-03, P-04, P-05, P-06, P-07, P-08, P-09, P-10, P-11, P-12, P-13, P-14, P-15, P-16, P-17, P-18, P-19, P-20]
+    open_web:
+      granted: true
+      provider: ctx_fetch_and_index
+      source_ids: [P-04, P-12, P-13, P-14, P-17, P-18]
+  observed:
+    documentation:
+      granted: true
+      provider: context7_and_ctx_fetch
+      source_ids: [P-01, P-02, P-03, P-04, P-05, P-06, P-07, P-08, P-09, P-10, P-11, P-12, P-13, P-14, P-15, P-16, P-17, P-18, P-19, P-20]
+    open_web:
+      granted: true
+      provider: ctx_fetch_and_index
+      source_ids: [P-04, P-12, P-13, P-14, P-17, P-18]
+  capability_declaration: "gentle-ai.sdd-research-capability/v1"
+  denial: null
+  partial_evidence: false
+  inferred_capability: false
+outcome: done
+evidence:
+  research:
+    schema: gentle-ai.sdd-research/v1
+    revision: 2
+    outcome: done
+    openspec_ref: openspec/changes/account-email-verification/research.md
+    engram_ref: null
+    validated: true
+    all_questions_supported: true
+    persisted: true
+    sources_count: 20
+    claims_count: 20
+    admission_denied: false
+  sources:
+    - id: P-01
+      class: documentation
+      title: "PocketBase v0.40.1 source — core/collection_model_auth_options.go (authRule gate, defaults)"
+      publisher: "PocketBase"
+      url: "https://raw.githubusercontent.com/pocketbase/pocketbase/v0.40.1/core/collection_model_auth_options.go"
+      accessed_at: "2026-09-04"
+      authority: "first-party source, installed line"
+    - id: P-02
+      class: documentation
+      title: "PocketBase v0.40.1 source — core/collection_model_auth_templates.go (placeholder constants, default verification template)"
+      publisher: "PocketBase"
+      url: "https://raw.githubusercontent.com/pocketbase/pocketbase/v0.40.1/core/collection_model_auth_templates.go"
+      accessed_at: "2026-09-04"
+      authority: "first-party source, installed line"
+    - id: P-03
+      class: documentation
+      title: "PocketBase v0.40.1 source — core/collection_model.go (auth-rule change rotates token secret)"
+      publisher: "PocketBase"
+      url: "https://raw.githubusercontent.com/pocketbase/pocketbase/v0.40.1/core/collection_model.go"
+      accessed_at: "2026-09-04"
+      authority: "first-party source, installed line"
+    - id: P-04
+      class: open-web
+      title: "PocketBase v0.40.1 source — mails/record.go (template resolution, default placeholders, sender)"
+      publisher: "PocketBase"
+      url: "https://raw.githubusercontent.com/pocketbase/pocketbase/v0.40.1/mails/record.go"
+      accessed_at: "2026-09-04"
+      authority: "first-party source, installed line"
+    - id: P-05
+      class: documentation
+      title: "PocketBase v0.40.1 source — apis/record_auth_verification_request.go (neutral 204s, background send)"
+      publisher: "PocketBase"
+      url: "https://raw.githubusercontent.com/pocketbase/pocketbase/v0.40.1/apis/record_auth_verification_request.go"
+      accessed_at: "2026-09-04"
+      authority: "first-party source, installed line"
+    - id: P-06
+      class: documentation
+      title: "PocketBase v0.40.1 source — apis/record_auth_verification_confirm.go (token error)"
+      publisher: "PocketBase"
+      url: "https://raw.githubusercontent.com/pocketbase/pocketbase/v0.40.1/apis/record_auth_verification_confirm.go"
+      accessed_at: "2026-09-04"
+      authority: "first-party source, installed line"
+    - id: P-07
+      class: documentation
+      title: "PocketBase v0.40.1 source — apis/record_auth_verification_request_test.go (paths, bodies, codes)"
+      publisher: "PocketBase"
+      url: "https://raw.githubusercontent.com/pocketbase/pocketbase/v0.40.1/apis/record_auth_verification_request_test.go"
+      accessed_at: "2026-09-04"
+      authority: "first-party source, installed line"
+    - id: P-08
+      class: documentation
+      title: "PocketBase v0.40.1 source — apis/record_auth_verification_confirm_test.go (204s, OAuth2-link clearing)"
+      publisher: "PocketBase"
+      url: "https://raw.githubusercontent.com/pocketbase/pocketbase/v0.40.1/apis/record_auth_verification_confirm_test.go"
+      accessed_at: "2026-09-04"
+      authority: "first-party source, installed line"
+    - id: P-09
+      class: documentation
+      title: "PocketBase v0.40.1 source — apis/record_auth_with_password.go (auth entry point)"
+      publisher: "PocketBase"
+      url: "https://raw.githubusercontent.com/pocketbase/pocketbase/v0.40.1/apis/record_auth_with_password.go"
+      accessed_at: "2026-09-04"
+      authority: "first-party source, installed line"
+    - id: P-10
+      class: documentation
+      title: "PocketBase v0.40.1 source — apis/settings.go (superuser routes, clone-on-update)"
+      publisher: "PocketBase"
+      url: "https://raw.githubusercontent.com/pocketbase/pocketbase/v0.40.1/apis/settings.go"
+      accessed_at: "2026-09-04"
+      authority: "first-party source, installed line"
+    - id: P-11
+      class: documentation
+      title: "PocketBase v0.40.1 source — core/settings_model.go (SMTP hidePassword, sensitive masking)"
+      publisher: "PocketBase"
+      url: "https://raw.githubusercontent.com/pocketbase/pocketbase/v0.40.1/core/settings_model.go"
+      accessed_at: "2026-09-04"
+      authority: "first-party source, installed line"
+    - id: P-12
+      class: documentation
+      title: "PocketBase docs — API Settings"
+      publisher: "PocketBase"
+      url: "https://pocketbase.io/docs/api-settings/"
+      accessed_at: "2026-09-04"
+      authority: "first-party docs"
+    - id: P-13
+      class: documentation
+      title: "PocketBase docs — Authentication"
+      publisher: "PocketBase"
+      url: "https://pocketbase.io/docs/authentication/"
+      accessed_at: "2026-09-04"
+      authority: "first-party docs"
+    - id: P-14
+      class: documentation
+      title: "PocketBase docs — Collections"
+      publisher: "PocketBase"
+      url: "https://pocketbase.io/docs/collections/"
+      accessed_at: "2026-09-04"
+      authority: "first-party docs"
+    - id: P-15
+      class: documentation
+      title: "PocketBase JS SDK v0.26.2 source — RecordService.ts (verification call bodies)"
+      publisher: "PocketBase"
+      url: "https://raw.githubusercontent.com/pocketbase/js-sdk/v0.26.2/src/services/RecordService.ts"
+      accessed_at: "2026-09-04"
+      authority: "first-party SDK source"
+    - id: P-16
+      class: documentation
+      title: "PocketBase JS SDK docs — RecordService signatures and ClientResponseError (via Context7)"
+      publisher: "PocketBase (via Context7)"
+      url: "https://github.com/pocketbase/js-sdk/blob/master/_autodocs/api-reference/RecordService.md"
+      accessed_at: "2026-09-04"
+      authority: "first-party SDK docs"
+    - id: P-17
+      class: documentation
+      title: "Resend docs — Send emails with SMTP"
+      publisher: "Resend"
+      url: "https://resend.com/docs/send-with-smtp"
+      accessed_at: "2026-09-04"
+      authority: "first-party docs"
+    - id: P-18
+      class: documentation
+      title: "Resend docs — domain claim/create API and domain verification"
+      publisher: "Resend"
+      url: "https://resend.com/docs/add-a-domain"
+      accessed_at: "2026-09-04"
+      authority: "first-party docs"
+    - id: P-19
+      class: documentation
+      title: "PocketBase v0.40.1 CHANGELOG (tag pinning evidence)"
+      publisher: "PocketBase"
+      url: "https://raw.githubusercontent.com/pocketbase/pocketbase/v0.40.1/CHANGELOG.md"
+      accessed_at: "2026-09-04"
+      authority: "first-party changelog, installed line"
+    - id: P-20
+      class: documentation
+      title: "PocketBase source — OTP request enumeration guard (master; analogy only)"
+      publisher: "PocketBase (via Context7)"
+      url: "https://github.com/pocketbase/pocketbase/blob/master/apis/record_auth_otp_request.go"
+      accessed_at: "2026-09-04"
+      authority: "first-party source (master; analogy only)"
+product_decisions: confirmed
+product_decisions_detail:
+  status: confirmed
+  note: "Authoritative product decisions carried unchanged from revision 1 (no production users, no grandfathering, verified-only sessions, register-then-login-redirect, login callout, Resend SMTP, fixed sender and app origin, env-only secrets, router changes in scope). Source-backed absences (offline token API) are closed by these confirmed requirements per gate 8."
+  pending_reason: null
+  selection:
+    purpose: "verified-only account access for every operational user"
+    transport: "Resend SMTP"
+    sender: "ServiceFlow <no-reply@serviceflow.jonasotoaguilar.space>"
+    app_origin: "https://serviceflow.jonasotoaguilar.space"
+    secrets: "environment configuration only; no secrets in Git; user supplies values at runtime verification"
+    scope_note: "existing local router push/refresh changes in login/register forms remain in scope"
+  options: []
+  constraints:
+    - "Technical artifacts must be professional English"
+    - "Do not inspect or modify product code; no implementation, commits, pushes, PRs, or releases"
+    - "Use only official PocketBase and Resend documentation; mark not found, never infer"
+  confirmed_at: "2026-09-04"
+  confirmed_by: "orchestrator launch prompt (authoritative)"
+proposal_ready: true
+proposal_handoff:
+  revision: 2
+  confirmed_decisions: true
+  evidence_refs_valid: true
+  store_ready: openspec
+  research_outcome: done
+  blocked_reason: null
+  next_phase: sdd-propose
+  recovery:
+    required_action: "None — evidence is done. Proposer receives: authRule verified-only gate (not onlyVerified), exact placeholders and default action URL, exact REST bodies and codes, always-set-env-secret settings path, per-domain DNS retrieval contract, neutral-204 platform behavior, and the admin-side E2E setup obligation."
+    retained_intent: "Six lanes (Q1 enforcement setting, Q2 SDK/REST verification calls, Q3 templates/callback URL, Q4 settings automation, Q5 Resend SMTP/domain, Q6 neutral-response/token/test guidance) with canonical desired content preserved pre-source-access for blocked recovery without source claims"
+    canonical_desired_content: "Official PocketBase and Resend documentation evidence for verified-only enforcement, verification SDK/REST calls and errors, template placeholders and callback URL construction, settings API fields and safe superuser automation, Resend SMTP parameters and domain/DNS requirements, and neutral-response/token-handling/test guidance"
+freshness:
+  exploration: 2026-09-04
+  research_execution: 2026-09-04
+  accessed_at: 2026-09-04
+uncertainty:
+  - "Q1: per-method coverage asserted from v0.40.1 field doc plus choke-point placement; apply-time login smoke tests confirm per enabled method"
+  - "Q2: already-verified re-request code unquoted and non-blocking (neutral app response covers it; outside the register-then-verify product path)"
+  - "Q4: import-merge and omission-preservation deliberately unasserted and never relied upon (always-set-env-secret path)"
+  - "Server claims valid for the v0.40.1 line only; re-validate if the installed version changes"
+contradiction:
+  prior: "revision 1 framed onlyVerified as the mechanism and authRule as not found"
+  evidence: "v0.40.1 source establishes authRule and the absence of OnlyVerified"
+  resolution: "v0.20.0 onlyVerified entry is a superseded option name; v0.40.1 uses authRule — resolved, not contradictory"
+store_validation:
+  openspec: success
+  engram: not_required_for_openspec_store
+  bytes_match: true
+  revision_match: true
+  exploration_preserved: true
