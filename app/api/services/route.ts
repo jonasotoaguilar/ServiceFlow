@@ -143,6 +143,7 @@ export async function PUT(request: Request) {
 		if (
 			Object.hasOwn(jsonBody, "status") ||
 			Object.hasOwn(jsonBody, "locationId") ||
+			Object.hasOwn(jsonBody, "originLocationId") ||
 			Object.hasOwn(jsonBody, "deliveryDate") ||
 			Object.hasOwn(jsonBody, "readyDate") ||
 			Object.hasOwn(jsonBody, "cancellationDate")

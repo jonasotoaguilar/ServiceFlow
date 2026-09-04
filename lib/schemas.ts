@@ -63,6 +63,7 @@ export const ServiceSchema = z.object({
 		.transform((val) => val.trim())
 		.pipe(z.string().min(1, "La descripción de la falla es obligatoria")),
 	locationId: z.string().min(1, "La sede es obligatoria"),
+	originLocationId: z.string().optional(),
 	entryDate: z.string().min(1, "La fecha de ingreso es obligatoria"),
 	deliveryDate: z.string().optional().nullable(),
 	readyDate: z.string().optional().nullable(),
@@ -82,6 +83,7 @@ export const ALLOWED_SERVICE_FIELDS = [
 	"contact",
 	"product",
 	"locationId",
+	"originLocationId",
 	"status",
 	"failureDescription",
 	"email",
@@ -110,6 +112,7 @@ export function toServiceFieldErrors(error: z.ZodError): Record<string, string> 
 export const GENERIC_EDIT_OMIT = [
 	"status",
 	"locationId",
+	"originLocationId",
 	"deliveryDate",
 	"readyDate",
 	"cancellationDate",

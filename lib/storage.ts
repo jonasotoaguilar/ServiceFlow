@@ -207,6 +207,7 @@ export async function saveService(service: Omit<Service, "id">): Promise<Service
 		failureDescription: service.failureDescription,
 		sku: service.sku,
 		locationId: service.locationId,
+		originLocationId: (service as any).originLocationId || service.locationId,
 		entryDate: service.entryDate ? new Date(service.entryDate).toISOString() : now,
 		deliveryDate: service.deliveryDate ? new Date(service.deliveryDate).toISOString() : null,
 		readyDate: service.readyDate ? new Date(service.readyDate).toISOString() : null,

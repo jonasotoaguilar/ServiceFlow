@@ -162,7 +162,7 @@ export default function ServiceEventsManager({
 	const emptyMode: "true-empty" | "filtered" = hasActiveFilters ? "filtered" : "true-empty";
 	const handleEmptyAction = () => {
 		if (emptyMode === "filtered") clearFilters();
-		else router.push("/dashboard?createService=1");
+		else router.push("/dashboard");
 	};
 
 	return (
@@ -174,9 +174,6 @@ export default function ServiceEventsManager({
 					<p className="text-sm font-mono text-foreground-muted">
 						{total} registros · historial operativo
 					</p>
-				</div>
-				<div className="text-sm text-foreground-muted font-mono">
-					{page} / {totalPages}
 				</div>
 			</div>
 
