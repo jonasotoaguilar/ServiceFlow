@@ -6,9 +6,7 @@ services:
     volumes:
       - pocketbase-data:/pocketbase
       - ./pb_hooks:/pocketbase/hooks:ro
-      - ./pb_hooks:/pb/pb_hooks:ro
       - ./pb_migrations:/pocketbase/migrations:ro
-      - ./pb_migrations:/pb/pb_migrations:ro
     env_file:
       - path: .env
         required: false
@@ -16,8 +14,6 @@ services:
       POCKETBASE_ADMIN_EMAIL: ${POCKETBASE_ADMIN_EMAIL:-admin@local.test}
       POCKETBASE_ADMIN_PASSWORD: ${POCKETBASE_ADMIN_PASSWORD:-admin123456}
       POCKETBASE_ADMIN_UPSERT: "true"
-      POCKETBASE_HOOK_DIR: /pb/pb_hooks
-      POCKETBASE_MIGRATION_DIR: /pb/pb_migrations
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8090/api/health"]
       interval: 5s
