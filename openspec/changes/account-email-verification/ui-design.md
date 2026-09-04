@@ -18,7 +18,7 @@ No new fonts, hues, radii, or shadows. Fira Sans body/label. Alerts use existing
 
 ## Identity / brand
 
-Unchanged. Existing 16×16-in-card lightning/refresh marks stay. `/verify` uses the same primary tile as login.
+Unchanged. Brand tile is `w-16 h-16` with a `w-8 h-8` SVG mark (see `components/auth/login-form.tsx`). `/verify` reuses that same tile.
 
 ## Interaction and motion
 

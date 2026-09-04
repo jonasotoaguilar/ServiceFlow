@@ -31,6 +31,7 @@ services:
     volumes:
       - ./pocketbase/v1.collections.json:/app/pocketbase/v1.collections.json:ro
       - ./scripts/pb-init.mjs:/app/pb-init.mjs:ro
+      - ./scripts/pb-init.lib.mjs:/app/pb-init.lib.mjs:ro
     env_file:
       - path: .env
         required: false
@@ -38,6 +39,8 @@ services:
       POCKETBASE_URL: http://pocketbase:8090
       POCKETBASE_ADMIN_EMAIL: ${POCKETBASE_ADMIN_EMAIL:-admin@local.test}
       POCKETBASE_ADMIN_PASSWORD: ${POCKETBASE_ADMIN_PASSWORD:-admin123456}
+      PB_SMTP_PASSWORD: ${PB_SMTP_PASSWORD:-}
+      PB_META_APP_URL: ${PB_META_APP_URL:-}
     entrypoint: ["node", "/app/pb-init.mjs"]
     restart: "no"
 
