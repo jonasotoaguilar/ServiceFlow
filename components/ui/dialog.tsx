@@ -29,10 +29,21 @@ export function Dialog({
 }: Readonly<DialogProps>) {
 	const dialogRef = React.useRef<HTMLDivElement>(null);
 	const previousFocusRef = React.useRef<HTMLElement | null>(null);
+	const onCloseRef = React.useRef(onClose);
+	const hasOpenedRef = React.useRef(false);
 	const titleId = React.useId();
 
 	React.useEffect(() => {
-		if (!isOpen) return;
+		onCloseRef.current = onClose;
+	});
+
+	React.useEffect(() => {
+		if (!isOpen) {
+			hasOpenedRef.current = false;
+			return;
+		}
+		if (hasOpenedRef.current) return;
+		hasOpenedRef.current = true;
 		previousFocusRef.current = document.activeElement as HTMLElement | null;
 
 		const dialogEl = dialogRef.current;
@@ -45,7 +56,7 @@ export function Dialog({
 				),
 			);
 
-		// Focus first element on open
+		// Focus first element only on closed→open lifecycle
 		const id = window.requestAnimationFrame(() => {
 			const focusable = getFocusable();
 			(focusable[0] ?? dialogEl).focus();
@@ -54,7 +65,7 @@ export function Dialog({
 		const handleKeyDown = (e: KeyboardEvent) => {
 			if (e.key === "Escape") {
 				e.stopPropagation();
-				onClose();
+				onCloseRef.current();
 				return;
 			}
 			if (e.key === "Tab") {
@@ -87,7 +98,7 @@ export function Dialog({
 			// Return focus to trigger
 			previousFocusRef.current?.focus();
 		};
-	}, [isOpen, onClose]);
+	}, [isOpen]);
 
 	if (!isOpen) return null;
 
