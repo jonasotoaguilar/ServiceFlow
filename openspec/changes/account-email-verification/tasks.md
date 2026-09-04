@@ -45,8 +45,8 @@ Apply-time (research rev 2): live GET then PATCH+GET `authRule`; always set SMTP
 
 ## Phase 3: UI, E2E, docs (PR 3)
 
-- [ ] 3.1 RED: `registered=1` info callout; resend ack; keep existing `router.push`+`router.refresh`; register success `/login?registered=1`.
-- [ ] 3.2 GREEN `app/login/page.tsx` pass `registered`; `components/auth/login-form.tsx` callout+resend ≥44px (keep dashboard router pair); `components/auth/register-form.tsx` `/login?registered=1` (keep refresh); `components/ui/alert.tsx` `role="alert"` `aria-live="polite"`. Copy from `openspec/changes/account-email-verification/ui-design.md` (read-only).
-- [ ] 3.3 RED/GREEN `e2e/pb-admin.ts` `markUserVerified(email)`: superuser lookup + PATCH `/api/collections/users/{id}` `{verified:true}`. `e2e/smoke.spec.ts`: register → login callout, no cookie; unverified denied; mark verified → dashboard. No SMTP.
-- [ ] 3.4 REFACTOR 3.2–3.3; `pnpm test:run`; `pnpm test:e2e e2e/smoke.spec.ts`.
-- [ ] 3.5 `README.md` + `docs/CODEBASE-GUIDE.md`: verified-only + SMTP env; no bump/tag. Operator-only user-env test-email `{template:"verification"}`; not default suite.
+- [x] 3.1 RED: `registered=1` info callout; resend ack; keep existing `router.push`+`router.refresh`; register success `/login?registered=1`.
+- [x] 3.2 GREEN `app/login/page.tsx` pass `registered`; `components/auth/login-form.tsx` callout+resend ≥44px (keep dashboard router pair); `components/auth/register-form.tsx` `/login?registered=1` (keep refresh); `components/ui/alert.tsx` `role="alert"` `aria-live="polite"`. Copy from `openspec/changes/account-email-verification/ui-design.md` (read-only).
+- [x] 3.3 RED/GREEN `e2e/pb-admin.ts` `markUserVerified(email)`: superuser lookup + PATCH `/api/collections/users/{id}` `{verified:true}`. `e2e/smoke.spec.ts`: register → login callout, no cookie; unverified denied; mark verified → dashboard. No SMTP.
+- [x] 3.4 REFACTOR 3.2–3.3; `pnpm test:run`; `pnpm test:e2e e2e/smoke.spec.ts`.
+- [x] 3.5 `README.md` + `docs/CODEBASE-GUIDE.md`: verified-only + SMTP env; no bump/tag. Operator-only user-env test-email `{template:"verification"}`; not default suite.

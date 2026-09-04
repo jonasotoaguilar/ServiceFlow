@@ -140,9 +140,13 @@ docker compose down
 
 ## Authentication & Session
 
-- **Public registration**: any user can register without an invite; `users` create `""`.
+- **Public registration**: any user can register without an invite; `users` create `""`. Registration creates an unverified account, calls `requestVerification` best-effort, sets no `pb_auth` cookie, and navigates to `/login?registered=1` where an info callout explains verification is required before sign-in.
+- **Verified-only session**: usable tokens are issued only to verified accounts (`users` `authRule: "verified = true"` plus the app guard rejecting `verified !== true` fail-closed). Unknown, wrong-password, and unverified logins share the same `Credenciales inválidas` error with an always-visible enumeration-neutral resend; no extra unverified-only copy.
+- **Verification callback**: `/verify?token={TOKEN}` is consumed server-side via `confirmVerification` and redirects to `/verify?status=ok|fail` without leaving the token in the URL or logs. Bare `/verify` fails closed.
 - **Session**: `pb_auth` cookie with `httpOnly`, `sameSite=lax`, `path=/`, `secure` in production, `expires` from JWT `exp`; value is never logged. Server validation via `authRefresh` before returning identity; forged/unreachable → `null`/401 fail-closed.
 - **Tenancy**: every list binds `userId = {:uid}` and collection rules enforce `userId = @request.auth.id`; a second tenant sees no foreign rows.
+- **Verification mail (SMTP)**: Resend SMTP is applied by `pocketbase-init` only from `PB_SMTP_PASSWORD` (required) plus optional `PB_META_APP_URL` (default `https://serviceflow.jonasotoaguilar.space`); sender `ServiceFlow <no-reply@serviceflow.jonasotoaguilar.space>`. Unset/empty password skips SMTP so default runs work; partial config fails closed. Secrets are never logged or baked into the app image.
+- **Operator-only staging check**: one `POST /api/settings/test/email` with `{ "template": "verification" }` using operator user env. It is NOT part of the default suite — `pnpm test:run` and `pnpm test:e2e` pass without SMTP and never send real mail. No version bump, tag, or publication.
 
 ## Data & Lifecycle
 

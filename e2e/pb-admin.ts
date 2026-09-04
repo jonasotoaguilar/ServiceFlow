@@ -86,6 +86,34 @@ export async function cleanupE2EUsers(): Promise<void> {
 	}
 }
 
+export async function markUserVerified(email: string): Promise<void> {
+	const token = await getAdminToken();
+	const params = new URLSearchParams({
+		filter: `email = "${email}"`,
+		perPage: "1",
+		page: "1",
+	});
+	const lookup = await fetch(`${PB_URL}/api/collections/users/records?${params.toString()}`, {
+		headers: { Authorization: token },
+	});
+	if (!lookup.ok) {
+		const text = await lookup.text().catch(() => "");
+		throw new Error(`lookup user failed ${lookup.status} ${text.slice(0, 200)}`);
+	}
+	const data = (await lookup.json()) as { items: Array<{ id: string }> };
+	const id = data.items[0]?.id;
+	if (!id) throw new Error(`user not found ${email}`);
+	const patch = await fetch(`${PB_URL}/api/collections/users/records/${id}`, {
+		method: "PATCH",
+		headers: { "Content-Type": "application/json", Authorization: token },
+		body: JSON.stringify({ verified: true }),
+	});
+	if (!patch.ok) {
+		const text = await patch.text().catch(() => "");
+		throw new Error(`verify user failed ${patch.status} ${text.slice(0, 200)}`);
+	}
+}
+
 // Fixture with teardown that always runs, even if test failed.
 // Auto fixture ensures cleanup after each test without explicit use.
 // biome-ignore lint/suspicious/noConfusingVoidType: Playwright fixture requires void

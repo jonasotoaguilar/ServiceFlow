@@ -17,8 +17,11 @@ ServiceFlow is a Next.js 16 App Router app. Every request builds a request-scope
 | Env | `lib/env.ts` | Validate `POCKETBASE_URL` (`http`/`https` absolute, Zod `PocketBaseEnvSchema`, `getPocketBaseUrl()` fail-closed, no admin vars) |
 | Request client | `lib/pocketbase.ts` | Build per-request `new PocketBase(url)`; hydrate `authStore` from `pb_auth` only; `saveAuthCookie` / `clearAuthCookie` (`httpOnly`, `sameSite=lax`, `path=/`, `secure` in prod) |
 | Filters | `lib/pocketbase-filter.ts` | Pure templates `serviceListBinding`, `locationListBinding`, `logListBinding` + `applyBinding` sole `pb.filter` site; `LIKE` `~` search, status allowlist |
-| Auth identity | `lib/auth.ts` | `getAuthUser()` → `await cookies()` + `authRefresh` server validation; forged/unreachable → `null` fail-closed |
-| Auth actions | `app/actions/auth.ts` | `login` / `register` / `logout`; Zod `loginSchema` / `registerSchema` before PocketBase; `passwordConfirm` + `authWithPassword`; deterministic Spanish errors; `pb_auth` only |
+| Auth identity | `lib/auth.ts` | `getAuthUser()` → `await cookies()` + `authRefresh` server validation; rejects `verified !== true` fail-closed (clears store); forged/unreachable → `null` fail-closed |
+| Auth actions | `app/actions/auth.ts` | `login` / `register` / `resendVerification` / `logout`; Zod `loginSchema` / `registerSchema` before PocketBase; register creates + `requestVerification` best-effort, never `authWithPassword`/`saveAuthCookie`; `resendVerification` Zod-only then neutral `{ok:true}`; deterministic Spanish errors; `pb_auth` only |
+| Verify callback | `app/verify/page.tsx` | RSC awaits `searchParams`, `confirmVerification(token)` in try/catch (never catches `redirect`), clean `redirect("/verify?status=ok|fail")`; bare token fails; clean status renders success/error Alert + `/login` link without loop; never logs token |
+| Auth UI | `app/login/page.tsx` + `components/auth/login-form.tsx` + `components/auth/register-form.tsx` + `components/ui/alert.tsx` | Login awaits `searchParams` and passes `registered`; post-register info callout + always-visible resend (44px, keyboard reachable, visible focus) above fields; failures use error Alert `Credenciales inválidas` with resend; register pushes `/login?registered=1`; `Alert` exposes `role="alert"` `aria-live="polite"`; `router.push`+`router.refresh` preserved |
+| E2E admin | `e2e/pb-admin.ts` + `e2e/smoke.spec.ts` | `markUserVerified(email)` superuser lookup + `PATCH /api/collections/users/records/{id}` `{verified:true}`; smoke covers register → callout/no-cookie → unverified denied → verified dashboard; no SMTP |
 | Services | `lib/storage.ts` + `app/api/services/route.ts` | `getServices` / `saveService` / `updateService` / `deleteService` via `getList`/`create`/`update`/`delete`; native 15-char ids; `{ data, total, page, limit }`; `LIKE` on `clientName`/`invoiceNumber`/`rut`; `originLocationId` immutable (hook + API guard) |
 | Locations | `app/actions/locations.ts` | `getLocations` (tenant-bound `locationListBinding`), create/update/toggle/delete with Zod + `normalizeString` + history guard (`locationId || originLocationId`, `fromLocationId || toLocationId`); `hasHistory`/`activeCount` computed via paginated `totalItems` |
 | History / Registro | `app/actions/logs.ts` + `lib/storage.ts` movement + `app/(app)/service-events/serviceEventsManager.tsx` | `getLocationLogs` via `logListBinding`; `ServiceEventsManager` footer-only pager, filter strip, plain `/dashboard` empty-state navigation |
@@ -33,8 +36,9 @@ ServiceFlow is a Next.js 16 App Router app. Every request builds a request-scope
 ## Session and tenancy
 
 - Cookie: `pb_auth` (`JSON { token, record }`), never logged, `httpOnly` + `sameSite=lax`.
-- Validation: `getAuthUser` `authRefresh` before identity; RSC validates, Action/Route may persist refreshed cookie.
+- Validation: `getAuthUser` `authRefresh` before identity plus `verified === true` else clear + `null`; RSC validates, Action/Route may persist refreshed cookie.
 - Isolation: every list binds `userId = {:uid}`; API rules enforce `userId = @request.auth.id` on all CRUD for `services`/`locations`/`location_logs`; unauthenticated → `401`/redirect.
+- Verified-only: `users` `authRule: "verified = true"` (artifact + `pocketbase-init` live assert); register never authenticates; SMTP (`PB_SMTP_PASSWORD`, optional `PB_META_APP_URL`) lives on `pocketbase-init` only, never the app; operator-only `POST /api/settings/test/email` `{ "template": "verification" }` is NOT part of the default suite.
 
 ## PocketBase Batch (0.40.1) — live enablement matrix and 403 runbook
 

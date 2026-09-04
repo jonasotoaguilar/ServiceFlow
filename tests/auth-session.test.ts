@@ -503,6 +503,20 @@ describe("auth actions WU2b", () => {
 		expect(res.error).toBe("Credenciales inválidas");
 		expect(mockAuthWithPassword).toHaveBeenCalledTimes(1);
 	});
+	it("unverified authRule 403 maps to Credenciales inválidas (triangulation)", async () => {
+		mockAuthWithPassword.mockRejectedValueOnce(
+			Object.assign(
+				new Error("The request doesn't satisfy the collection requirements to authenticate."),
+				{ status: 403 },
+			),
+		);
+		vi.resetModules();
+		const { login } = await import("../app/actions/auth");
+		cookiesMock.mockResolvedValue({ get: mockGet, set: mockSet, delete: mockDel });
+		const res = await login(fdLogin("unverified@example.com", "ValidPass123"));
+		expect(res.error).toBe("Credenciales inválidas");
+		expect(mockAuthWithPassword).toHaveBeenCalledTimes(1);
+	});
 	it("login transport/server error generic Spanish without PB text", async () => {
 		const pbMsg = "ECONNREFUSED pocketbase internal 500 Failed to fetch";
 		mockAuthWithPassword.mockRejectedValueOnce(Object.assign(new Error(pbMsg), { status: 500 }));
@@ -910,7 +924,7 @@ describe("phase 2 verification neutrality", () => {
 		expect(src).toContain("/verify?status=ok");
 		expect(src).toContain("/verify?status=fail");
 	});
-	it("clean status without token renders without redirect loop", async () => {
+	it("clean status without token renders visible state without redirect loop", async () => {
 		vi.resetModules();
 		cookiesMock.mockResolvedValue({ get: mockGet, set: mockSet, delete: mockDel });
 		const mod = await import("../app/verify/page");
@@ -919,7 +933,8 @@ describe("phase 2 verification neutrality", () => {
 			mockRedirect.mockClear();
 			const out = await Page({ searchParams: Promise.resolve({ status }) });
 			expect(mockRedirect).not.toHaveBeenCalled();
-			expect(out).toBeNull();
+			expect(out).not.toBeNull();
+			expect((out as { props?: { status?: string } })?.props?.status).toBe(status);
 		}
 	});
 });

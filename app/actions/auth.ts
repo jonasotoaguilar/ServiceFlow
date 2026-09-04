@@ -30,12 +30,13 @@ export async function login(formData: FormData) {
 			data?: unknown;
 		};
 		const status = err?.status ?? err?.response?.status;
-		if (status === 400 || status === 401) {
+		if (status === 400 || status === 401 || status === 403) {
 			return { error: "Credenciales inválidas" };
 		}
 		if (
 			typeof err?.message === "string" &&
-			err.message.toLowerCase().includes("failed to authenticate")
+			(err.message.toLowerCase().includes("failed to authenticate") ||
+				err.message.toLowerCase().includes("collection requirements"))
 		) {
 			return { error: "Credenciales inválidas" };
 		}
