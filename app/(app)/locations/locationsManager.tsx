@@ -86,6 +86,8 @@ export default function LocationsManager({
 		});
 	}, [locations, searchTerm, statusFilter]);
 
+	const totalActive = useMemo(() => locations.filter((l) => l.isActive).length, [locations]);
+
 	const totalPages = Math.max(1, Math.ceil(filteredLocations.length / itemsPerPage));
 	const currentItems = filteredLocations.slice(
 		(currentPage - 1) * itemsPerPage,
@@ -408,30 +410,18 @@ export default function LocationsManager({
 													<Edit2 className="w-4 h-4" />
 												</IconButton>
 												{loc.isActive ? (
-													<IconButton
-														variant="warning"
-														aria-label="Desactivar Sede"
-														onClick={() => handleToggleActive(loc.id, loc.isActive)}
-														disabled={isPending}
-														title="Desactivar Sede"
-													>
-														<Ban className="w-4 h-4" />
-													</IconButton>
-												) : null}
-												<IconButton
-													variant="danger"
-													aria-label="Eliminar Sede"
-													onClick={() => handleDelete(loc.id, loc.name)}
-													disabled={isPending || loc.hasHistory}
-													title={
-														loc.hasHistory
-															? "No se puede eliminar (tiene historial)"
-															: "Eliminar Sede"
-													}
-												>
-													<Trash2 className="w-4 h-4" />
-												</IconButton>
-												{loc.isActive ? null : (
+													totalActive > 1 ? (
+														<IconButton
+															variant="warning"
+															aria-label="Desactivar Sede"
+															onClick={() => handleToggleActive(loc.id, loc.isActive)}
+															disabled={isPending}
+															title="Desactivar Sede"
+														>
+															<Ban className="w-4 h-4" />
+														</IconButton>
+													) : null
+												) : (
 													<IconButton
 														variant="primary"
 														aria-label="Habilitar Sede"
@@ -442,6 +432,17 @@ export default function LocationsManager({
 														<CheckCircle2 className="w-4 h-4" />
 													</IconButton>
 												)}
+												{!loc.hasHistory && !(loc.isActive && totalActive === 1) ? (
+													<IconButton
+														variant="danger"
+														aria-label="Eliminar Sede"
+														onClick={() => handleDelete(loc.id, loc.name)}
+														disabled={isPending}
+														title="Eliminar Sede"
+													>
+														<Trash2 className="w-4 h-4" />
+													</IconButton>
+												) : null}
 											</div>
 										</td>
 									</tr>

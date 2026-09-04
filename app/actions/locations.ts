@@ -16,12 +16,38 @@ export async function getLocations(onlyActive = false) {
 		const filter = applyBinding(pb, binding);
 		const result = await pb.collection("locations").getList(1, 50, { filter, sort: "-createdAt" });
 		const locations = result.items.map((doc: any) => ({ ...doc, id: doc.id }));
-		const enriched = locations.map((loc: any) => ({
-			...loc,
-			activeCount: typeof loc.activeCount === "number" ? loc.activeCount : 0,
-			completedCount: typeof loc.completedCount === "number" ? loc.completedCount : 0,
-			hasHistory: typeof loc.hasHistory === "boolean" ? loc.hasHistory : false,
-		}));
+		if (locations.length === 0) return { data: [] };
+		const svcFilter = applyBinding(pb, { filter: "userId = {:uid}", params: { uid: user.id } });
+		const svcRes = await pb.collection("services").getList(1, 200, { filter: svcFilter });
+		const svcItems = ((svcRes as any)?.items as Array<{ locationId?: string; status?: string }>) ?? [];
+		const logFilter = applyBinding(pb, { filter: "userId = {:uid}", params: { uid: user.id } });
+		const logRes = await pb.collection("service_events").getList(1, 200, { filter: logFilter });
+		const logItems =
+			((logRes as any)?.items as Array<{ fromLocationId?: string; toLocationId?: string }>) ?? [];
+		const svcCountMap = new Map<string, { active: number; completed: number }>();
+		const historySet = new Set<string>();
+		for (const s of svcItems) {
+			if (!s.locationId) continue;
+			if (!svcCountMap.has(s.locationId))
+				svcCountMap.set(s.locationId, { active: 0, completed: 0 });
+			const c = svcCountMap.get(s.locationId)!;
+			if (s.status === "completed") c.completed++;
+			else if (s.status !== "cancelled") c.active++;
+			historySet.add(s.locationId);
+		}
+		for (const l of logItems) {
+			if (l.fromLocationId) historySet.add(l.fromLocationId);
+			if (l.toLocationId) historySet.add(l.toLocationId);
+		}
+		const enriched = locations.map((loc: any) => {
+			const counts = svcCountMap.get(loc.id) || { active: 0, completed: 0 };
+			return {
+				...loc,
+				activeCount: counts.active,
+				completedCount: counts.completed,
+				hasHistory: historySet.has(loc.id),
+			};
+		});
 		return { data: enriched };
 	} catch (error) {
 		console.error("Failed to fetch locations:", error);
@@ -54,7 +80,6 @@ export async function createLocation(prevState: any, formData: FormData) {
 			name,
 			userId: user.id,
 			isActive: true,
-			isDefault: false,
 			createdAt: new Date().toISOString(),
 			updatedAt: new Date().toISOString(),
 		};
@@ -122,7 +147,6 @@ export async function toggleLocationActive(id: string, active: boolean) {
 		}
 		if (doc.userId !== user.id) return { error: "No autorizado" };
 		if (!active) {
-			if (doc.isDefault === true) return { error: "No se puede desactivar la Sede predeterminada" };
 			const filter = applyBinding(pb, { filter: "userId = {:uid}", params: { uid: user.id } });
 			const res = await pb.collection("locations").getList(1, 100, { filter });
 			const items = (res.items as Array<{ id: string; isActive?: boolean }>) ?? [];
@@ -154,8 +178,6 @@ export async function deleteLocation(id: string, name: string) {
 			return { error: "Sede no encontrada" };
 		}
 		if (!location || location.userId !== user.id) return { error: "Sede no encontrada" };
-		if (location.isDefault === true)
-			return { error: "No se puede eliminar la Sede predeterminada" };
 		const serviceFilter = applyBinding(pb, {
 			filter: "userId = {:uid} && locationId = {:locationId}",
 			params: { uid: user.id, locationId: id },
@@ -194,14 +216,4 @@ export async function deleteLocation(id: string, name: string) {
 		console.error("Error deleting location:", error);
 		return { error: "Error al eliminar la Sede" };
 	}
-}
-
-export async function setDefaultLocationAction(locationId: string) {
-	const user = await getAuthUser();
-	if (!user) return { error: "No autenticado" };
-	const { setDefaultLocation } = await import("@/lib/locations");
-	const res = await setDefaultLocation(user.id, locationId);
-	if ((res as { error?: string }).error) return res;
-	revalidatePath("/locations");
-	return { success: true };
 }
