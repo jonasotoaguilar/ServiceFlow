@@ -52,10 +52,18 @@ export const ServiceSchema = z.object({
 		.min(1, "El producto es obligatorio")
 		.transform((val) => val.trim())
 		.pipe(z.string().min(1, "El producto es obligatorio")),
-	sku: z.string().optional(),
-	failureDescription: z.string().optional(),
+	sku: z
+		.string()
+		.min(1, "El SKU es obligatorio")
+		.transform((val) => val.trim())
+		.pipe(z.string().min(1, "El SKU es obligatorio")),
+	failureDescription: z
+		.string()
+		.min(1, "La descripción de la falla es obligatoria")
+		.transform((val) => val.trim())
+		.pipe(z.string().min(1, "La descripción de la falla es obligatoria")),
 	locationId: z.string().min(1, "La sede es obligatoria"),
-	entryDate: z.string().optional(),
+	entryDate: z.string().min(1, "La fecha de ingreso es obligatoria"),
 	deliveryDate: z.string().optional().nullable(),
 	readyDate: z.string().optional().nullable(),
 	cancellationDate: z.string().optional().nullable(),
