@@ -13,13 +13,19 @@ A modern web application for managing the product service lifecycle. Register se
 - **Icons**: [Lucide React](https://lucide.dev/)
 - **Date Handling**: [date-fns](https://date-fns.org/)
 
+## Prerequisites
+
+- Node `22`, `pnpm@11.1.1` (enforced via `packageManager`)
+- Docker + Docker Compose (for local PocketBase)
+
 ## Features
 
-- **Service management**: Full CRUD for service tickets.
-- **Status workflow**: `pending`, `ready`, `completed`, `cancelled` (read-only after completion).
-- **Time calculation**: Elapsed days (business days).
-- **Location control**: Branch management with movement history; `address` optional on `locations`.
-- **Search & Pagination**: Filter by client, product, or invoice number with `LIKE` (`~`) search and `{ data, total, page, limit }` envelope.
+- **Service management**: Full CRUD for service tickets with inline validation (`sku`, `failureDescription`, `entryDate` required), RUT check, and field-level errors.
+- **Status workflow**: `pending`, `ready`, `completed`, `cancelled` (read-only after `completed`); dashboard filter is exclusive single-status with right-side check (no pill).
+- **Registro**: Chronological `service_events` log with filter strip and footer-only pagination; `Nuevo servicio` in the empty state navigates to plain `/dashboard` — no in-place modal, no duplicate header pager.
+- **Location control**: Branch management with movement history; `address` optional on `locations` (trim, max 200, blank → omitted).
+- **Location metrics**: Active = `pending`/`ready` at current `locationId`; Completed = immutable `originLocationId`; `cancelled` counts neither. `originLocationId` is set on create and enforced read-only thereafter.
+- **Search & Pagination**: Filter by client, product, or invoice number with `LIKE` (`~`) search and `{ data, total, page, limit }` envelope; exact `total` via `totalItems` with no arbitrary page cap.
 - **Tenancy**: Isolation by `userId` + collection rules `userId = @request.auth.id`; PocketBase-native 15-character ids.
 
 ## Environment Setup
@@ -41,27 +47,33 @@ A modern web application for managing the product service lifecycle. Register se
 
    ```env
    POCKETBASE_URL=http://127.0.0.1:8090
+   APP_PORT=3000
+   POCKETBASE_PORT=8090
    POCKETBASE_ADMIN_EMAIL=admin@local.test
    POCKETBASE_ADMIN_PASSWORD=admin123456
    ```
 
-   - `POCKETBASE_URL` is the only locator read by the Next.js app; local default `http://127.0.0.1:8090` (host) and `http://pocketbase:8090` (inside compose network).
-   - `POCKETBASE_ADMIN_*` is local-only for the compose PocketBase superuser — never read by Next.js. Keep real `.env` gitignored; `.env.example` documents placeholders.
-   - No admin credentials are baked into the app image.
+   | Variable | Reader | Default | Notes |
+   |---|---|---|---|
+   | `POCKETBASE_URL` | Next.js app only | `http://127.0.0.1:8090` (host) / `http://pocketbase:8090` (compose network) | Only locator read by the app; validated as `http`/`https` absolute URL. |
+   | `APP_PORT` / `POCKETBASE_PORT` | Compose host bindings | `3000` / `8090` | Change to run multiple worktrees in parallel without collisions. |
+   | `POCKETBASE_ADMIN_*` | `pocketbase` + `pocketbase-init` only | `admin@local.test` / `admin123456` | Local superuser for schema import; never read by Next.js; keep real `.env` gitignored. |
+
+   No admin credentials are baked into the app image.
 
 3. **Install dependencies**
 
    ```bash
-   pnpm install
+   pnpm install --frozen-lockfile
    ```
 
 4. **Apply the schema**
 
-   The versioned artifact is `pocketbase/v1.collections.json` (collections `users`, `services`, `locations`, `location_logs`, with optional `address` and required `location_logs.userId`; tenant rules `userId = @request.auth.id`, no business rows).
+   The versioned artifact is `pocketbase/v1.collections.json` (collections `users`, `services` with `originLocationId`, `locations`, `service_events`; optional `address`; required `service_events.userId`; tenant rules `userId = @request.auth.id`, no business rows).
 
    - **Local compose**: `pocketbase-init` imports the artifact automatically with `PUT /api/collections/import` and `deleteMissing:false` after PocketBase is healthy — no manual step.
    - **External / Dokploy instance**: open the Admin UI (`http://127.0.0.1:8090/_/` or the managed URL), import `pocketbase/v1.collections.json` if supported, otherwise transcribe fields, indexes, and rules manually. Update the existing `users` collection — do not create a second one.
-   - Verify: 4 collections, `address` optional, `userId` required in logs, 0 business rows, tenant rules present, `users` create public and list/delete blocked.
+   - Verify: 4 collections, `address` optional, `originLocationId` indexed, `userId` required in logs, 0 business rows, tenant rules present, `users` create public and list/delete blocked.
    - Next.js never calls the admin API; only `pocketbase-init` (local) or the operator uses it.
 
 ## Development
@@ -70,7 +82,7 @@ A modern web application for managing the product service lifecycle. Register se
 pnpm dev
 ```
 
-The app is available at `http://localhost:3000`.
+The app is available at `http://localhost:3000` (or `http://localhost:${APP_PORT}` if you overrode `APP_PORT`).
 
 ## Docker (local full stack)
 
@@ -89,11 +101,24 @@ Rebuild the production-like app image (no live reload):
 docker compose up --build -d --wait
 ```
 
-- App: http://127.0.0.1:3000
-- PocketBase API: http://127.0.0.1:8090
-- PocketBase Admin UI: http://127.0.0.1:8090/_/
+| Endpoint | URL |
+|---|---|
+| App | `http://127.0.0.1:${APP_PORT:-3000}` |
+| PocketBase API | `http://127.0.0.1:${POCKETBASE_PORT:-8090}` |
+| PocketBase Admin UI | `http://127.0.0.1:${POCKETBASE_PORT:-8090}/_/` |
 
 PocketBase uses the pinned community image `adrianmusante/pocketbase:0.40.1` (digest-pinned, non-root 1001, state at `/pocketbase`, healthcheck `GET /api/health`). A one-shot `pocketbase-init` container imports `pocketbase/v1.collections.json` with `deleteMissing:false`. In the live-reload overlay the app reaches PocketBase at `http://pocketbase:8090` on the compose network.
+
+**Worktree isolation**
+
+- Compose exposes `APP_PORT` and `POCKETBASE_PORT` via `${APP_PORT:-3000}` / `${POCKETBASE_PORT:-8090}` so two worktrees can run side-by-side by setting different ports in each `.env`.
+- Volume `pocketbase-data` is project-scoped (Compose project name, default = directory name). Previously fixed as `serviceflow-pocketbase-local-data`. To preserve existing local data, copy it once:
+  ```bash
+  docker run --rm -v serviceflow-pocketbase-local-data:/from -v <project>_pocketbase-data:/to alpine cp -a /from/. /to/
+  ```
+  where `<project>` is your `COMPOSE_PROJECT_NAME` (directory name if unset).
+- Hooks and migrations use one canonical image path: `./pb_hooks:/pocketbase/hooks:ro` and `./pb_migrations:/pocketbase/migrations:ro` (not `/pb/*`).
+- `.dockerignore` excludes worktree runtime dirs (`.agents`, `.herdr`, `.codegraph`, `pb_data`, `.sdd`) to keep `pnpm build` from failing with `ENOENT`.
 
 Stop:
 
@@ -101,14 +126,16 @@ Stop:
 docker compose down
 ```
 
-Volumes (`pocketbase-data` → `serviceflow-pocketbase-local-data`) persist data across restarts. Do not run `down -v` or `prune` unless you intend to wipe local data. Production/Dokploy remains out of scope for this local compose.
+`pocketbase-data` persists across restarts. Do not run `down -v` or `prune` unless you intend to wipe local data. Production/Dokploy remains out of scope for this local compose.
 
 ## Project Structure
 
 - `/app`: Next.js routes and pages (App Router).
 - `/components`: Reusable UI components.
-- `/lib`: `pocketbase.ts` (per-request client, `pb_auth`), `pocketbase-filter.ts` (templates `{:param}` + `pb.filter`), `env.ts` (`POCKETBASE_URL` + Zod), `auth.ts` (`getAuthUser` validated via `authRefresh`), `storage.ts` (service CRUD), `schemas.ts` (Zod), `types.ts`.
+- `/lib`: `pocketbase.ts` (per-request client, `pb_auth`), `pocketbase-filter.ts` (templates `{:param}` + `pb.filter`), `env.ts` (`POCKETBASE_URL` + Zod), `auth.ts` (`getAuthUser` validated via `authRefresh`), `storage.ts` (service CRUD with `originLocationId`), `schemas.ts` (Zod), `types.ts`, `format-date.ts`.
 - `/pocketbase`: Artifact `v1.collections.json`.
+- `/pb_hooks`: PocketBase JSVM hooks (`services.pb.js`, `locations.pb.js`, `backfill-origin.pb.js`).
+- `/pb_migrations`: PocketBase JS migrations (image-canonical `/pocketbase/migrations`).
 - `/tests`: Vitest suite (mocked PocketBase, no network).
 
 ## Authentication & Session
@@ -120,5 +147,16 @@ Volumes (`pocketbase-data` → `serviceflow-pocketbase-local-data`) persist data
 ## Data & Lifecycle
 
 - **Native ids**: PocketBase generates native 15-character ids; no UUID pre-generation and no `$id` preservation.
-- **Pagination**: `{ data, total, page, limit }` via `getList(page, perPage, { filter, sort })`; `total` from `totalItems`; `LIKE` search (`~`) on `clientName`, `invoiceNumber`, `rut`; status allowlist `pending|ready|completed|cancelled`.
-- **Locations**: `address` optional (trim, max 200, blank → omitted); `isActive` toggle; delete blocked by history (`location_logs`).
+- **Pagination**: `{ data, total, page, limit }` via `getList(page, perPage, { filter, sort })`; `total` from `totalItems`; `LIKE` search (`~`) on `clientName`, `invoiceNumber`, `rut`; status allowlist `pending|ready|completed|cancelled`. No fixed page cap; history pagination uses exact `totalItems`/`totalPages`.
+- **Origination**: `originLocationId` is set to `locationId` on create, immutable on update (hook + API guard), indexed in `services`. Backfill resolves from earliest `service_events.kind = 'created'` or falls back to `locationId` only when no `location_changed` history exists; ambiguous rows stay unresolved.
+- **Locations**: `address` optional (trim, max 200, blank → omitted); `isActive` toggle; delete blocked by history (`services.locationId || originLocationId` or `service_events.fromLocationId || toLocationId`); at least one active location per user is enforced at DB triggers, JS hooks, and UI.
+- **Registro metrics**: Row counts per location derive from the same origin contract:
+
+  | Metric | Counts | Source field |
+  |---|---|---|
+  | Active | `pending` + `ready` | current `services.locationId` |
+  | Completed | `completed` | immutable `services.originLocationId` |
+  | Cancelled | neither | — |
+
+  Guards prevent deleting a location with current or origin history via direct PocketBase writes.
+- **Navigation**: `Registro` empty-state CTA pushes plain `/dashboard`; no `?createService=1` query, no in-place modal.
