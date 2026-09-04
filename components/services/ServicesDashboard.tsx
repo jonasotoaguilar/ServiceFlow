@@ -329,11 +329,11 @@ export function ServiceDashboard({
 		}
 	};
 
-	const statusOptions: { value: ServiceStatus; label: string; badgeClass: string }[] = [
-		{ value: "pending", label: "Pendientes", badgeClass: STATUS_BADGE.pending },
-		{ value: "ready", label: "Reparadas", badgeClass: STATUS_BADGE.ready },
-		{ value: "completed", label: "Entregada", badgeClass: STATUS_BADGE.completed },
-		{ value: "cancelled", label: "Canceladas", badgeClass: STATUS_BADGE.cancelled },
+	const statusOptions: { value: ServiceStatus; label: string }[] = [
+		{ value: "pending", label: "Pendientes" },
+		{ value: "ready", label: "Reparadas" },
+		{ value: "completed", label: "Entregada" },
+		{ value: "cancelled", label: "Canceladas" },
 	];
 
 	const getSelectedLabel = () => {
@@ -561,18 +561,10 @@ export function ServiceDashboard({
 												setStatusFilter(option.value);
 												setShowStatusDropdown(false);
 											}}
-											className="w-full px-4 py-2.5 text-left text-sm transition-colors hover:bg-surface-muted flex items-center justify-between"
+											className={`w-full px-4 py-2.5 text-left text-sm transition-colors hover:bg-surface-muted flex items-center justify-between ${isSelected ? "text-primary font-bold" : "text-foreground"}`}
 										>
-											<span
-												className={
-													isSelected
-														? `${option.badgeClass} px-2 py-0.5 rounded-full text-sm border`
-														: "text-foreground"
-												}
-											>
-												{option.label}
-											</span>
-											{isSelected && <CheckCircle className="w-4 h-4 text-primary" />}
+											<span>{option.label}</span>
+											{isSelected && <CheckCircle className="w-4 h-4" />}
 										</button>
 									);
 								})}

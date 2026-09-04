@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth";
 import { getServices, saveService, updateService, deleteService } from "@/lib/storage";
 import { Service, ServiceStatus } from "@/lib/types";
-import { ServiceSchema, GENERIC_EDIT_OMIT } from "@/lib/schemas";
+import { ServiceSchema, GENERIC_EDIT_OMIT, toServiceFieldErrors } from "@/lib/schemas";
 import { createPocketBaseClient } from "@/lib/pocketbase";
 import * as z from "zod";
 
@@ -55,8 +55,9 @@ export async function POST(request: Request) {
 		const validation = ServiceSchema.safeParse(jsonBody);
 
 		if (!validation.success) {
+			const fieldErrors = toServiceFieldErrors(validation.error);
 			return NextResponse.json(
-				{ error: "Datos inválidos", code: "VALIDATION_ERROR" },
+				{ error: "Datos inválidos", code: "VALIDATION_ERROR", fieldErrors },
 				{ status: 400 },
 			);
 		}
@@ -182,8 +183,9 @@ export async function PUT(request: Request) {
 		const validation = GenericEditSchema.safeParse(jsonBody);
 
 		if (!validation.success) {
+			const fieldErrors = toServiceFieldErrors(validation.error as z.ZodError);
 			return NextResponse.json(
-				{ error: "Datos inválidos", code: "VALIDATION_ERROR" },
+				{ error: "Datos inválidos", code: "VALIDATION_ERROR", fieldErrors },
 				{ status: 400 },
 			);
 		}

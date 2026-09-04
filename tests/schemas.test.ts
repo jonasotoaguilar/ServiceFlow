@@ -15,6 +15,7 @@ describe("ServiceSchema", () => {
 			locationId: "550e8400-e29b-41d4-a716-446655440000",
 			status: "pending",
 			failureDescription: "No enciende",
+			entryDate: "2024-01-01",
 		};
 		const result = ServiceSchema.safeParse(payload);
 		expect(result.success).toBe(true);
@@ -29,6 +30,32 @@ describe("ServiceSchema", () => {
 		};
 		const result = ServiceSchema.safeParse(payload);
 		expect(result.success).toBe(false);
+	});
+
+	it("regression 41.421.442-1 is invalid RUT inválido, 41.421.442-8 is valid", async () => {
+		const { ServiceSchema, toServiceFieldErrors } = await import("../lib/schemas");
+		const base = {
+			invoiceNumber: "INV-001",
+			sku: "SKU-1",
+			clientName: "John Doe",
+			contact: "+56 9 1234 5678",
+			product: "Laptop",
+			locationId: "loc1",
+			failureDescription: "Falla",
+			entryDate: "2024-01-01",
+		};
+		const invalid = ServiceSchema.safeParse({ ...base, rut: "41.421.442-1" });
+		expect(invalid.success).toBe(false);
+		if (!invalid.success) {
+			const map = toServiceFieldErrors(invalid.error);
+			expect(map.rut).toBe("RUT inválido");
+			expect(
+				invalid.error.issues.some((i) => i.path.includes("rut") && i.message === "RUT inválido"),
+			).toBe(true);
+		}
+		const valid = ServiceSchema.safeParse({ ...base, rut: "41.421.442-8" });
+		expect(valid.success).toBe(true);
+		if (valid.success) expect(valid.data.rut).toBe("414214428");
 	});
 });
 
@@ -129,9 +156,9 @@ describe("Service identity immutability — GENERIC_EDIT_OMIT", () => {
 		// Simulate generic edit schema: ServiceSchema.omit(omit).partial().extend({id})
 		const { ServiceSchema } = await import("../lib/schemas");
 		const z = await import("zod");
-		const GenericEditSchema = (ServiceSchema as any).omit(
-			Object.fromEntries(omit.map((k) => [k, true])),
-		);
+		const GenericEditSchema = (ServiceSchema as any)
+			.omit(Object.fromEntries(omit.map((k) => [k, true])))
+			.partial();
 		// valid mutable payload should parse (contact, failureDescription, email, repairCost, notes)
 		const valid = GenericEditSchema.safeParse({
 			contact: "+56 9 1234 5678",
