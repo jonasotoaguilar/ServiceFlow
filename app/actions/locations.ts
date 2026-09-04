@@ -44,8 +44,8 @@ export async function getLocations(onlyActive = false) {
 			if (typeof total === "number") {
 				if (svcPage * svcPerPage >= total) break;
 			} else if (items.length < svcPerPage) break;
+			if (items.length === 0) break;
 			svcPage++;
-			if (svcPage > 50) break; // safety cap: 10k services
 		}
 
 		// Fetch all service_events for history — also paginated with selected fields.
@@ -66,8 +66,8 @@ export async function getLocations(onlyActive = false) {
 			if (typeof total === "number") {
 				if (logPage * logPerPage >= total) break;
 			} else if (items.length < logPerPage) break;
+			if (items.length === 0) break;
 			logPage++;
-			if (logPage > 50) break;
 		}
 
 		const svcCountMap = new Map<string, { active: number; completed: number }>();
