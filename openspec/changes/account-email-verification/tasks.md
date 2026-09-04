@@ -39,9 +39,9 @@ Apply-time (research rev 2): live GET then PATCH+GET `authRule`; always set SMTP
 
 ## Phase 2: Auth server (PR 2)
 
-- [ ] 2.1 RED `tests/auth-session.test.ts`: no register cookie/`authWithPassword`; `requestVerification`; login 400 unknown/unverified same error; resend `{ok:true}` after valid email; guard clears unverified; `/verify` strips token; missing token fails; never log token.
-- [ ] 2.2 GREEN `app/actions/auth.ts` no register auth/cookie, `requestVerification`, `resendVerification` (Zod else `{ok:true}`); `lib/auth.ts` fail-closed `verified !== true`; `app/verify/page.tsx` RSC consume token, never log, `redirect("/verify?status=ok|fail")` (do not catch `redirect`); bare path fail; already-verified ok.
-- [ ] 2.3 REFACTOR 2.2; `pnpm test:run tests/auth-session.test.ts`.
+- [x] 2.1 RED `tests/auth-session.test.ts`: no register cookie/`authWithPassword`; `requestVerification`; login 400 unknown/unverified same error; resend `{ok:true}` after valid email; guard clears unverified; `/verify` strips token; missing token fails; never log token.
+- [x] 2.2 GREEN `app/actions/auth.ts` no register auth/cookie, `requestVerification`, `resendVerification` (Zod else `{ok:true}`); `lib/auth.ts` fail-closed `verified !== true`; `app/verify/page.tsx` RSC consume token, never log, `redirect("/verify?status=ok|fail")` (do not catch `redirect`); bare path fail; already-verified ok.
+- [x] 2.3 REFACTOR 2.2; `pnpm test:run tests/auth-session.test.ts`.
 
 ## Phase 3: UI, E2E, docs (PR 3)
 

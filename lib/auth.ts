@@ -26,6 +26,10 @@ export async function getAuthUser(): Promise<AuthUser | null> {
 			pb.authStore.clear();
 			return null;
 		}
+		if ((record as { verified?: unknown }).verified !== true) {
+			pb.authStore.clear();
+			return null;
+		}
 		return {
 			id: record.id,
 			email:

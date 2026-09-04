@@ -34,12 +34,16 @@ function isExpired(t: string) {
 const mockAuthRefresh = vi.fn();
 const mockAuthWithPassword = vi.fn();
 const mockCreate = vi.fn();
+const mockRequestVerification = vi.fn();
+const mockConfirmVerification = vi.fn();
 const mockCollection = vi.fn((name: string) => {
 	if (name === "users")
 		return {
 			authRefresh: mockAuthRefresh,
 			authWithPassword: mockAuthWithPassword,
 			create: mockCreate,
+			requestVerification: mockRequestVerification,
+			confirmVerification: mockConfirmVerification,
 		};
 	throw new Error("unexpected collection " + name);
 });
@@ -92,6 +96,8 @@ describe("auth-session WU2a", () => {
 		mockAuthRefresh.mockReset();
 		mockAuthWithPassword.mockReset();
 		mockCreate.mockReset();
+		mockRequestVerification.mockReset();
+		mockConfirmVerification.mockReset();
 		mockCollection.mockClear();
 		mockRedirect.mockClear();
 		process.env.POCKETBASE_URL = "http://127.0.0.1:8090";
@@ -107,7 +113,7 @@ describe("auth-session WU2a", () => {
 			const exp = Math.floor(Date.now() / 1e3) + 3600;
 			const rawTok = mkJwt(exp);
 			const rawRec = { id: "victim-tampered", email: "evil@x.com", name: "Evil" };
-			const serverRec = { id: "real-server-id", email: "real@b.com", name: "Real" };
+			const serverRec = { id: "real-server-id", email: "real@b.com", name: "Real", verified: true };
 			const serverTok = mkJwt(exp + 100);
 			mockAuthRefresh.mockImplementationOnce(async () => {
 				curTok = serverTok;
@@ -170,7 +176,7 @@ describe("auth-session WU2a", () => {
 		it("authRefresh MUST be called before getAuthUser returns", async () => {
 			const exp = Math.floor(Date.now() / 1e3) + 3600;
 			const tok = mkJwt(exp);
-			const rec = { id: "u123", email: "a@b.com", name: "Alice" };
+			const rec = { id: "u123", email: "a@b.com", name: "Alice", verified: true };
 			let calledBeforeReturn = false;
 			mockAuthRefresh.mockImplementationOnce(async () => {
 				calledBeforeReturn = true;
@@ -404,6 +410,8 @@ describe("auth actions WU2b", () => {
 		mockAuthRefresh.mockReset();
 		mockAuthWithPassword.mockReset();
 		mockCreate.mockReset();
+		mockRequestVerification.mockReset();
+		mockConfirmVerification.mockReset();
 		mockCollection.mockClear();
 		mockRedirect.mockClear();
 		process.env.POCKETBASE_URL = "http://127.0.0.1:8090";
@@ -567,16 +575,9 @@ describe("auth actions WU2b", () => {
 		expect(src).toContain("saveAuthCookie");
 		expect(src).not.toContain("clearLegacySessionCookie");
 	});
-	it("register creates users with passwordConfirm then authenticates", async () => {
-		const exp = Math.floor(Date.now() / 1e3) + 3600;
-		const tok = mkJwt(exp);
-		const rec = { id: "u999", email: "new@b.com", name: "Bob" };
+	it("register creates users with passwordConfirm then requests verification without session", async () => {
 		mockCreate.mockResolvedValueOnce({ id: "u999", email: "new@b.com", name: "Bob" });
-		mockAuthWithPassword.mockImplementationOnce(async () => {
-			curTok = tok;
-			curRec = rec;
-			return { token: tok, record: rec };
-		});
+		mockRequestVerification.mockResolvedValueOnce(true);
 		vi.resetModules();
 		const { register } = await import("../app/actions/auth");
 		cookiesMock.mockResolvedValue({ get: mockGet, set: mockSet, delete: mockDel });
@@ -592,9 +593,26 @@ describe("auth actions WU2b", () => {
 				name: "Bob",
 			}),
 		);
-		expect(mockAuthWithPassword).toHaveBeenCalledWith("new@b.com", "ValidPass123");
-		expect(mockSet).toHaveBeenCalled();
-		expect(mockSet.mock.calls.some((c) => c[0] === "pb_auth")).toBe(true);
+		expect(mockRequestVerification).toHaveBeenCalledTimes(1);
+		expect(mockRequestVerification).toHaveBeenCalledWith("new@b.com");
+		expect(mockAuthWithPassword).not.toHaveBeenCalled();
+		expect(mockSet.mock.calls.some((c) => c[0] === "pb_auth")).toBe(false);
+		const src = fs.readFileSync(path.join(process.cwd(), "app/actions/auth.ts"), "utf8");
+		expect(src).toContain("requestVerification");
+	});
+	it("register verification-request failure still succeeds without session", async () => {
+		mockCreate.mockResolvedValueOnce({ id: "u100", email: "retry@b.com", name: "Retry" });
+		mockRequestVerification.mockRejectedValueOnce(
+			Object.assign(new Error("mail transport"), { status: 500 }),
+		);
+		vi.resetModules();
+		const { register } = await import("../app/actions/auth");
+		cookiesMock.mockResolvedValue({ get: mockGet, set: mockSet, delete: mockDel });
+		const res = await register(fdRegister("Retry", "retry@b.com", "ValidPass123"));
+		expect(res).toEqual({ success: true });
+		expect(mockRequestVerification).toHaveBeenCalledWith("retry@b.com");
+		expect(mockAuthWithPassword).not.toHaveBeenCalled();
+		expect(mockSet.mock.calls.some((c) => c[0] === "pb_auth")).toBe(false);
 	});
 	it("logout clears pb_auth and redirects /login without legacy session", async () => {
 		vi.resetModules();
@@ -675,5 +693,233 @@ describe("auth entry pages do not disclose backend or environment state", () => 
 		expect(lower).not.toContain("comienza");
 		expect(lower).not.toContain("starts empty");
 		expect(lower).not.toContain("environment starts");
+	});
+});
+
+describe("phase 2 verification neutrality", () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		curTok = "";
+		curRec = null;
+		mockGet.mockReset();
+		mockSet.mockReset();
+		mockDel.mockReset();
+		mockAuthRefresh.mockReset();
+		mockAuthWithPassword.mockReset();
+		mockCreate.mockReset();
+		mockRequestVerification.mockReset();
+		mockConfirmVerification.mockReset();
+		mockCollection.mockClear();
+		mockRedirect.mockClear();
+		process.env.POCKETBASE_URL = "http://127.0.0.1:8090";
+		cookiesMock.mockResolvedValue({
+			get: mockGet.mockImplementation(() => undefined),
+			set: mockSet,
+			delete: mockDel,
+		});
+	});
+	function fdLogin(email: string, password: string) {
+		const fd = new FormData();
+		fd.append("email", email);
+		fd.append("password", password);
+		return fd;
+	}
+	it("unverified password login has the same safe observable error with no cookie", async () => {
+		mockAuthWithPassword.mockRejectedValueOnce(
+			Object.assign(new Error("Failed to authenticate."), { status: 400, data: {} }),
+		);
+		vi.resetModules();
+		const { login } = await import("../app/actions/auth");
+		cookiesMock.mockResolvedValue({ get: mockGet, set: mockSet, delete: mockDel });
+		const res = await login(fdLogin("unverified@example.com", "ValidPass123"));
+		expect(res.error).toBe("Credenciales inválidas");
+		expect(mockAuthWithPassword).toHaveBeenCalledTimes(1);
+		expect(mockSet.mock.calls.some((c) => c[0] === "pb_auth")).toBe(false);
+		const src = fs.readFileSync(path.join(process.cwd(), "app/actions/auth.ts"), "utf8");
+		expect(src).not.toMatch(/console\.(log|error|warn|info)/);
+	});
+	it("unknown and unverified logins are indistinguishable with no session", async () => {
+		mockAuthWithPassword.mockRejectedValueOnce(
+			Object.assign(new Error("Failed to authenticate."), { status: 400 }),
+		);
+		vi.resetModules();
+		const { login: loginUnknown } = await import("../app/actions/auth");
+		cookiesMock.mockResolvedValue({ get: mockGet, set: mockSet, delete: mockDel });
+		const unknownRes = await loginUnknown(fdLogin("unknown-phase2@example.com", "ValidPass123"));
+		expect(unknownRes.error).toBe("Credenciales inválidas");
+		expect(mockSet.mock.calls.some((c) => c[0] === "pb_auth")).toBe(false);
+		vi.clearAllMocks();
+		mockAuthWithPassword.mockRejectedValueOnce(
+			Object.assign(new Error("Failed to authenticate."), { status: 400 }),
+		);
+		vi.resetModules();
+		const { login: loginUnverified } = await import("../app/actions/auth");
+		cookiesMock.mockResolvedValue({ get: mockGet, set: mockSet, delete: mockDel });
+		const unverifiedRes = await loginUnverified(
+			fdLogin("unverified-phase2@example.com", "ValidPass123"),
+		);
+		expect(unverifiedRes).toEqual(unknownRes);
+		expect(mockSet.mock.calls.some((c) => c[0] === "pb_auth")).toBe(false);
+	});
+	it("resend is enumeration-neutral after syntactically valid email", async () => {
+		mockRequestVerification.mockResolvedValueOnce(true);
+		vi.resetModules();
+		const { resendVerification } = await import("../app/actions/auth");
+		cookiesMock.mockResolvedValue({ get: mockGet, set: mockSet, delete: mockDel });
+		const res = await resendVerification("unverified-phase2@example.com");
+		expect(res).toEqual({ ok: true });
+		expect(mockRequestVerification).toHaveBeenCalledTimes(1);
+		expect(mockRequestVerification).toHaveBeenCalledWith("unverified-phase2@example.com");
+	});
+	it("resend maps unknown, already-verified, and provider failures to the same neutral ok", async () => {
+		vi.resetModules();
+		const { resendVerification: resendUnknown } = await import("../app/actions/auth");
+		cookiesMock.mockResolvedValue({ get: mockGet, set: mockSet, delete: mockDel });
+		mockRequestVerification.mockRejectedValueOnce(
+			Object.assign(new Error("not found"), { status: 404 }),
+		);
+		const unknownRes = await resendUnknown("unknown-phase2@example.com");
+		expect(unknownRes).toEqual({ ok: true });
+		vi.resetModules();
+		const { resendVerification: resendVerified } = await import("../app/actions/auth");
+		cookiesMock.mockResolvedValue({ get: mockGet, set: mockSet, delete: mockDel });
+		mockRequestVerification.mockRejectedValueOnce(
+			Object.assign(new Error("already verified"), { status: 400 }),
+		);
+		const verifiedRes = await resendVerified("verified@example.com");
+		expect(verifiedRes).toEqual({ ok: true });
+		expect(verifiedRes).toEqual(unknownRes);
+		vi.resetModules();
+		const { resendVerification: resendOk } = await import("../app/actions/auth");
+		cookiesMock.mockResolvedValue({ get: mockGet, set: mockSet, delete: mockDel });
+		mockRequestVerification.mockResolvedValueOnce(true);
+		const okRes = await resendOk("another@example.com");
+		expect(okRes).toEqual({ ok: true });
+		expect(okRes).toEqual(unknownRes);
+	});
+	it("resend rejects syntactically invalid email without calling provider", async () => {
+		vi.resetModules();
+		const { resendVerification } = await import("../app/actions/auth");
+		cookiesMock.mockResolvedValue({ get: mockGet, set: mockSet, delete: mockDel });
+		const res = await resendVerification("not-an-email");
+		expect(res.error).toBeDefined();
+		expect(res.ok).toBeUndefined();
+		expect(mockRequestVerification).not.toHaveBeenCalled();
+	});
+	it("getAuthUser clears and rejects records with verified !== true", async () => {
+		const exp = Math.floor(Date.now() / 1e3) + 3600;
+		const tok = mkJwt(exp);
+		const unverifiedRec = { id: "u-unverified", email: "u@b.com", name: "U", verified: false };
+		mockAuthRefresh.mockImplementationOnce(async () => {
+			curTok = tok;
+			curRec = unverifiedRec;
+			return { token: tok, record: unverifiedRec };
+		});
+		cookiesMock.mockResolvedValue({
+			get: (n: string) =>
+				n === "pb_auth"
+					? { value: JSON.stringify({ token: tok, record: unverifiedRec }) }
+					: undefined,
+			set: mockSet,
+			delete: mockDel,
+		});
+		vi.resetModules();
+		const { getAuthUser } = await import("../lib/auth");
+		await expect(getAuthUser()).resolves.toBeNull();
+		expect(mockClear).toHaveBeenCalled();
+	});
+	it("getAuthUser rejects missing verified flag and keeps verified === true", async () => {
+		const exp = Math.floor(Date.now() / 1e3) + 3600;
+		const tok = mkJwt(exp);
+		const missingRec = { id: "u-missing", email: "m@b.com", name: "M" };
+		mockAuthRefresh.mockImplementationOnce(async () => {
+			curTok = tok;
+			curRec = missingRec;
+			return { token: tok, record: missingRec };
+		});
+		cookiesMock.mockResolvedValue({
+			get: (n: string) =>
+				n === "pb_auth" ? { value: JSON.stringify({ token: tok, record: missingRec }) } : undefined,
+			set: mockSet,
+			delete: mockDel,
+		});
+		vi.resetModules();
+		const { getAuthUser: getMissing } = await import("../lib/auth");
+		await expect(getMissing()).resolves.toBeNull();
+		expect(mockClear).toHaveBeenCalled();
+		vi.clearAllMocks();
+		const verifiedRec = { id: "u-ok", email: "ok@b.com", name: "Ok", verified: true };
+		mockAuthRefresh.mockImplementationOnce(async () => {
+			curTok = tok;
+			curRec = verifiedRec;
+			return { token: tok, record: verifiedRec };
+		});
+		cookiesMock.mockResolvedValue({
+			get: (n: string) =>
+				n === "pb_auth"
+					? { value: JSON.stringify({ token: tok, record: verifiedRec }) }
+					: undefined,
+			set: mockSet,
+			delete: mockDel,
+		});
+		vi.resetModules();
+		const { getAuthUser: getVerified } = await import("../lib/auth");
+		const u = await getVerified();
+		expect(u).toEqual({ id: "u-ok", email: "ok@b.com", name: "Ok" });
+	});
+	it("verification callback consumes a valid token and strips it from the URL", async () => {
+		mockConfirmVerification.mockResolvedValueOnce(true);
+		vi.resetModules();
+		const mod = await import("../app/verify/page");
+		const Page = (mod as { default: (props: unknown) => Promise<unknown> }).default;
+		cookiesMock.mockResolvedValue({ get: mockGet, set: mockSet, delete: mockDel });
+		await expect(
+			Page({ searchParams: Promise.resolve({ token: "valid-token-123" }) }),
+		).rejects.toThrow();
+		expect(mockConfirmVerification).toHaveBeenCalledTimes(1);
+		expect(mockConfirmVerification).toHaveBeenCalledWith("valid-token-123");
+		expect(mockRedirect).toHaveBeenCalledWith("/verify?status=ok");
+		const [url] = mockRedirect.mock.calls[0];
+		expect(url).not.toContain("valid-token-123");
+	});
+	it("verification callback fails closed on invalid token and missing token without logging", async () => {
+		mockConfirmVerification.mockRejectedValueOnce(
+			Object.assign(new Error("invalid"), { status: 400 }),
+		);
+		vi.resetModules();
+		const mod = await import("../app/verify/page");
+		const Page = (mod as { default: (props: unknown) => Promise<unknown> }).default;
+		cookiesMock.mockResolvedValue({ get: mockGet, set: mockSet, delete: mockDel });
+		await expect(
+			Page({ searchParams: Promise.resolve({ token: "bad-token-xyz" }) }),
+		).rejects.toThrow();
+		expect(mockRedirect).toHaveBeenCalledWith("/verify?status=fail");
+		vi.clearAllMocks();
+		mockConfirmVerification.mockClear();
+		vi.resetModules();
+		const mod2 = await import("../app/verify/page");
+		const Page2 = (mod2 as { default: (props: unknown) => Promise<unknown> }).default;
+		cookiesMock.mockResolvedValue({ get: mockGet, set: mockSet, delete: mockDel });
+		await expect(Page2({ searchParams: Promise.resolve({}) })).rejects.toThrow();
+		expect(mockConfirmVerification).not.toHaveBeenCalled();
+		expect(mockRedirect).toHaveBeenCalledWith("/verify?status=fail");
+		const src = fs.readFileSync(path.join(process.cwd(), "app/verify/page.tsx"), "utf8");
+		expect(src).not.toMatch(/console\.(log|error|warn|info|debug)/);
+		expect(src).toContain("confirmVerification");
+		expect(src).toContain("await searchParams");
+		expect(src).toContain("/verify?status=ok");
+		expect(src).toContain("/verify?status=fail");
+	});
+	it("clean status without token renders without redirect loop", async () => {
+		vi.resetModules();
+		cookiesMock.mockResolvedValue({ get: mockGet, set: mockSet, delete: mockDel });
+		const mod = await import("../app/verify/page");
+		const Page = (mod as { default: (props: unknown) => Promise<unknown> }).default;
+		for (const status of ["ok", "fail"]) {
+			mockRedirect.mockClear();
+			const out = await Page({ searchParams: Promise.resolve({ status }) });
+			expect(mockRedirect).not.toHaveBeenCalled();
+			expect(out).toBeNull();
+		}
 	});
 });
