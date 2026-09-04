@@ -53,6 +53,7 @@
         { "name": "failureDescription", "type": "text", "required": false, "max": 5000 },
         { "name": "sku", "type": "text", "required": false, "max": 255 },
         { "name": "locationId", "type": "text", "required": true, "max": 15 },
+        { "name": "originLocationId", "type": "text", "required": false, "max": 15 },
         { "name": "entryDate", "type": "date", "required": true },
         { "name": "deliveryDate", "type": "date", "required": false },
         { "name": "readyDate", "type": "date", "required": false },
@@ -71,6 +72,7 @@
         "CREATE INDEX idx_services_userId ON services (userId)",
         "CREATE INDEX idx_services_status ON services (status)",
         "CREATE INDEX idx_services_locationId ON services (locationId)",
+        "CREATE INDEX idx_services_originLocationId ON services (originLocationId)",
         "CREATE INDEX idx_services_clientName ON services (clientName)",
         "CREATE INDEX idx_services_invoiceNumber ON services (invoiceNumber)",
         "CREATE INDEX idx_services_rut ON services (rut)"

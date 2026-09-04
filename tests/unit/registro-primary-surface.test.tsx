@@ -288,11 +288,12 @@ describe("Registro true-empty navigates to dashboard create trigger", () => {
 		mockPush.mockClear();
 		mockReplace.mockClear();
 	});
-	it("source uses useRouter push to /dashboard?createService=1 for true-empty", () => {
+	it("source uses useRouter push to /dashboard for true-empty without createService query", () => {
 		const src = read("app/(app)/service-events/serviceEventsManager.tsx");
 		expect(src).toMatch(/from\s+["']next\/navigation["']/);
 		expect(src).toMatch(/useRouter/);
-		expect(src).toMatch(/push\(\s*["']\/dashboard\?createService=1["']\s*\)/);
+		expect(src).toMatch(/push\(\s*["']\/dashboard["']\s*\)/);
+		expect(src).not.toContain("createService");
 		// ensure true-empty branch does not just clearFilters twice
 		const handleBlock = src.slice(src.indexOf("handleEmptyAction"));
 		expect(handleBlock).toMatch(/push/);
@@ -300,7 +301,7 @@ describe("Registro true-empty navigates to dashboard create trigger", () => {
 			/clearFilters\(\);\s*\n\s*\} else \{\s*\n\s*\/\/ true-empty[\s\S]*?clearFilters\(\)/,
 		);
 	});
-	it("rendered true-empty button pushes /dashboard?createService=1 exactly once", async () => {
+	it("rendered true-empty button pushes /dashboard exactly once without query param", async () => {
 		const ServiceEventsManager = (await import("@/app/(app)/service-events/serviceEventsManager"))
 			.default;
 		mockPush.mockClear();
@@ -319,8 +320,9 @@ describe("Registro true-empty navigates to dashboard create trigger", () => {
 		expect(screen.getByRole("heading", { name: /No hay registros/i })).toBeVisible();
 		const btn = screen.getByRole("button", { name: /Nuevo servicio/i });
 		fireEvent.click(btn);
-		expect(mockPush).toHaveBeenCalledWith("/dashboard?createService=1");
+		expect(mockPush).toHaveBeenCalledWith("/dashboard");
 		expect(mockPush).toHaveBeenCalledTimes(1);
+		expect(mockPush).not.toHaveBeenCalledWith(expect.stringContaining("createService"));
 		unmount();
 	});
 });
@@ -386,38 +388,33 @@ describe("Registro filtered-empty only clears filters and does not navigate", ()
 	});
 });
 
-describe("Dashboard createService one-shot trigger — source and behavior", () => {
+describe("Dashboard createService one-shot trigger — removed, Registro navigates plain", () => {
 	beforeEach(() => {
 		mockPush.mockClear();
 		mockReplace.mockClear();
 	});
-	it("dashboard page server awaits searchParams and passes initialCreateService", () => {
+	it("dashboard page server does NOT use searchParams createService param", () => {
 		const src = read("app/(app)/dashboard/page.tsx");
-		expect(src).toMatch(/searchParams/);
-		expect(src).toMatch(/Promise<[^>]*createService/);
-		expect(src).toMatch(/await\s+searchParams/);
-		expect(src).toMatch(/initialCreateService/);
+		expect(src).not.toContain("createService");
+		expect(src).not.toContain("searchParams");
+		expect(src).not.toContain("initialCreateService");
 		expect(src).toMatch(/export default async function/);
 	});
-	it("ServicesDashboard consumes initialCreateService and replaces once without useSearchParams", () => {
+	it("ServicesDashboard does NOT consume initialCreateService nor auto-open modal", () => {
 		const src = read("components/services/ServicesDashboard.tsx");
-		expect(src).toMatch(/initialCreateService/);
-		expect(src).toMatch(/useRouter/);
-		expect(src).toMatch(/router\.replace\(\s*["']\/dashboard["']\s*\)/);
-		expect(src).toMatch(/useRef/);
-		// guard: hasConsumed / hasOpened pattern
-		expect(src).toMatch(/hasConsumed|hasOpened|createServiceConsumed/);
-		// must not use unguarded useSearchParams (avoid CSR bailout)
+		expect(src).not.toContain("initialCreateService");
+		expect(src).not.toContain("createService");
+		expect(src).not.toMatch(/hasConsumed|hasOpened/);
 		expect(src).not.toMatch(/useSearchParams/);
 	});
-	it("ServicesDashboard source does not import useSearchParams", () => {
+	it("ServicesDashboard source does not import useSearchParams nor router replace for createService", () => {
 		const src = read("components/services/ServicesDashboard.tsx");
 		expect(src).not.toContain("useSearchParams");
+		expect(src).not.toContain("createService");
 	});
-	it("rendered trigger opens modal once and replaces, second effect does not reopen", async () => {
+	it("rendered dashboard does NOT auto-open modal and does NOT replace", async () => {
 		const { ServiceDashboard } = await import("@/components/services/ServicesDashboard");
 		mockReplace.mockClear();
-		// mock fetch for stats/services to avoid network
 		const origFetch = globalThis.fetch;
 		globalThis.fetch = vi.fn(
 			async () =>
@@ -435,59 +432,24 @@ describe("Dashboard createService one-shot trigger — source and behavior", () 
 					}),
 				}) as any,
 		) as any;
-		const { rerender, unmount } = render(
+		const { unmount } = render(
 			React.createElement(ServiceDashboard as any, {
 				initialData: { data: [], total: 0, page: 1, limit: 20 },
 				user: { name: "Test" },
-				initialCreateService: true,
-			}),
-		);
-		// modal should open: dialog appears with form hint (only when modal open)
-		await waitFor(
-			() => expect(screen.getByText(/Complete los detalles para iniciar/i)).toBeVisible(),
-			{
-				timeout: 2000,
-			},
-		);
-		expect(screen.getByRole("dialog")).toBeInTheDocument();
-		// replace called once to clean URL
-		await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/dashboard"), { timeout: 2000 });
-		expect(mockReplace).toHaveBeenCalledTimes(1);
-		// rerender with same prop must not call again (one-shot guard)
-		rerender(
-			React.createElement(ServiceDashboard as any, {
-				initialData: { data: [], total: 0, page: 1, limit: 20 },
-				user: { name: "Test" },
-				initialCreateService: true,
-			}),
-		);
-		// still only once
-		expect(mockReplace).toHaveBeenCalledTimes(1);
-		// clean
-		globalThis.fetch = origFetch;
-		unmount();
-		mockReplace.mockClear();
-		// with false, no open/replace
-		const { unmount: u2 } = render(
-			React.createElement(ServiceDashboard as any, {
-				initialData: { data: [], total: 0, page: 1, limit: 20 },
-				user: { name: "Test" },
-				initialCreateService: false,
 			}),
 		);
 		await waitFor(() => new Promise((r) => setTimeout(r, 300)));
 		expect(mockReplace).not.toHaveBeenCalled();
 		expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 		expect(screen.queryByText(/Complete los detalles para iniciar/i)).not.toBeInTheDocument();
-		u2();
+		globalThis.fetch = origFetch;
+		unmount();
 	});
-	it("Suspense-safe: no unhandled useSearchParams without Suspense boundary", () => {
+	it("Suspense-safe: no useSearchParams without Suspense boundary", () => {
 		const pageSrc = read("app/(app)/dashboard/page.tsx");
 		const dashSrc = read("components/services/ServicesDashboard.tsx");
-		// page is async server, so client need not use useSearchParams
 		expect(pageSrc).toMatch(/export default async function/);
 		expect(dashSrc).not.toMatch(/useSearchParams/);
-		// if client ever uses useSearchParams, it must be under Suspense — we forbid bare usage
 		if (dashSrc.includes("useSearchParams")) {
 			expect(pageSrc + dashSrc).toMatch(/Suspense/);
 		}

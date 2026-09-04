@@ -11,6 +11,7 @@ export interface Service {
 	contact?: string; // Obligatorio en UI
 	email?: string;
 	locationId: string;
+	originLocationId?: string;
 	location?: string; // Nombre de la Sede (vía join)
 	entryDate: string; // ISO Date string
 	deliveryDate?: string; // ISO Date string (Fecha de entrega/completada)

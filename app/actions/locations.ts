@@ -17,23 +17,80 @@ export async function getLocations(onlyActive = false) {
 		const result = await pb.collection("locations").getList(1, 50, { filter, sort: "-createdAt" });
 		const locations = result.items.map((doc: any) => ({ ...doc, id: doc.id }));
 		if (locations.length === 0) return { data: [] };
+
+		// Fetch all services with pagination and selected fields — avoids 200-row truncation.
 		const svcFilter = applyBinding(pb, { filter: "userId = {:uid}", params: { uid: user.id } });
-		const svcRes = await pb.collection("services").getList(1, 200, { filter: svcFilter });
-		const svcItems = ((svcRes as any)?.items as Array<{ locationId?: string; status?: string }>) ?? [];
+		const svcItems: Array<{
+			locationId?: string;
+			originLocationId?: string;
+			status?: string;
+		}> = [];
+		let svcPage = 1;
+		const svcPerPage = 200;
+		while (true) {
+			const svcRes: any = await pb.collection("services").getList(svcPage, svcPerPage, {
+				filter: svcFilter,
+				fields: "id,locationId,originLocationId,status",
+				sort: "id",
+			});
+			const items =
+				(svcRes?.items as Array<{
+					locationId?: string;
+					originLocationId?: string;
+					status?: string;
+				}>) ?? [];
+			svcItems.push(...items);
+			const total = typeof svcRes?.totalItems === "number" ? svcRes.totalItems : undefined;
+			if (typeof total === "number") {
+				if (svcPage * svcPerPage >= total) break;
+			} else if (items.length < svcPerPage) break;
+			svcPage++;
+			if (svcPage > 50) break; // safety cap: 10k services
+		}
+
+		// Fetch all service_events for history — also paginated with selected fields.
 		const logFilter = applyBinding(pb, { filter: "userId = {:uid}", params: { uid: user.id } });
-		const logRes = await pb.collection("service_events").getList(1, 200, { filter: logFilter });
-		const logItems =
-			((logRes as any)?.items as Array<{ fromLocationId?: string; toLocationId?: string }>) ?? [];
+		const logItems: Array<{ fromLocationId?: string; toLocationId?: string }> = [];
+		let logPage = 1;
+		const logPerPage = 200;
+		while (true) {
+			const logRes: any = await pb.collection("service_events").getList(logPage, logPerPage, {
+				filter: logFilter,
+				fields: "fromLocationId,toLocationId",
+				sort: "id",
+			});
+			const items =
+				(logRes?.items as Array<{ fromLocationId?: string; toLocationId?: string }>) ?? [];
+			logItems.push(...items);
+			const total = typeof logRes?.totalItems === "number" ? logRes.totalItems : undefined;
+			if (typeof total === "number") {
+				if (logPage * logPerPage >= total) break;
+			} else if (items.length < logPerPage) break;
+			logPage++;
+			if (logPage > 50) break;
+		}
+
 		const svcCountMap = new Map<string, { active: number; completed: number }>();
 		const historySet = new Set<string>();
 		for (const s of svcItems) {
-			if (!s.locationId) continue;
-			if (!svcCountMap.has(s.locationId))
-				svcCountMap.set(s.locationId, { active: 0, completed: 0 });
-			const c = svcCountMap.get(s.locationId)!;
-			if (s.status === "completed") c.completed++;
-			else if (s.status !== "cancelled") c.active++;
-			historySet.add(s.locationId);
+			const currentLoc = s.locationId;
+			const originLoc = (s as any).originLocationId || null;
+			if (currentLoc) historySet.add(currentLoc);
+			if (originLoc) historySet.add(originLoc);
+			if (s.status === "completed") {
+				// Completed counts toward origin, not current location after transfer.
+				// After migration origin is durable; missing origin (pre-migration) is not counted to avoid silent misattribution.
+				const origin = originLoc;
+				if (!origin) continue;
+				if (!svcCountMap.has(origin)) svcCountMap.set(origin, { active: 0, completed: 0 });
+				svcCountMap.get(origin)!.completed++;
+			} else if (s.status === "pending" || s.status === "ready") {
+				if (!currentLoc) continue;
+				if (!svcCountMap.has(currentLoc)) svcCountMap.set(currentLoc, { active: 0, completed: 0 });
+				svcCountMap.get(currentLoc)!.active++;
+			} else if (s.status === "cancelled") {
+				// cancelled contributes to history only, not to counts
+			}
 		}
 		for (const l of logItems) {
 			if (l.fromLocationId) historySet.add(l.fromLocationId);
@@ -179,7 +236,7 @@ export async function deleteLocation(id: string, name: string) {
 		}
 		if (!location || location.userId !== user.id) return { error: "Sede no encontrada" };
 		const serviceFilter = applyBinding(pb, {
-			filter: "userId = {:uid} && locationId = {:locationId}",
+			filter: "userId = {:uid} && (locationId = {:locationId} || originLocationId = {:locationId})",
 			params: { uid: user.id, locationId: id },
 		});
 		const servicesRes = await pb.collection("services").getList(1, 1, { filter: serviceFilter });
