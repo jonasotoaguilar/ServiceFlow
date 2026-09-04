@@ -19,15 +19,16 @@ ServiceFlow is a Next.js 16 App Router app. Every request builds a request-scope
 | Filters | `lib/pocketbase-filter.ts` | Pure templates `serviceListBinding`, `locationListBinding`, `logListBinding` + `applyBinding` sole `pb.filter` site; `LIKE` `~` search, status allowlist |
 | Auth identity | `lib/auth.ts` | `getAuthUser()` → `await cookies()` + `authRefresh` server validation; forged/unreachable → `null` fail-closed |
 | Auth actions | `app/actions/auth.ts` | `login` / `register` / `logout`; Zod `loginSchema` / `registerSchema` before PocketBase; `passwordConfirm` + `authWithPassword`; deterministic Spanish errors; `pb_auth` only |
-| Services | `lib/storage.ts` + `app/api/services/route.ts` | `getServices` / `saveService` / `updateService` / `deleteService` via `getList`/`create`/`update`/`delete`; native 15-char ids; `{ data, total, page, limit }`; `LIKE` on `clientName`/`invoiceNumber`/`rut` |
-| Locations | `app/actions/locations.ts` | `getLocations` (tenant-bound `locationListBinding`), create/update/toggle/delete with Zod + `normalizeString` + history guard |
-| History | `app/actions/logs.ts` + `lib/storage.ts` movement | `getLocationLogs` via `logListBinding`; movement `location_logs` create on `locationId` change (not when completing) |
-| Validation | `lib/schemas.ts` | `ServiceSchema`, `LocationCreateSchema` / `LocationUpdateSchema` (`address` optional, max 200); `loginSchema` / `registerSchema` |
-| Schema artifact | `pocketbase/v1.collections.json` | Versioned collections `users`, `services`, `locations`, `location_logs`; text FKs, indexes, tenant rules `userId = @request.auth.id`; no seed rows |
+| Services | `lib/storage.ts` + `app/api/services/route.ts` | `getServices` / `saveService` / `updateService` / `deleteService` via `getList`/`create`/`update`/`delete`; native 15-char ids; `{ data, total, page, limit }`; `LIKE` on `clientName`/`invoiceNumber`/`rut`; `originLocationId` immutable (hook + API guard) |
+| Locations | `app/actions/locations.ts` | `getLocations` (tenant-bound `locationListBinding`), create/update/toggle/delete with Zod + `normalizeString` + history guard (`locationId || originLocationId`, `fromLocationId || toLocationId`); `hasHistory`/`activeCount` computed via paginated `totalItems` |
+| History / Registro | `app/actions/logs.ts` + `lib/storage.ts` movement + `app/(app)/service-events/serviceEventsManager.tsx` | `getLocationLogs` via `logListBinding`; `ServiceEventsManager` footer-only pager, filter strip, plain `/dashboard` empty-state navigation |
+| Hooks | `pb_hooks/services.pb.js`, `pb_hooks/locations.pb.js`, `pb_hooks/backfill-origin.pb.js` | JSVM hooks: origin immutability, active-invariant triggers/JS guards, deterministic backfill (`cronAdd`/`cronRemove`, `onBootstrap` + `onCollectionAfterCreateSuccess`) |
+| Validation | `lib/schemas.ts` | `ServiceSchema` (`sku`, `failureDescription`, `entryDate` required, `originLocationId` optional, RUT `41.421.442-1→8`), `LocationCreateSchema` / `LocationUpdateSchema` (`address` optional, max 200); `loginSchema` / `registerSchema` |
+| Schema artifact | `pocketbase/v1.collections.json` | Versioned collections `users`, `services` (`originLocationId` indexed), `locations`, `service_events`; text FKs, indexes, tenant rules `userId = @request.auth.id`; no seed rows |
 
 ## Collections (artifact)
 
-`pocketbase/v1.collections.json` is the canonical schema. `users` (auth) fields `email`/`password`/`name`; `locations` has `name`, `userId`, `isActive`, `address` (optional), `createdAt`/`updatedAt`; `services` has `userId`, `clientName`, `product`, `locationId`, `entryDate`, `status` (`pending` default), etc.; `location_logs` has `userId`, `ServiceId`, `fromLocationId`, `toLocationId`, `changedAt`. Apply is explicit operator step (Admin UI import or hand transcription) — the Next.js process never applies schema.
+`pocketbase/v1.collections.json` is the canonical schema. `users` (auth) fields `email`/`password`/`name`; `locations` has `name`, `userId`, `isActive`, `address` (optional), `createdAt`/`updatedAt`; `services` has `userId`, `clientName`, `product`, `locationId`, `originLocationId` (immutable, indexed), `entryDate`, `status` (`pending` default), etc.; `service_events` has `userId`, `ServiceId`, `fromLocationId`, `toLocationId`, `changedAt`, `kind`. Apply is explicit operator step (Admin UI import or hand transcription) — the Next.js process never applies schema. Registro metrics: active = `pending`/`ready` at current `locationId`, completed = `originLocationId`, cancelled = neither.
 
 ## Session and tenancy
 
@@ -59,6 +60,12 @@ If any of Dashboard path, `batch.enabled`, `batch.maxRequests`, `batch.timeout`,
 - Cause: batch not enabled/configured on that PocketBase 0.40.1 deployment (`batch.enabled` is `false`).
 - Operator action: Enable via Dashboard at Settings → Application → Batch Web API: check Enable (experimental), confirm `Max requests in a batch`, `Max processing time`, `Max body size`, Save. Re-inspect via `GET /api/settings` as superuser; verify `batch.enabled` is `true` before retry. No credentials in code or logs.
 - System behavior on 403: operator-facing failure `BATCH_UNAVAILABLE` with runbook link. The system MUST NOT retry on 403 and MUST NOT fall back to sequential writes. The system MUST NOT retry and MUST NOT sequential — never send `services` update then `service_events` create as fallback; no silent sequential fallback.
+
+## Docker — worktree isolation
+
+- Host ports `APP_PORT` / `POCKETBASE_PORT` are configurable in `.env` (defaults `3000`/`8090`) to run worktrees side-by-side.
+- Volume `pocketbase-data` is project-scoped (`COMPOSE_PROJECT_NAME`, default = directory name); previously fixed `serviceflow-pocketbase-local-data` — copy once with `docker run --rm -v serviceflow-pocketbase-local-data:/from -v <project>_pocketbase-data:/to alpine cp -a /from/. /to/`.
+- Canonical mount: `./pb_hooks:/pocketbase/hooks:ro` and `./pb_migrations:/pocketbase/migrations:ro`. Build context excludes `.agents`, `.herdr`, `.codegraph`, `pb_data`, `.sdd`.
 
 ## What is NOT current
 
