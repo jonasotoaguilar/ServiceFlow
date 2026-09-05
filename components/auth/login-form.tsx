@@ -3,16 +3,26 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { loginSchema, LoginValues } from "@/lib/schemas";
-import { login } from "@/app/actions/auth";
+import { login, resendVerification } from "@/app/actions/auth";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Loader2, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { useState, useTransition } from "react";
 import { cn } from "@/lib/utils";
+import { Alert } from "@/components/ui/alert";
 
-export function LoginForm() {
+const REGISTER_CALLOUT =
+	"Te enviamos un correo de verificación. Debes verificar tu cuenta antes de iniciar sesión.";
+const RESEND_ACK =
+	"Si el correo está registrado y pendiente de verificación, te enviamos un enlace.";
+
+export function LoginForm({ registered = false }: { registered?: boolean }) {
+	const router = useRouter();
 	const [isPending, startTransition] = useTransition();
 	const [error, setError] = useState<string | null>(null);
 	const [showPassword, setShowPassword] = useState(false);
+	const [isResending, startResend] = useTransition();
+	const [resendAck, setResendAck] = useState(false);
 	const form = useForm<LoginValues>({
 		resolver: zodResolver(loginSchema),
 		defaultValues: {
@@ -33,8 +43,22 @@ export function LoginForm() {
 			if (result?.error) {
 				setError(result.error);
 			} else {
-				window.location.assign("/dashboard");
+				router.push("/dashboard");
+				router.refresh();
 			}
+		});
+	};
+
+	const handleResend = () => {
+		setResendAck(false);
+		const email = form.getValues("email");
+		startResend(async () => {
+			try {
+				await resendVerification(email);
+			} catch {
+				// Enumeration-neutral: the ack below is identical for every outcome.
+			}
+			setResendAck(true);
 		});
 	};
 
@@ -64,6 +88,12 @@ export function LoginForm() {
 					Inicia sesión para continuar en ServiceFlow
 				</p>
 			</div>
+
+			{registered && (
+				<div className="mb-6">
+					<Alert variant="info" message={REGISTER_CALLOUT} />
+				</div>
+			)}
 
 			<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
 				{/* Email Field */}
@@ -131,11 +161,7 @@ export function LoginForm() {
 					)}
 				</div>
 
-				{error && (
-					<div className="p-3 text-sm text-destructive bg-destructive/10 rounded-lg flex items-center justify-center animate-shake border border-destructive/20">
-						{error}
-					</div>
-				)}
+				{error && <Alert variant="error" message={error} />}
 
 				<button
 					type="submit"
@@ -159,6 +185,23 @@ export function LoginForm() {
 					)}
 				</button>
 			</form>
+
+			<div className="mt-4 space-y-3">
+				<button
+					type="button"
+					onClick={handleResend}
+					disabled={isResending}
+					style={{ minHeight: 44 }}
+					className="w-full min-h-[44px] py-3 px-4 border border-border bg-surface text-foreground font-semibold rounded-lg transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-[#2F5B8A] focus-visible:outline-offset-2"
+				>
+					{isResending ? (
+						<Loader2 className="w-5 h-5 animate-spin" />
+					) : (
+						<span>Reenviar correo de verificación</span>
+					)}
+				</button>
+				{resendAck && <Alert variant="info" message={RESEND_ACK} />}
+			</div>
 
 			{/* Footer Link */}
 			<div className="mt-8 pt-6 border-t border-border border-border text-center">

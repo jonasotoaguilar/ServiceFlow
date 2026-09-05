@@ -1,7 +1,7 @@
 schema: spec-driven
 
 context: |
-  Tech stack: Next.js 16 (App Router), React 19, TypeScript 5.9 (strict), Tailwind CSS 4, PocketBase 0.28.0, pnpm 11 workspace.
+   Tech stack: Next.js 16 (App Router), React 19, TypeScript 5.9 (strict), Tailwind CSS 4, PocketBase server 0.40.1 with JS SDK pocketbase ^0.28.0, pnpm 11 workspace.
   Architecture: App Router pages under app/, shared lib/ (pocketbase client, pocketbase-filter, env, schemas, auth, storage), components/ UI kit (Radix + cva + shadcn-style), zod schemas for validation.
   Testing: Vitest 4 + Testing Library (jsdom) in tests/ + Playwright E2E in e2e/ (local compose); coverage via @vitest/coverage-v8.
   Style: Biome 2.5 (biome check/lint/format), tsc --noEmit typecheck, husky + lint-staged (biome lint --write); no ESLint.

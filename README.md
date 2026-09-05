@@ -57,7 +57,9 @@ A modern web application for managing the product service lifecycle. Register se
    |---|---|---|---|
    | `POCKETBASE_URL` | Next.js app only | `http://127.0.0.1:8090` (host) / `http://pocketbase:8090` (compose network) | Only locator read by the app; validated as `http`/`https` absolute URL. |
    | `APP_PORT` / `POCKETBASE_PORT` | Compose host bindings | `3000` / `8090` | Change to run multiple worktrees in parallel without collisions. |
-   | `POCKETBASE_ADMIN_*` | `pocketbase` + `pocketbase-init` only | `admin@local.test` / `admin123456` | Local superuser for schema import; never read by Next.js; keep real `.env` gitignored. |
+    | `POCKETBASE_ADMIN_*` | `pocketbase` + `pocketbase-init` only | `admin@local.test` / `admin123456` | Local superuser for schema import; never read by Next.js; keep real `.env` gitignored. |
+    | `PB_SMTP_PASSWORD` | `pocketbase-init` only | unset (skip SMTP) | Resend API key. Unset/empty skips mail settings so default tests work; whitespace-only fails closed. Never mounted on the Next.js app. |
+    | `PB_META_APP_URL` | `pocketbase-init` only | `https://serviceflow.jonasotoaguilar.space` | Optional verification-link origin override. |
 
    No admin credentials are baked into the app image.
 
@@ -140,9 +142,13 @@ docker compose down
 
 ## Authentication & Session
 
-- **Public registration**: any user can register without an invite; `users` create `""`.
+- **Public registration**: any user can register without an invite; `users` create `""`. Registration creates an unverified account, calls `requestVerification` best-effort, sets no `pb_auth` cookie, and navigates to `/login?registered=1` where an info callout explains verification is required before sign-in.
+- **Verified-only session**: usable tokens are issued only to verified accounts (`users` `authRule: "verified = true"` plus the app guard rejecting `verified !== true` fail-closed). Unknown, wrong-password, and unverified logins share the same `Credenciales inválidas` error with an always-visible enumeration-neutral resend; no extra unverified-only copy.
+- **Verification callback**: `/verify?token={TOKEN}` is consumed server-side via `confirmVerification` and redirects to `/verify?status=ok|fail` without leaving the token in the URL or logs. Bare `/verify` fails closed.
 - **Session**: `pb_auth` cookie with `httpOnly`, `sameSite=lax`, `path=/`, `secure` in production, `expires` from JWT `exp`; value is never logged. Server validation via `authRefresh` before returning identity; forged/unreachable → `null`/401 fail-closed.
 - **Tenancy**: every list binds `userId = {:uid}` and collection rules enforce `userId = @request.auth.id`; a second tenant sees no foreign rows.
+- **Verification mail (SMTP)**: Resend SMTP is applied by `pocketbase-init` only from `PB_SMTP_PASSWORD` (required) plus optional `PB_META_APP_URL` (default `https://serviceflow.jonasotoaguilar.space`); sender `ServiceFlow <no-reply@serviceflow.jonasotoaguilar.space>`. Unset/empty password skips SMTP so default runs work; partial config fails closed. Secrets are never logged or baked into the app image.
+- **Operator-only staging check**: one `POST /api/settings/test/email` with `{ "template": "verification" }` using operator user env. It is NOT part of the default suite — `pnpm test:run` and `pnpm test:e2e` pass without SMTP and never send real mail.
 
 ## Data & Lifecycle
 

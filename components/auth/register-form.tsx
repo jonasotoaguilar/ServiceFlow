@@ -5,11 +5,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { registerSchema, RegisterValues } from "@/lib/schemas";
 import { register } from "@/app/actions/auth";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Loader2, Mail, Lock, User, Eye, EyeOff } from "lucide-react";
 import { useState, useTransition } from "react";
 import { cn } from "@/lib/utils";
 
 export function RegisterForm() {
+	const router = useRouter();
 	const [isPending, startTransition] = useTransition();
 	const [error, setError] = useState<string | null>(null);
 	const [showPassword, setShowPassword] = useState(false);
@@ -35,7 +37,8 @@ export function RegisterForm() {
 			if (result?.error) {
 				setError(result.error);
 			} else {
-				window.location.assign("/dashboard");
+				router.push("/login?registered=1");
+				router.refresh();
 			}
 		});
 	};

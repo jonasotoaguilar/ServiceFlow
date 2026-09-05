@@ -1,4 +1,5 @@
 import { test, expect } from "./pb-admin";
+import { markUserVerified } from "./pb-admin";
 
 const pw = "E2eTest123!";
 const uid = `${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 1000)}`;
@@ -10,12 +11,47 @@ const invoice = `INV${uid}`;
 const sku = `SKU${uid}`;
 const client = `Cliente ${uid}`;
 
-async function register(page: import("@playwright/test").Page, name: string, email: string) {
+const REGISTER_CALLOUT =
+	"Te enviamos un correo de verificación. Debes verificar tu cuenta antes de iniciar sesión.";
+
+async function noAuthCookie(page: import("@playwright/test").Page) {
+	const cookies = await page.context().cookies();
+	expect(cookies.filter((c) => c.name === "pb_auth")).toHaveLength(0);
+}
+
+async function login(page: import("@playwright/test").Page, email: string) {
+	await page.goto("/login");
+	await page.getByLabel("Correo electrónico").fill(email);
+	await page.getByLabel("Contraseña").fill(pw);
+	await page.getByRole("button", { name: /^ingresar$/i }).click();
+}
+
+async function registerVerifiesThenLogin(
+	page: import("@playwright/test").Page,
+	name: string,
+	email: string,
+) {
+	// register → login callout, no cookie, no SMTP involved
 	await page.goto("/register");
 	await page.getByLabel("Nombre Completo").fill(name);
 	await page.getByLabel("Correo Electrónico").fill(email);
 	await page.getByLabel("Contraseña", { exact: true }).fill(pw);
 	await page.getByRole("button", { name: "Registrarse" }).click();
+	await expect(page).toHaveURL(/\/login\?registered=1/, { timeout: 20000 });
+	await expect(page.getByText(REGISTER_CALLOUT).first()).toBeVisible({ timeout: 10000 });
+	await noAuthCookie(page);
+
+	// unverified login is denied with the neutral error and the same resend
+	await login(page, email);
+	await expect(page.getByText("Credenciales inválidas").first()).toBeVisible({
+		timeout: 15000,
+	});
+	await expect(page.getByRole("button", { name: /reenviar/i }).first()).toBeVisible();
+	await noAuthCookie(page);
+
+	// superuser verifies without SMTP, then login reaches the dashboard
+	await markUserVerified(email);
+	await login(page, email);
 	await expect(page.getByRole("link", { name: "Servicios" }).first()).toBeVisible({
 		timeout: 20000,
 	});
@@ -55,9 +91,11 @@ async function selectLocationInModal(modal: import("@playwright/test").Locator, 
 	await expect(trigger).toContainText(target, { timeout: 5000 });
 }
 
-test("smoke: register → location → service → move → history → isolation", async ({ page }) => {
-	await test.step("register then login user A", async () => {
-		await register(page, userA.name, userA.email);
+test("smoke: register → verify → location → service → move → history → isolation", async ({
+	page,
+}) => {
+	await test.step("register user A, unverified denied, verified dashboard", async () => {
+		await registerVerifiesThenLogin(page, userA.name, userA.email);
 	});
 
 	await test.step("empty state notice if present", async () => {
@@ -167,7 +205,7 @@ test("smoke: register → location → service → move → history → isolatio
 
 	await test.step("logout and second user isolation", async () => {
 		await logout(page);
-		await register(page, userB.name, userB.email);
+		await registerVerifiesThenLogin(page, userB.name, userB.email);
 		await page.goto("/locations");
 		await expect(page.getByText(locA)).toBeHidden({ timeout: 5000 });
 		await expect(page.getByText(locB)).toBeHidden({ timeout: 5000 });
