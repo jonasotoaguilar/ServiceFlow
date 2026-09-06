@@ -37,12 +37,20 @@ function VerifyCard({ status }: { status: "ok" | "fail" }) {
 							: "El enlace no es válido o expiró. Solicita uno nuevo e inicia sesión."
 					}
 				/>
-				<Link
-					href="/login"
-					className="font-semibold text-primary hover:text-blue-400 transition-colors min-h-[44px] inline-flex items-center focus-visible:outline-2 focus-visible:outline-[#2F5B8A] focus-visible:outline-offset-2"
-				>
-					Inicia sesión
-				</Link>
+				<div className="flex flex-col items-center gap-3">
+					<Link
+						href="/resend-verification"
+						className="font-semibold text-primary hover:text-blue-400 transition-colors min-h-[44px] inline-flex items-center focus-visible:outline-2 focus-visible:outline-[#2F5B8A] focus-visible:outline-offset-2"
+					>
+						Solicitar un nuevo enlace
+					</Link>
+					<Link
+						href="/login"
+						className="text-sm text-foreground-muted hover:text-foreground transition-colors min-h-[44px] inline-flex items-center focus-visible:outline-2 focus-visible:outline-[#2F5B8A] focus-visible:outline-offset-2"
+					>
+						Inicia sesión
+					</Link>
+				</div>
 			</div>
 		</main>
 	);

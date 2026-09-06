@@ -15,8 +15,8 @@
       "deleteRule": null,
       "authRule": "verified = true",
       "verificationTemplate": {
-        "subject": "Verify your {APP_NAME} email",
-        "body": "<p>Hello,</p>\n<p>Thank you for joining us at {APP_NAME}.</p>\n<p>Click on the button below to verify your email address.</p>\n<p>\n  <a class=\"btn\" href=\"{APP_URL}/verify?token={TOKEN}\" target=\"_blank\" rel=\"noopener\">Verify</a>\n</p>\n<p><i>If you didn't recently register, please ignore this email.</i></p>\n<p>\n  Thanks,<br/>\n  {APP_NAME} team\n</p>"
+        "subject": "Verifica tu correo de {APP_NAME}",
+        "body": "<p>Hola,</p>\n<p>Gracias por registrarte en {APP_NAME}.</p>\n<p>Pulsa el siguiente botón para verificar tu dirección de correo.</p>\n<p>\n  <a class=\"btn\" href=\"{APP_URL}/verify?token={TOKEN}\" target=\"_blank\" rel=\"noopener\">Verificar</a>\n</p>\n<p><i>Si no te registraste recientemente, ignora este correo.</i></p>\n<p>Si no lo ves en unos minutos, revisa Spam o Correo no deseado.</p>\n<p>\n  Gracias,<br/>\n  El equipo de {APP_NAME}\n</p>"
       },
       "indexes": [],
       "id": "_pb_users_auth_"

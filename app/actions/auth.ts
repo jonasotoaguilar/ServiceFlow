@@ -1,9 +1,8 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { z } from "zod";
 import { createPocketBaseClient, saveAuthCookie, clearAuthCookie } from "@/lib/pocketbase";
-import { loginSchema, registerSchema } from "@/lib/schemas";
+import { loginSchema, registerSchema, resendVerificationSchema } from "@/lib/schemas";
 import { ensureDefaultLocation } from "@/lib/locations";
 
 export async function login(formData: FormData) {
@@ -89,13 +88,13 @@ export async function register(formData: FormData) {
 }
 
 export async function resendVerification(email: string) {
-	const parsed = z.string().email({ message: "Correo electrónico inválido" }).safeParse(email);
+	const parsed = resendVerificationSchema.safeParse({ email });
 	if (!parsed.success) {
 		return { error: parsed.error.issues[0]?.message ?? "Correo electrónico inválido" };
 	}
 	try {
 		const pb = await createPocketBaseClient();
-		await pb.collection("users").requestVerification(parsed.data);
+		await pb.collection("users").requestVerification(parsed.data.email);
 	} catch {
 		// Enumeration-neutral: unknown, unverified, and already-verified
 		// outcomes share the same observable result.
