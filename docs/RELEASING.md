@@ -57,5 +57,5 @@ To roll back a deployment, redeploy by the immutable prior digest recorded befor
 
 - Workflow: `.github/workflows/release.yml`
 - Hooks: `scripts/release-preflight`, `scripts/release-publish`, `scripts/release-verify`
-- Current notes: `docs/releases/v2.1.0.md`
+- Current notes: `docs/releases/v2.2.0.md`
 - Image: `ghcr.io/jonasotoaguilar/serviceflow`
