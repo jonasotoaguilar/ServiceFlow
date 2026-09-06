@@ -41,12 +41,21 @@ async function registerVerifiesThenLogin(
 	await expect(page.getByText(REGISTER_CALLOUT).first()).toBeVisible({ timeout: 10000 });
 	await noAuthCookie(page);
 
-	// unverified login is denied with the neutral error and the same resend
+	// unverified login is denied with the neutral error; resend lives on its own page
 	await login(page, email);
 	await expect(page.getByText("Credenciales inválidas").first()).toBeVisible({
 		timeout: 15000,
 	});
-	await expect(page.getByRole("button", { name: /reenviar/i }).first()).toBeVisible();
+	await expect(page.getByRole("button", { name: /reenviar/i })).toBeHidden();
+	const resendLink = page.getByRole("link", { name: /reenviar verificación/i });
+	await expect(resendLink).toBeVisible();
+	await resendLink.click();
+	await expect(page).toHaveURL(/\/resend-verification/, { timeout: 10000 });
+	// empty submit stays disabled; a syntactically valid email enables it (never submitted)
+	const resendSubmit = page.getByRole("button", { name: /enviar enlace/i });
+	await expect(resendSubmit).toBeDisabled();
+	await page.getByLabel("Correo electrónico").fill(`resend-${uid}@example.com`);
+	await expect(resendSubmit).toBeEnabled();
 	await noAuthCookie(page);
 
 	// superuser verifies without SMTP, then login reaches the dashboard
