@@ -61,45 +61,14 @@ describe("Phase 3 RED: verification UI contract", () => {
 		).toBeNull();
 	});
 
-	it("LoginForm always offers resend and acks enumeration-neutrally", async () => {
-		vi.mocked(authActions.resendVerification).mockResolvedValue({ ok: true } as never);
+	it("LoginForm keeps login focused: no resend button, discreet resend link", () => {
 		render(<LoginForm registered />);
-
-		const resend = screen.getByRole("button", {
-			name: /reenviar/i,
-		});
-		expect(resend).toBeInTheDocument();
-		// 44px minimum hit target is exposed as an inline style so jsdom can observe it
-		expect(resend.style.minHeight).toBe("44px");
-		// keyboard reachable: native button receives focus
-		resend.focus();
-		expect(document.activeElement).toBe(resend);
-
-		fireEvent.click(resend);
-		await waitFor(() => {
-			expect(
-				screen.getByText(
-					"Si el correo está registrado y pendiente de verificación, te enviamos un enlace.",
-				),
-			).toBeInTheDocument();
-		});
+		expect(screen.queryByRole("button", { name: /reenviar/i })).toBeNull();
+		const link = screen.getByRole("link", { name: /reenviar verificación/i });
+		expect(link).toHaveAttribute("href", "/resend-verification");
 	});
 
-	it("LoginForm resend failure shows the same neutral ack (triangulation)", async () => {
-		vi.mocked(authActions.resendVerification).mockRejectedValueOnce(new Error("transport"));
-		render(<LoginForm />);
-		const resend = screen.getByRole("button", { name: /reenviar/i });
-		fireEvent.click(resend);
-		await waitFor(() => {
-			expect(
-				screen.getByText(
-					"Si el correo está registrado y pendiente de verificación, te enviamos un enlace.",
-				),
-			).toBeInTheDocument();
-		});
-	});
-
-	it("Login failure stays Credenciales inválidas with resend visible", async () => {
+	it("Login failure stays Credenciales inválidas with discreet resend link", async () => {
 		vi.mocked(authActions.login).mockResolvedValue({
 			error: "Credenciales inválidas",
 		} as never);
@@ -117,8 +86,12 @@ describe("Phase 3 RED: verification UI contract", () => {
 		});
 		// no extra unverified-only copy
 		expect(screen.queryByText(/verifica tu cuenta/i)).toBeNull();
-		// resend stays visible alongside the failure
-		expect(screen.getByRole("button", { name: /reenviar/i })).toBeInTheDocument();
+		// resend lives only as a discreet footer link, never a button
+		expect(screen.queryByRole("button", { name: /reenviar/i })).toBeNull();
+		expect(screen.getByRole("link", { name: /reenviar verificación/i })).toHaveAttribute(
+			"href",
+			"/resend-verification",
+		);
 	});
 
 	it("Register success navigates to /login?registered=1 and refreshes", async () => {
@@ -164,6 +137,8 @@ describe("Phase 3 RED: verification UI contract", () => {
 		expect(src).toContain("El enlace no es válido o expiró. Solicita uno nuevo e inicia sesión.");
 		expect(src).toContain('href="/login"');
 		expect(src).toContain("Inicia sesión");
+		expect(src).toContain('href="/resend-verification"');
+		expect(src).toContain("Solicitar un nuevo enlace");
 		expect(src).not.toMatch(/console\.(log|error|warn|info|debug)/);
 	});
 });

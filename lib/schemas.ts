@@ -15,6 +15,12 @@ export const registerSchema = z.object({
 export type LoginValues = z.infer<typeof loginSchema>;
 export type RegisterValues = z.infer<typeof registerSchema>;
 
+export const resendVerificationSchema = z.object({
+	email: z.string().email({ message: "Correo electrónico inválido" }),
+});
+
+export type ResendVerificationValues = z.infer<typeof resendVerificationSchema>;
+
 export const ServiceSchema = z.object({
 	id: z.string().optional(),
 	invoiceNumber: z

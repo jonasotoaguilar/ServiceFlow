@@ -174,4 +174,18 @@ describe("schema artifact", () => {
 		const body: string = u.verificationTemplate?.body ?? "";
 		expect(body).not.toContain("/_/#/auth/confirm-verification/");
 	});
+	it("users verification template is neutral Spanish with placeholders intact", () => {
+		const { cols } = load();
+		const u = cols.find((c: any) => c.name === "users");
+		const subject: string = u.verificationTemplate?.subject ?? "";
+		const body: string = u.verificationTemplate?.body ?? "";
+		expect(subject).toContain("Verifica tu correo");
+		expect(body).toContain("Gracias por registrarte");
+		expect(body).toContain("Spam o Correo no deseado");
+		for (const token of ["{APP_NAME}", "{APP_URL}", "{TOKEN}"]) {
+			expect(body).toContain(token);
+		}
+		expect(body).toContain('target="_blank" rel="noopener"');
+		expect(body).not.toMatch(/Hello|Thank you for joining|Click on the button/);
+	});
 });
