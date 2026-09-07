@@ -6,7 +6,7 @@
 # three executable hooks under scripts/; the workflow owns the release
 # contract around them:
 #
-#   preflight -> publication -> verification
+#   preflight -> per-arch builds -> publication -> verification
 #
 # Contract preserved in this template:
 #   - Stable version-tag trigger only: exact stable tags (vX.Y.Z) trigger the
@@ -16,12 +16,18 @@
 #     job-scoped write capability (`contents: write`) on the publication job.
 #   - Concurrency grouped per tag with `cancel-in-progress: false`: a second
 #     run on the same tag waits instead of cancelling the in-flight release.
-#   - Bounded jobs in strict order (preflight -> publication -> verification),
-#     each with an explicit timeout.
+#   - Bounded jobs in strict order (preflight -> per-arch builds in parallel
+#     -> publication/manifest -> verification), each with an explicit timeout.
+#     The publication job keeps timeout-minutes: 45. Per-arch build jobs use a
+#     smaller timeout-minutes plus a `timeout(1)` fail-fast inside the publish
+#     hook so a hang fails before consuming the outer 45 minute limit.
+#     Native runners only: amd64 builds on ubuntu-24.04, arm64 builds on
+#     ubuntu-24.04-arm. No QEMU emulation anywhere in this workflow.
 #   - Exact-tag checkout with full history and tags and no persisted checkout
 #     credentials in every job.
-#   - Preflight and verification are read-only. Publication is the only
-#     write-capable job and runs in the protected `release` environment.
+#   - Preflight and verification are read-only. Per-arch builds (packages:
+#     write) and publication (contents + packages: write) run in the protected
+#     `release` environment.
 #
 # ADAPTATION (required before use — the project supplies the hooks):
 #   The consuming project MUST provide three executable scripts (any language,
@@ -136,8 +142,104 @@ jobs:
           fi
           ./scripts/release-preflight
 
-  release:
+  build-amd64:
     needs: preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    # Protected environment: per-arch images are publication artifacts, so the
+    # same release gate applies as for the manifest job.
+    environment: release
+    permissions:
+      contents: read
+      packages: write
+    env:
+      # Blank out the runner's auto-injected token: only the build hook step
+      # opts back in.
+      GITHUB_TOKEN: ""
+    steps:
+      - name: Checkout exact tag
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          persist-credentials: false
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Run release per-arch build
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_COMMIT: ${{ github.sha }}
+          RELEASE_REPOSITORY: ${{ github.repository }}
+          RELEASE_ARCH: amd64
+        run: |
+          set -euo pipefail
+          if [[ ! -x ./scripts/release-publish ]]; then
+            echo "::error::Project hook missing: scripts/release-publish is not present or not executable — see the ADAPTATION note at the top of this file."
+            exit 1
+          fi
+          ./scripts/release-publish
+
+      - name: Remove release credentials and material from the runner
+        if: always()
+        run: |
+          rm -rf -- "$RUNNER_TEMP/release-material"
+          test ! -e "$RUNNER_TEMP/release-material"
+
+  build-arm64:
+    needs: preflight
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    # Protected environment: per-arch images are publication artifacts, so the
+    # same release gate applies as for the manifest job.
+    environment: release
+    permissions:
+      contents: read
+      packages: write
+    env:
+      # Blank out the runner's auto-injected token: only the build hook step
+      # opts back in.
+      GITHUB_TOKEN: ""
+    steps:
+      - name: Checkout exact tag
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          persist-credentials: false
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Run release per-arch build
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_COMMIT: ${{ github.sha }}
+          RELEASE_REPOSITORY: ${{ github.repository }}
+          RELEASE_ARCH: arm64
+        run: |
+          set -euo pipefail
+          if [[ ! -x ./scripts/release-publish ]]; then
+            echo "::error::Project hook missing: scripts/release-publish is not present or not executable — see the ADAPTATION note at the top of this file."
+            exit 1
+          fi
+          ./scripts/release-publish
+
+      - name: Remove release credentials and material from the runner
+        if: always()
+        run: |
+          rm -rf -- "$RUNNER_TEMP/release-material"
+          test ! -e "$RUNNER_TEMP/release-material"
+
+  release:
+    needs: [preflight, build-amd64, build-arm64]
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     # Protected environment: the consuming project creates it and attaches the
@@ -158,26 +260,22 @@ jobs:
           fetch-tags: true
           persist-credentials: false
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v4
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
         env:
           GITHUB_TOKEN: ${{ github.token }}
 
-      # Project hook: the single write-capable step. Build, package, sign, and
-      # publish the release. Replace with the project's own script. The
-      # project's publisher tokens and secrets belong in this step's env: block
-      # and nowhere else.
+      # Project hook: the single write-capable step. Assemble the multi-arch
+      # manifest from the native per-arch images and publish the release.
+      # The project's publisher tokens and secrets belong in this step's env:
+      # block and nowhere else.
       - name: Run release publication hook
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.ref_name }}
           RELEASE_COMMIT: ${{ github.sha }}
           RELEASE_REPOSITORY: ${{ github.repository }}
+          RELEASE_ARCH: manifest
           # Project-specific publisher tokens/secrets are added here by the
           # consuming project, for example:
           # PUBLISH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
